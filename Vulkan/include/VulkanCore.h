@@ -25,13 +25,7 @@
 #include "DescriptorSet.h"
 #include "Image.h"
 #include "SyncObject.h"
-
-
-
-
-
-
-
+#include "Core/Vertex.h"
 
 
 namespace KGR

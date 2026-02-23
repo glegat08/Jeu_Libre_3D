@@ -163,12 +163,7 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 
 void KGR::_Vulkan::VulkanCore::mainLoop()
 {
-	while (!glfwWindowShouldClose(window))
-	{
-		glfwPollEvents();
-		drawFrame();
-	}
-
+	drawFrame();
 	device.Get().waitIdle();
 }
 
@@ -292,7 +287,7 @@ void KGR::_Vulkan::VulkanCore::LoadModel()
 
 	//auto& obj = TOLManager::Load("Models\\briet_claire_decorsfantasy_grpB.obj");
 	for (auto& v : obj.vertices)
-		vertices.emplace_back(v.pos,v.color,v.texCoord);
+		vertices.emplace_back(v.pos,glm::vec3(), glm::vec4{ v.color.x, v.color.y, v.color.z, 1.0f }, v.texCoord);
 	for (auto& i : obj.indices)
 		indices.push_back(i);
 }
@@ -410,9 +405,10 @@ void KGR::_Vulkan::VulkanCore::drawFrame()
 
 	updateUniformBuffer(syncObject.GetCurrentFrame());
 	BeginRendering();
-
+	
 	m_currentBuffer->bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
 	m_currentBuffer->bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
+	m_currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, glm::mat4(1));
 	m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
 	m_currentBuffer->drawIndexed(indices.size(), 1, 0, 0, 0);
 

@@ -112,10 +112,11 @@ public:
 
 	// FULL TRANSFORM
 	glm::mat4 GetFullTransform();
+	bool IsDirty() const;
 private:
 	void UpdateEulerAngle();
 	void UpdateQuaternion();
-	bool IsDirty() const;
+	
 	DataDirty<glm::quat> m_rotation = {true,glm::quat{1,0,0,0}};
 	 glm::mat4 m_rotationMat = glm::mat4{1.0f};
 	 glm::vec3 m_eulerAngle = glm::vec3{0,0,0};
