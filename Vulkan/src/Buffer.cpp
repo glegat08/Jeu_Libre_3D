@@ -104,5 +104,3 @@ void KGR::_Vulkan::Buffer::UnMapMemory()
 	m_bufferMemory.unmapMemory();
 	dest = nullptr;
 }
-
-
