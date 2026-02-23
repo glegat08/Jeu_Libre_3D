@@ -41,6 +41,10 @@ namespace KGR
 		class VulkanCore
 		{
 		public:
+			/**
+			 * @brief 
+			 * @param window 
+			 */
 			VulkanCore(GLFWwindow* window);
 			void initVulkan();
 			void mainLoop();
