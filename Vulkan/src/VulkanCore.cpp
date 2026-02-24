@@ -160,12 +160,7 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 
 void KGR::_Vulkan::VulkanCore::mainLoop()
 {
-	while (!glfwWindowShouldClose(window))
-	{
-		glfwPollEvents();
-		drawFrame();
-	}
-
+	drawFrame();
 	device.Get().waitIdle();
 }
 
@@ -281,7 +276,7 @@ void KGR::_Vulkan::VulkanCore::LoadModel()
 
 	//auto& obj = TOLManager::Load("Models\\briet_claire_decorsfantasy_grpB.obj");
 	for (auto& v : obj.vertices)
-		vertices.emplace_back(v.pos,v.color,v.texCoord);
+		vertices.emplace_back(v.pos,glm::vec3(), glm::vec4{ v.color.x, v.color.y, v.color.z, 1.0f }, v.texCoord);
 	for (auto& i : obj.indices)
 		indices.push_back(i);
 }
@@ -336,62 +331,73 @@ std::uint32_t KGR::_Vulkan::VulkanCore::PresentImage()
 
 void KGR::_Vulkan::VulkanCore::drawFrame()
 {
-	// Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by frameIndex,
-	//       while renderFinishedSemaphores is indexed by imageIndex
-	auto fenceResult = device.Get().waitForFences(*syncObject.GetCurrentFence(), vk::True, UINT64_MAX);
-	device.Get().resetFences(*syncObject.GetCurrentFence());
+	//// Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by frameIndex,
+	////       while renderFinishedSemaphores is indexed by imageIndex
+	//auto fenceResult = device.Get().waitForFences(*syncObject.GetCurrentFence(), vk::True, UINT64_MAX);
+	//device.Get().resetFences(*syncObject.GetCurrentFence());
 
-	if (fenceResult != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("failed to wait for fence!");
-	}
+	//if (fenceResult != vk::Result::eSuccess)
+	//{
+	//	throw std::runtime_error("failed to wait for fence!");
+	//}
 
-	std::uint32_t result = syncObject.AcquireNextImage(&swapChain,&device);
+	//std::uint32_t result = syncObject.AcquireNextImage(&swapChain,&device);
 
-	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
-	// here and does not need to be caught by an exception.
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	{
-		recreateSwapChain();
-		return;
-	}
-	// On other success codes than eSuccess and eSuboptimalKHR we just throw an exception.
+	//// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
+	//// here and does not need to be caught by an exception.
+	//if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+	//{
+	//	recreateSwapChain();
+	//	return;
+	//}
+	//// On other success codes than eSuccess and eSuboptimalKHR we just throw an exception.
 
 
-	// Only reset the fence if we are submitting work
-	auto& buffer = commandBuffers.Acquire(&device);
-	buffer.reset();
+	//// Only reset the fence if we are submitting work
+	//auto& buffer = commandBuffers.Acquire(&device);
+	//buffer.reset();
 
+
+	//updateUniformBuffer(syncObject.GetCurrentFrame());
+	//recordCommandBuffer(syncObject.GetCurrentImage(), buffer);
+
+	//vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	//const auto submitInfo = vk::SubmitInfo{
+	//		   .waitSemaphoreCount = 1,
+	//		   .pWaitSemaphores = &*syncObject.GetCurrentPresentSemaphore(),
+	//		   .pWaitDstStageMask = &waitDestinationStageMask,
+	//		   .commandBufferCount = 1,
+	//		   .pCommandBuffers = &*buffer,
+	//		   .signalSemaphoreCount = 1,
+	//		   .pSignalSemaphores = &*syncObject.GetCurrentRenderSemaphore(),
+	//};
+
+	//device.Get().resetFences({ commandBuffers.GetFence(buffer) });
+	//queue.Get().submit(submitInfo, commandBuffers.GetFence(buffer));
+
+	//
+	//queue.Get().submit({}, *syncObject.GetCurrentFence());
+
+	//result = PresentImage();
+	//// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
+	//// here and does not need to be caught by an exception.
+	//if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+	//{
+	//	recreateSwapChain();
+	//}
+	//commandBuffers.ReleaseCommandBuffer(buffer);
+	//syncObject.IncrementFrame();
 
 	updateUniformBuffer(syncObject.GetCurrentFrame());
-	recordCommandBuffer(syncObject.GetCurrentImage(), buffer);
-
-	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-	const auto submitInfo = vk::SubmitInfo{
-			   .waitSemaphoreCount = 1,
-			   .pWaitSemaphores = &*syncObject.GetCurrentPresentSemaphore(),
-			   .pWaitDstStageMask = &waitDestinationStageMask,
-			   .commandBufferCount = 1,
-			   .pCommandBuffers = &*buffer,
-			   .signalSemaphoreCount = 1,
-			   .pSignalSemaphores = &*syncObject.GetCurrentRenderSemaphore(),
-	};
-
-	device.Get().resetFences({ commandBuffers.GetFence(buffer) });
-	queue.Get().submit(submitInfo, commandBuffers.GetFence(buffer));
-
+	BeginRendering();
 	
-	queue.Get().submit({}, *syncObject.GetCurrentFence());
+	m_currentBuffer->bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
+	m_currentBuffer->bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
+	m_currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, glm::mat4(1));
+	m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
+	m_currentBuffer->drawIndexed(indices.size(), 1, 0, 0, 0);
 
-	result = PresentImage();
-	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
-	// here and does not need to be caught by an exception.
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	{
-		recreateSwapChain();
-	}
-	commandBuffers.ReleaseCommandBuffer(buffer);
-	syncObject.IncrementFrame();
+	EndRendering();
 }
 
 void KGR::_Vulkan::VulkanCore::transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout,
@@ -524,6 +530,134 @@ void KGR::_Vulkan::VulkanCore::createTextureSampler()
 	textureSampler = vk::raii::Sampler(device.Get(), samplerInfo);
 }
 
+void KGR::_Vulkan::VulkanCore::BeginRendering()
+{
+	// Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by frameIndex,
+	//       while renderFinishedSemaphores is indexed by imageIndex
+	auto fenceResult = device.Get().waitForFences(*syncObject.GetCurrentFence(), vk::True, UINT64_MAX);
+	device.Get().resetFences(*syncObject.GetCurrentFence());
+
+	if (fenceResult != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("failed to wait for fence!");
+	}
+
+	std::uint32_t result = syncObject.AcquireNextImage(&swapChain, &device);
+
+	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
+	// here and does not need to be caught by an exception.
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+	{
+		recreateSwapChain();
+		return;
+	}
+	// On other success codes than eSuccess and eSuboptimalKHR we just throw an exception.
+
+
+	// Only reset the fence if we are submitting work
+	m_currentBuffer = &commandBuffers.Acquire(&device);
+	m_currentBuffer->reset();
+	
+
+
+
+	
+	m_currentBuffer->begin({});
+	// Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
+	transition_image_layout(
+		swapChain.GetImages()[syncObject.GetCurrentImage()],
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eColorAttachmentOptimal,
+		{},                                                        // srcAccessMask (no need to wait for previous operations)
+		vk::AccessFlagBits2::eColorAttachmentWrite,                // dstAccessMask
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // dstStage
+		vk::ImageAspectFlagBits::eColor, *m_currentBuffer);
+	// Transition depth image to depth attachment optimal layout
+	transition_image_layout(
+		*depthImage.Get(),
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eDepthAttachmentOptimal,
+		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+		vk::ImageAspectFlagBits::eDepth, *m_currentBuffer);
+
+	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+	vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
+
+	vk::RenderingAttachmentInfo colorAttachmentInfo = {
+		.imageView = swapChainImageViews.Get()[syncObject.GetCurrentImage()],
+		.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+		.loadOp = vk::AttachmentLoadOp::eClear,
+		.storeOp = vk::AttachmentStoreOp::eStore,
+		.clearValue = clearColor };
+
+	vk::RenderingAttachmentInfo depthAttachmentInfo = {
+		.imageView = depthImage.GetView(),
+		.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+		.loadOp = vk::AttachmentLoadOp::eClear,
+		.storeOp = vk::AttachmentStoreOp::eDontCare,
+		.clearValue = clearDepth };
+
+	vk::RenderingInfo renderingInfo = {
+		.renderArea = {.offset = {0, 0}, .extent = swapChain.GetExtend()},
+		.layerCount = 1,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAttachmentInfo,
+		.pDepthAttachment = &depthAttachmentInfo };
+	m_currentBuffer->beginRendering(renderingInfo);
+	m_currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline.Get());
+	m_currentBuffer->setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.GetExtend().width), static_cast<float>(swapChain.GetExtend().height), 0.0f, 1.0f));
+	m_currentBuffer->setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.GetExtend()));
+
+}
+
+void KGR::_Vulkan::VulkanCore::EndRendering()
+{
+	m_currentBuffer->endRendering();
+	// After rendering, transition the swapchain image to PRESENT_SRC
+	transition_image_layout(
+		swapChain.GetImages()[syncObject.GetCurrentImage()],
+		vk::ImageLayout::eColorAttachmentOptimal,
+		vk::ImageLayout::ePresentSrcKHR,
+		vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
+		{},                                                        // dstAccessMask
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
+		vk::PipelineStageFlagBits2::eBottomOfPipe,                 // dstStage
+		vk::ImageAspectFlagBits::eColor, *m_currentBuffer);
+	m_currentBuffer->end();
+
+
+	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	const auto submitInfo = vk::SubmitInfo{
+			   .waitSemaphoreCount = 1,
+			   .pWaitSemaphores = &*syncObject.GetCurrentPresentSemaphore(),
+			   .pWaitDstStageMask = &waitDestinationStageMask,
+			   .commandBufferCount = 1,
+			   .pCommandBuffers = &*(*m_currentBuffer),
+			   .signalSemaphoreCount = 1,
+			   .pSignalSemaphores = &*syncObject.GetCurrentRenderSemaphore(),
+	};
+
+	device.Get().resetFences({ commandBuffers.GetFence(*m_currentBuffer) });
+	queue.Get().submit(submitInfo, commandBuffers.GetFence(*m_currentBuffer));
+
+
+	queue.Get().submit({}, *syncObject.GetCurrentFence());
+
+	auto result = PresentImage();
+	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
+	// here and does not need to be caught by an exception.
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+	{
+		recreateSwapChain();
+	}
+	commandBuffers.ReleaseCommandBuffer(*m_currentBuffer);
+	syncObject.IncrementFrame();
+}
+
 bool KGR::_Vulkan::VulkanCore::hasStencilComponent(vk::Format format)
 {
 	return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
@@ -542,7 +676,7 @@ void KGR::_Vulkan::VulkanCore::updateUniformBuffer(uint32_t currentImage)
 	ubo.view = lookAt(glm::vec3(0.0f, 0.0f, 2.0f)
 	               ,glm::vec3(0.0f, 0.0f, 0.0f)
 	                 , glm::vec3(0.0f, 1.0f, 0.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChain.GetExtend().width) / static_cast<float>(swapChain.GetExtend().height), 0.1f, 10.0f);
+	ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChain.GetExtend().width ) / static_cast<float>(swapChain.GetExtend().height), 0.1f, 10.0f);
 	ubo.proj[1][1] *= -1;
 
 	uniformBuffers[currentImage].Upload(&ubo, sizeof(ubo));

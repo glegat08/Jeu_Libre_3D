@@ -63,14 +63,7 @@ void TransformComponent::SetOrientation(const glm::quat& other)
 	m_rotation.isDirty = true;
 }
 
-void TransformComponent::LookAt(const glm::vec3& target)
-{
-	glm::vec3 forward = glm::normalize(target - m_position.data);
-	m_rotation.data = glm::quatLookAt(forward,RotData::ToVector<RotData::Dir::Up>() );
-	UpdateEulerAngle();
-	m_rotation.isDirty = true;
 
-}
 
 glm::vec3 TransformComponent::GetRotation() const
 {

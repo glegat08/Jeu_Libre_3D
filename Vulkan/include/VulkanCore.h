@@ -25,13 +25,7 @@
 #include "DescriptorSet.h"
 #include "Image.h"
 #include "SyncObject.h"
-
-
-
-
-
-
-
+#include "Core/Vertex.h"
 
 
 namespace KGR
@@ -41,6 +35,10 @@ namespace KGR
 		class VulkanCore
 		{
 		public:
+			/**
+			 * @brief 
+			 * @param window 
+			 */
 			VulkanCore(GLFWwindow* window);
 			void initVulkan();
 			void mainLoop();
@@ -66,6 +64,9 @@ namespace KGR
 
 			// to move 
 			void	createTextureSampler();
+
+			void BeginRendering();
+			void EndRendering();
 
 
 			// never Use !!!
@@ -113,6 +114,8 @@ namespace KGR
 
 			std::vector<Vertex> vertices;
 			std::vector<uint32_t> indices;
+
+			vk::raii::CommandBuffer* m_currentBuffer;
 		};
 	}
 }

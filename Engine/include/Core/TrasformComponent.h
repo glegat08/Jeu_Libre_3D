@@ -11,6 +11,21 @@ struct DataDirty
 	T data = T{};
 };
 
+struct Rep
+{
+	static constexpr glm::vec3 up = {0,1,0};
+	static constexpr glm::vec3 right = {1,0,0};
+	static constexpr glm::vec3 forward = {0,0,1};
+};
+
+template<typename Type>
+concept IsValidRep = requires
+{
+	{ Type::up }-> std::same_as <const  glm::vec3&>;
+	{ Type::right }-> std::same_as < const  glm::vec3&>;
+	{ Type::forward }-> std::same_as < const  glm::vec3&>;
+};
+
 struct RotData
 {
 	enum class Dir
@@ -22,21 +37,21 @@ struct RotData
 		Left,
 		Right
 	};
-	template<Dir dir>
+	template<Dir dir , IsValidRep rep = Rep>
 	static glm::vec3 ToVector()
 	{
-		if		constexpr (dir == Dir::Up)
-			return { 0,1,0 };
+		if	constexpr (dir == Dir::Up)
+			return glm::normalize(rep::up);
 		else if constexpr (dir == Dir::Down)
-			return { 0,-1,0 };
+			return glm::normalize(-1 * rep::up);
 		else if constexpr (dir == Dir::Forward)
-			return { 0,0,1 };
+			return glm::normalize(rep::forward);
 		else if constexpr (dir == Dir::Backward)
-			return { 0,0,-1 };
+			return glm::normalize(-1 * rep::forward);
 		else if constexpr (dir == Dir::Right)
-			return { 1,0,0 };
+			return glm::normalize(rep::right);
 		else 
-			return { -1,0,0 };
+			return glm::normalize(-1 * rep::right);
 	}
 
 	enum class Orientation
@@ -45,17 +60,19 @@ struct RotData
 		Pitch,
 		Roll
 	};
-	template<Orientation orientation>
+	template<Orientation orientation, IsValidRep rep = Rep>
 	static glm::vec3 ToAxes()
 	{
-		if		constexpr (orientation == Orientation::Pitch)
-			return { 1,0,0 };
+		if	constexpr (orientation == Orientation::Pitch)
+			return glm::normalize(rep::right);
 		else if constexpr (orientation == Orientation::Yaw)
-			return { 0,1, 0 };
+			return glm::normalize(rep::up);
 		else 
-			return { 0,0,1 };
+			return glm::normalize(rep::forward);
 	}
 };
+
+
 
 
 class TransformComponent
@@ -75,62 +92,71 @@ public:
 	// ORIENTATION
 	glm::quat GetOrientation() const;
 	void SetOrientation(const glm::quat& other);
-	template<RotData::Orientation orientation>
+	template<RotData::Orientation orientation, IsValidRep rep = Rep>
 	void RotateQuat(float angleRad);
+	template<IsValidRep rep = Rep>
 	void LookAt(const glm::vec3& target);
+
 
 	// ROTATION 
 	glm::vec3 GetRotation() const;
 	void SetRotation(const glm::vec3& other);
-	template<RotData::Orientation orientation>
+	template<RotData::Orientation orientation, IsValidRep rep = Rep>
 	void RotateEuler(float angleRad);
 
 	glm::mat4 GetRotationMatrix();
 
 	// AXES
-	template<RotData::Dir dir>
+	template<RotData::Dir dir, IsValidRep rep = Rep>
 	glm::vec3 GetLocalAxe() const;
 
 	// FULL TRANSFORM
 	glm::mat4 GetFullTransform();
+	bool IsDirty() const;
 private:
 	void UpdateEulerAngle();
 	void UpdateQuaternion();
-	bool IsDirty() const;
+	
 	DataDirty<glm::quat> m_rotation = {true,glm::quat{1,0,0,0}};
 	 glm::mat4 m_rotationMat = glm::mat4{1.0f};
 	 glm::vec3 m_eulerAngle = glm::vec3{0,0,0};
 	DataDirty<glm::vec3> m_position = { true,glm::vec3{0,0,0} };
 	 glm::mat4 m_positionMat = glm::mat4{ 1.0f };
-	DataDirty <glm::vec3> m_scale = { true,glm::vec3{0,0,0} };
+	DataDirty <glm::vec3> m_scale = { true,glm::vec3{1,1,1} };
 	 glm::mat4 m_scaleMat = glm::mat4{ 1.0f };
 	 glm::mat4 m_fullTransform = glm::mat4{ 1.0f };
 };
 
-template <RotData::Orientation orientation>
+template <RotData::Orientation orientation, IsValidRep rep = Rep>
 void TransformComponent::RotateQuat(float angleRad)
 {
-	m_rotation.data = glm::normalize(glm::rotate(m_rotation.data, angleRad, RotData::ToAxes<orientation>()));
+	m_rotation.data = glm::normalize(glm::rotate(m_rotation.data, angleRad, RotData::ToAxes<orientation, rep>()));
 	UpdateEulerAngle();
 	m_rotation.isDirty = true;
 }
 
-template <RotData::Orientation orientation>
+template <IsValidRep rep>
+void TransformComponent::LookAt(const glm::vec3& target)
+{
+	glm::vec3 forward = glm::normalize(target - m_position.data);
+	m_rotation.data = glm::quatLookAt(forward, RotData::ToVector<RotData::Dir::Up, rep>());
+	UpdateEulerAngle();
+	m_rotation.isDirty = true;
+
+}
+
+template <RotData::Orientation orientation, IsValidRep rep = Rep>
 void TransformComponent::RotateEuler(float angleRad)
 {
-	if constexpr (orientation == RotData::Orientation::Pitch)
-		m_eulerAngle.x += angleRad;
-	else if constexpr (orientation == RotData::Orientation::Roll)
-		m_eulerAngle.z += angleRad;
-	else
-		m_eulerAngle.y += angleRad;
+
+		m_eulerAngle += angleRad * RotData::ToAxes <orientation,rep>();
 	UpdateQuaternion();
 	m_rotation.isDirty = true;
 
 }
 
-template <RotData::Dir dir>
+template <RotData::Dir dir, IsValidRep rep = Rep>
 glm::vec3 TransformComponent::GetLocalAxe() const
 {
-	return glm::rotate(m_rotation.data, RotData::ToVector<dir>());
+	return glm::rotate(m_rotation.data, RotData::ToVector<dir,rep>());
 }

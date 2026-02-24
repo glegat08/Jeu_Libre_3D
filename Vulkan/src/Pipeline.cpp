@@ -78,11 +78,18 @@ KGR::_Vulkan::Pipeline::Pipeline(const ShaderInfo& shaderInfo, Device* device, S
 		m_layouts.push_back(*a);
 	}
 
+	vk::PushConstantRange pushRange{
+	vk::ShaderStageFlagBits::eVertex, 
+	0,                                
+	sizeof(glm::mat4)                 
+	};
+
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ .setLayoutCount = static_cast<uint32_t>(layouts->GetLayouts().size()),
 		.pSetLayouts = m_layouts.data(),
 		
-		.pushConstantRangeCount = 0 };
+		.pushConstantRangeCount = 1,
+		.pPushConstantRanges = &pushRange };
 
 	m_layout = vk::raii::PipelineLayout(device->Get(), pipelineLayoutInfo);
 
