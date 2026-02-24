@@ -4,8 +4,6 @@
 #include "_GLFW.h"
 #include "Core/ManagerImple.h"
 
-
-
 int main(int argc, char** argv)
 {
 
@@ -16,36 +14,26 @@ int main(int argc, char** argv)
 	STBManager::SetGlobalFIlePath(projectRoot / "Ressources");
 	TOLManager::SetGlobalFIlePath(projectRoot / "Ressources");
 
-
 	KGR::_GLFW::Window::Init();
 	KGR::_GLFW::Window::AddHint(GLFW_CLIENT_API, GLFW_NO_API);
 	KGR::_GLFW::Window::AddHint(GLFW_RESIZABLE, GLFW_TRUE);
 	KGR::_GLFW::Window window;
 
-
 	window.CreateMyWindow({ 1280, 720 }, "GC goes Vulkan", nullptr, nullptr);
-
 
 	KGR::_Vulkan::VulkanCore app(&window.GetWindow());
 
-
 	app.initVulkan();
 
-
-
-	
 	do
 	{
 		KGR::_GLFW::Window::PollEvent();
 		app.mainLoop();
-			
 	} 
 	while (!window.ShouldClose());
 
 	 window.DestroyMyWindow();
      KGR::_GLFW::Window::Destroy();
-
-	
 }
 
 //#include "Global.h"

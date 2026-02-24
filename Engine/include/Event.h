@@ -29,8 +29,8 @@ struct KeyEvent : public Event
      * @param key Key code associated with the event.
      * @param action Action performed (press, release, repeat).
      */
-    KeyEvent(int key, int action)
-        : m_key(key), m_action(action) {
+    KeyEvent(int key, int action) : m_key(key), m_action(action)
+    {
     }
 
     int m_key;     ///< Key code.
@@ -48,8 +48,8 @@ struct MouseEvent : public Event
      * @param x Mouse X position.
      * @param y Mouse Y position.
      */
-    MouseEvent(double x, double y)
-        : xPos(x), yPos(y) {
+    MouseEvent(double x, double y) : xPos(x), yPos(y)
+    {
     }
 
     double xPos; ///< Horizontal mouse position.
@@ -67,8 +67,8 @@ struct MouseButtonEvent : public Event
      * @param button Mouse button index.
      * @param action Action performed (press/release).
      */
-    MouseButtonEvent(int button, int action)
-        : m_button(button), m_action(action) {
+    MouseButtonEvent(int button, int action) : m_button(button), m_action(action) 
+    {
     }
 
     int m_button; ///< Mouse button index.
@@ -86,8 +86,8 @@ struct ScrollEvent : public Event
      * @param x Horizontal scroll offset.
      * @param y Vertical scroll offset.
      */
-    ScrollEvent(double x, double y)
-        : xOffset(x), yOffset(y) {
+    ScrollEvent(double x, double y) : xOffset(x), yOffset(y)
+    {
     }
 
     double xOffset; ///< Horizontal scroll offset.
@@ -105,8 +105,8 @@ struct WindowResizeEvent : public Event
      * @param width New window width.
      * @param height New window height.
      */
-    WindowResizeEvent(int width, int height)
-        : m_width(width), m_height(height) {
+    WindowResizeEvent(int width, int height) : m_width(width), m_height(height)
+    {
     }
 
     int m_width;  ///< New width of the window.
@@ -137,8 +137,8 @@ struct FramebufferResizeEvent : public Event
      * @param width New framebuffer width.
      * @param height New framebuffer height.
      */
-    FramebufferResizeEvent(int width, int height)
-        : m_width(width), m_height(height) {
+    FramebufferResizeEvent(int width, int height) : m_width(width), m_height(height)
+    {
     }
 
     int m_width;  ///< New framebuffer width.

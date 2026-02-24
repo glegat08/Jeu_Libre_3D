@@ -25,7 +25,6 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 {
 	// good Api
 	
-
 	// instance creation
 	instance = _Vulkan::Instance(AppInfo{},validationLayers);
 	instance.setupDebugMessenger<&debugCallback>();
@@ -55,7 +54,7 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 	auto layout = DescriptorLayout(bindings, &device);
 	descriptorSetLayout.Add(std::move(layout));
 
-	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice);
+	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice,vk::PolygonMode::eFill);
 	// Command Buffer
 	commandBuffers = _Vulkan::CommandBuffers(&device);
 
@@ -157,8 +156,6 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 				.pImageInfo = &imageInfo} };
 		device.Get().updateDescriptorSets(descriptorWrites, {});
 	}
-
-
 }
 
 void KGR::_Vulkan::VulkanCore::mainLoop()
@@ -171,8 +168,6 @@ void KGR::_Vulkan::VulkanCore::mainLoop()
 
 	device.Get().waitIdle();
 }
-
-
 
 void KGR::_Vulkan::VulkanCore::recreateSwapChain()
 {
@@ -192,7 +187,7 @@ void KGR::_Vulkan::VulkanCore::recreateSwapChain()
 		.vertexMain = "vertMain",
 		.fragmentMain = "fragMain"
 	};
-	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice);
+	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain, &descriptorSetLayout, &physicalDevice,vk::PolygonMode::eLine);
 
 	vk::Format depthFormat = physicalDevice.findSupportedFormat(
 		{ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
@@ -204,14 +199,8 @@ void KGR::_Vulkan::VulkanCore::recreateSwapChain()
 	depthImage.CreateView(depthFormat, vk::ImageAspectFlagBits::eDepth, &device);
 }
 
-
-
-
-
 void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer)
 {
-
-
 	//
 	auto& commandBuffer = buffer;
 	commandBuffer.begin({});
@@ -325,10 +314,6 @@ void KGR::_Vulkan::VulkanCore::transition_image_layout(vk::Image image, vk::Imag
 	buffer.pipelineBarrier2(dependency_info);
 }
 
-
-
-
-
 std::uint32_t KGR::_Vulkan::VulkanCore::PresentImage()
 {
 	VkSemaphore vkSemaphore = static_cast<VkSemaphore>(*syncObject.GetCurrentRenderSemaphore());
@@ -408,10 +393,6 @@ void KGR::_Vulkan::VulkanCore::drawFrame()
 	commandBuffers.ReleaseCommandBuffer(buffer);
 	syncObject.IncrementFrame();
 }
-
-
-
-
 
 void KGR::_Vulkan::VulkanCore::transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout,
 	vk::ImageLayout newLayout,uint32_t mipLevels)
@@ -548,8 +529,6 @@ bool KGR::_Vulkan::VulkanCore::hasStencilComponent(vk::Format format)
 	return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
 }
 
-
-
 void KGR::_Vulkan::VulkanCore::updateUniformBuffer(uint32_t currentImage)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
@@ -569,7 +548,6 @@ void KGR::_Vulkan::VulkanCore::updateUniformBuffer(uint32_t currentImage)
 	uniformBuffers[currentImage].Upload(&ubo, sizeof(ubo));
 }
 
-
 vk::Bool32 KGR::_Vulkan::VulkanCore::debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
                                                    vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
 {
@@ -580,9 +558,4 @@ vk::Bool32 KGR::_Vulkan::VulkanCore::debugCallback(vk::DebugUtilsMessageSeverity
 
 	return vk::False;
 }
-
-
-
 //IMPL
-
-
