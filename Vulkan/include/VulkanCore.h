@@ -27,13 +27,6 @@
 #include "SyncObject.h"
 
 
-
-
-
-
-
-
-
 namespace KGR
 {
 	namespace _Vulkan
@@ -74,6 +67,36 @@ namespace KGR
 			void updateUniformBuffer(uint32_t currentImage);
 			// callBack for instance
 			static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
+
+
+
+			Instance& GetInstance();
+			const Instance& GetInstance() const;
+
+			Surface& GetSurface();
+			const Surface& GetSurface() const;
+
+			PhysicalDevice& GetPhysicalDevice();
+			const PhysicalDevice& GetPhysicalDevice() const;
+
+			Device& GetDevice();
+			const Device& GetDevice() const;
+
+			Queue& GetQueue();
+			const Queue& GetQueue() const;
+
+			SwapChain& GetSwapChain();
+			const SwapChain& GetSwapChain() const;
+
+			ImagesViews& GetImagesViews();
+			const ImagesViews& GetImagesViews() const;
+
+			Pipeline& GetGraphicsPipeline();
+			const Pipeline& GetGraphicsPipeline() const;
+
+			DescriptorPool& GetDescriptorPool();
+			const DescriptorPool& GetDescriptorPool() const;
+
 		private:
 			// window
 			GLFWwindow* window = nullptr;

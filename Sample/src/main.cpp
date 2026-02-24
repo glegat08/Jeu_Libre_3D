@@ -1,9 +1,11 @@
 ﻿#include <filesystem>
 
+#include "imgui.h"
 #include "VulkanCore.h"
 #include "_GLFW.h"
+#include "Backends/imgui_impl_glfw.h"
+#include "Backends/imgui_impl_vulkan.h"
 #include "Core/ManagerImple.h"
-
 
 
 int main(int argc, char** argv)
@@ -31,21 +33,98 @@ int main(int argc, char** argv)
 
 	app.initVulkan();
 
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
+	ImGui::StyleColorsDark();
 
-	
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ScaleAllSizes(1.5f);
+	style.FontScaleDpi = 1.5f;
+
+	ImGui_ImplGlfw_InitForVulkan(&window.GetWindow(), true);
+	ImGui_ImplVulkan_InitInfo init_info = {};
+	init_info.Instance = static_cast<vk::Instance>(app.GetInstance().Get());
+	init_info.PhysicalDevice = static_cast<vk::PhysicalDevice>(app.GetPhysicalDevice().Get());
+	init_info.Device = static_cast<vk::Device>(app.GetDevice().Get());
+	init_info.Queue = static_cast<vk::Queue>(app.GetQueue().Get());
+	init_info.QueueFamily = app.GetDevice().GetQueueIndex();
+	init_info.DescriptorPool = static_cast<vk::DescriptorPool>(app.GetDescriptorPool().Get());
+	init_info.MinImageCount = app.GetSwapChain().GetImagesCount();
+	init_info.ImageCount = app.GetSwapChain().GetImagesCount();
+	init_info.Allocator = nullptr;
+	init_info.PipelineCache = VK_NULL_HANDLE;
+	init_info.ApiVersion = VK_API_VERSION_1_4;
+	init_info.UseDynamicRendering = true;
+	VkFormat colorFormat = static_cast<VkFormat>(app.GetSwapChain().GetFormat().format);
+	init_info.PipelineInfoMain.PipelineRenderingCreateInfo = 
+	{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+		.colorAttachmentCount = 1,
+		.pColorAttachmentFormats = &colorFormat
+	};
+
+	ImGui_ImplVulkan_Init(&init_info);
+
+	bool show_another_window = false;
+	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
 	do
 	{
 		KGR::_GLFW::Window::PollEvent();
 		app.mainLoop();
+
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		{
+			static float f = 0.0f;
+			static int counter = 0;
+
+			ImGui::Begin("Hello, world!");
+			ImGui::Text("This is some useful text.");
+			ImGui::Checkbox("Another Window", &show_another_window);
+
+			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+			ImGui::ColorEdit3("clear color", (float*)&clear_color);
+
+			if (ImGui::Button("Button"))
+				counter++;
+
+			ImGui::SameLine();
+			ImGui::Text("counter = %d", counter);
+
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::End();
+		}
+
+		if (show_another_window)
+		{
+			ImGui::Begin("Another Window", &show_another_window);
+			ImGui::Text("Hello from another window!");
+			if (ImGui::Button("Close Me"))
+				show_another_window = false;
+
+			ImGui::End();
+		}
+
+		 ImGui::Render();
+		 //app.drawFrame();
 			
 	} 
 	while (!window.ShouldClose());
 
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
 	 window.DestroyMyWindow();
      KGR::_GLFW::Window::Destroy();
 
-	
 }
 
 //#include "Global.h"

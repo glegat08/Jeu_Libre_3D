@@ -15,6 +15,7 @@
 #include <stdexcept>
 
 #include "Image.h"
+#include "_GLFW.h"
 #include "../../ImGui/include/imgui.h"
 
 KGR::_Vulkan::VulkanCore::VulkanCore(GLFWwindow* window_) : window(window_)
@@ -165,7 +166,7 @@ void KGR::_Vulkan::VulkanCore::mainLoop()
 {
 	while (!glfwWindowShouldClose(window))
 	{
-		glfwPollEvents();
+		_GLFW::Window::PollEvent();
 		drawFrame();
 	}
 
@@ -581,7 +582,95 @@ vk::Bool32 KGR::_Vulkan::VulkanCore::debugCallback(vk::DebugUtilsMessageSeverity
 	return vk::False;
 }
 
+KGR::_Vulkan::Instance& KGR::_Vulkan::VulkanCore::GetInstance()
+{
+	return instance;
+}
 
+const KGR::_Vulkan::Instance& KGR::_Vulkan::VulkanCore::GetInstance() const
+{
+	return instance;
+}
+
+KGR::_Vulkan::Surface& KGR::_Vulkan::VulkanCore::GetSurface()
+{
+	return surface;
+}
+
+const KGR::_Vulkan::Surface& KGR::_Vulkan::VulkanCore::GetSurface() const
+{
+	return surface;
+}
+
+KGR::_Vulkan::PhysicalDevice& KGR::_Vulkan::VulkanCore::GetPhysicalDevice()
+{
+	return physicalDevice;
+}
+
+const KGR::_Vulkan::PhysicalDevice& KGR::_Vulkan::VulkanCore::GetPhysicalDevice() const
+{
+	return physicalDevice;
+}
+
+KGR::_Vulkan::Device& KGR::_Vulkan::VulkanCore::GetDevice()
+{
+	return device;
+}
+
+const KGR::_Vulkan::Device& KGR::_Vulkan::VulkanCore::GetDevice() const
+{
+	return device;
+}
+
+KGR::_Vulkan::Queue& KGR::_Vulkan::VulkanCore::GetQueue()
+{
+	return queue;
+}
+
+const KGR::_Vulkan::Queue& KGR::_Vulkan::VulkanCore::GetQueue() const
+{
+	return queue;
+}
+
+KGR::_Vulkan::SwapChain& KGR::_Vulkan::VulkanCore::GetSwapChain()
+{
+	return swapChain;
+}
+
+const KGR::_Vulkan::SwapChain& KGR::_Vulkan::VulkanCore::GetSwapChain() const
+{
+	return swapChain;
+}
+
+KGR::_Vulkan::ImagesViews& KGR::_Vulkan::VulkanCore::GetImagesViews()
+{
+	return swapChainImageViews;
+}
+
+const KGR::_Vulkan::ImagesViews& KGR::_Vulkan::VulkanCore::GetImagesViews() const
+{
+	return swapChainImageViews;
+}
+
+KGR::_Vulkan::Pipeline& KGR::_Vulkan::VulkanCore::GetGraphicsPipeline()
+{
+	return graphicsPipeline;
+}
+
+const KGR::_Vulkan::Pipeline& KGR::_Vulkan::VulkanCore::GetGraphicsPipeline() const
+{
+	return graphicsPipeline;
+}
+
+KGR::_Vulkan::DescriptorPool& KGR::_Vulkan::VulkanCore::GetDescriptorPool()
+{
+	return descriptorPool;
+}
+
+const KGR::_Vulkan::DescriptorPool& KGR::_Vulkan::VulkanCore::GetDescriptorPool() const
+{
+	return descriptorPool;
+}
 
 //IMPL
 
