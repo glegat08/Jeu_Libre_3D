@@ -13,9 +13,11 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
-
+#include "Core/Mesh.h"
 #include "Image.h"
 #include "../../ImGui/include/imgui.h"
+#include "Core/TrasformComponent.h"
+#include "Core/CameraComponent.h"
 
 KGR::_Vulkan::VulkanCore::VulkanCore(GLFWwindow* window_) : window(window_)
 {
@@ -55,28 +57,28 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 	auto layout = DescriptorLayout(bindings, &device);
 	descriptorSetLayout.Add(std::move(layout));
 
-	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice);
+	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice,vk::PolygonMode::eFill);
 	// Command Buffer
 	commandBuffers = _Vulkan::CommandBuffers(&device);
 
 	// load Model
-	LoadModel();
-	// vertex
-	size_t vertSize = vertices.size() * sizeof(vertices[0]);
-	auto vertexTmp = _Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertSize);
-	vertexTmp.MapMemory(vertSize);
-	vertexTmp.Upload(vertices);
-	vertexTmp.UnMapMemory();
-	vertexBuffer = _Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, vertSize);
-	vertexBuffer.Copy(&vertexTmp, &device, &queue, &commandBuffers);
-	// index
-	size_t indexSize = indices.size() * sizeof(indices[0]);
-	auto indexTmp = _Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, indexSize);
-	indexTmp.MapMemory(indexSize);
-	indexTmp.Upload(indices);
-	indexTmp.UnMapMemory();
-	indexBuffer = _Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indexSize);
-	indexBuffer.Copy(&indexTmp, &device, &queue, &commandBuffers);	
+	//LoadModel();
+	//// vertex
+	//size_t vertSize = vertices.size() * sizeof(vertices[0]);
+	//auto vertexTmp = _Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertSize);
+	//vertexTmp.MapMemory(vertSize);
+	//vertexTmp.Upload(vertices);
+	//vertexTmp.UnMapMemory();
+	//vertexBuffer = _Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, vertSize);
+	//vertexBuffer.Copy(&vertexTmp, &device, &queue, &commandBuffers);
+	//// index
+	//size_t indexSize = indices.size() * sizeof(indices[0]);
+	//auto indexTmp = _Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, indexSize);
+	//indexTmp.MapMemory(indexSize);
+	//indexTmp.Upload(indices);
+	//indexTmp.UnMapMemory();
+	//indexBuffer = _Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indexSize);
+	//indexBuffer.Copy(&indexTmp, &device, &queue, &commandBuffers);	
 	//
 
 	// SyncObject
@@ -187,7 +189,7 @@ void KGR::_Vulkan::VulkanCore::recreateSwapChain()
 		.vertexMain = "vertMain",
 		.fragmentMain = "fragMain"
 	};
-	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice);
+	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice, vk::PolygonMode::eFill);
 
 	vk::Format depthFormat = physicalDevice.findSupportedFormat(
 		{ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
@@ -261,7 +263,7 @@ void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii
 	commandBuffer.bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
 	commandBuffer.bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
-	commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
+	//commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 	commandBuffer.endRendering();
 	// After rendering, transition the swapchain image to PRESENT_SRC
 	transition_image_layout(
@@ -283,13 +285,13 @@ void KGR::_Vulkan::VulkanCore::LoadModel()
 {
 	
 
-	auto& obj = TOLManager::Load("Models\\viking_room.obj");
+	//auto& obj = TOLManager::Load("Models\\viking_room.obj");
 
-	//auto& obj = TOLManager::Load("Models\\briet_claire_decorsfantasy_grpB.obj");
-	for (auto& v : obj.vertices)
-		vertices.emplace_back(v.pos,glm::vec3(), glm::vec4{ v.color.x, v.color.y, v.color.z, 1.0f }, v.texCoord);
-	for (auto& i : obj.indices)
-		indices.push_back(i);
+	////auto& obj = TOLManager::Load("Models\\briet_claire_decorsfantasy_grpB.obj");
+	//for (auto& v : obj.vertices)
+	//	vertices.emplace_back(v.pos,glm::vec3(), glm::vec4{ v.color.x, v.color.y, v.color.z, 1.0f }, v.texCoord);
+	//for (auto& i : obj.indices)
+	//	indices.push_back(i);
 }
 
 void KGR::_Vulkan::VulkanCore::transition_image_layout(vk::Image image, vk::ImageLayout old_layout,
@@ -410,17 +412,19 @@ void KGR::_Vulkan::VulkanCore::drawFrame()
 	m_currentBuffer->bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
 	m_currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, glm::mat4(1));
 	m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
-	m_currentBuffer->drawIndexed(indices.size(), 1, 0, 0, 0);
+	//m_currentBuffer->drawIndexed(indices.size(), 1, 0, 0, 0);
 
 	EndRendering();
 }
 
-
-
+void KGR::_Vulkan::VulkanCore::TMPUPDATE()
+{
+	updateUniformBuffer(syncObject.GetCurrentFrame());
+}
 
 
 void KGR::_Vulkan::VulkanCore::transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout,
-	vk::ImageLayout newLayout,uint32_t mipLevels)
+                                                     vk::ImageLayout newLayout,uint32_t mipLevels)
 {
 	auto& commandBuffer = commandBuffers.Acquire(&device);
 	commandBuffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
@@ -527,6 +531,37 @@ void KGR::_Vulkan::VulkanCore::generateMipmaps(vk::raii::Image& image, vk::Forma
 	queue.Get().submit(submitInfo,nullptr);
 	queue.Get().waitIdle();
 	commandBuffers.ReleaseCommandBuffer(commandBuffer);
+}
+
+void KGR::_Vulkan::VulkanCore::SetCamera(TransformComponent& transform)
+{
+
+}
+
+void KGR::_Vulkan::VulkanCore::DrawMesh(MeshComponent& mesh, TransformComponent& transform)
+{
+	
+
+	for (int i = 0 ; i < mesh.mesh->GetSubMeshesCount(); ++i)
+	{
+		mesh.mesh->Bind(m_currentBuffer,i);
+		m_currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, transform.GetFullTransform());
+		m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
+		m_currentBuffer->drawIndexed(mesh.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
+
+	}
+}
+
+void KGR::_Vulkan::VulkanCore::SetCamera(CameraComponent& cam, TransformComponent& transform)
+{
+	UniformBufferObject ubo;
+	ubo.transform = transform.GetFullTransform();
+	ubo.view = cam.GetView();
+	if (cam.GetWidth() != static_cast<float>(swapChain.GetExtend().width)|| cam.GetHeight() != static_cast<float>(swapChain.GetExtend().height))
+		cam.SetAspect(static_cast<float>(swapChain.GetExtend().width), static_cast<float>(swapChain.GetExtend().height));
+	ubo.proj = cam.GetProj();
+	ubo.proj[1][1] *= -1;
+	uniformBuffers[syncObject.GetCurrentImage()].Upload(&ubo, sizeof(ubo));
 }
 
 void KGR::_Vulkan::VulkanCore::createTextureSampler()
@@ -675,6 +710,7 @@ void KGR::_Vulkan::VulkanCore::EndRendering()
 	}
 	commandBuffers.ReleaseCommandBuffer(*m_currentBuffer);
 	syncObject.IncrementFrame();
+	device.Get().waitIdle();
 }
 
 bool KGR::_Vulkan::VulkanCore::hasStencilComponent(vk::Format format)
@@ -686,19 +722,33 @@ bool KGR::_Vulkan::VulkanCore::hasStencilComponent(vk::Format format)
 
 void KGR::_Vulkan::VulkanCore::updateUniformBuffer(uint32_t currentImage)
 {
-	static auto startTime = std::chrono::high_resolution_clock::now();
+	static TransformComponent cameraTransform;
+	static auto lastTime = std::chrono::high_resolution_clock::now();
+	static float angle = 0.0f;
+	const float rotationSpeed = 1.0f;
 
-	auto  currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float>(currentTime - startTime).count();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+	lastTime = currentTime;
+
+	angle += deltaTime * rotationSpeed;
+
+
+	float radius = 5.0f;
+	float camX = std::cos(angle) * radius;
+	float camY = 0.0f; 
+	float camZ = std::sin(angle) * radius;
+
+	cameraTransform.SetPosition({ camX, camY, camZ });
+	cameraTransform.LookAt({ 0.0f, 0.0f, 0.0f });
 
 	UniformBufferObject ubo{};
-	ubo.model = rotate(glm::mat4(1.0f), {time * glm::radians(90.0f)}, glm::vec3(0.0f, 1.0f, 0.0f));
-	//ubo.model = glm::mat4(1.0f);
-	ubo.view = lookAt(glm::vec3(0.0f, 0.0f, 2.0f)
-	               ,glm::vec3(0.0f, 0.0f, 0.0f)
-	                 , glm::vec3(0.0f, 1.0f, 0.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChain.GetExtend().width ) / static_cast<float>(swapChain.GetExtend().height), 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
+	ubo.transform = cameraTransform.GetFullTransform();           // modèle = transform caméra
+	ubo.view = glm::inverse(cameraTransform.GetFullTransform()); // view = inverse
+	ubo.proj = glm::perspective(glm::radians(45.0f),
+		static_cast<float>(swapChain.GetExtend().width) / static_cast<float>(swapChain.GetExtend().height),
+		0.1f, 1000.0f);
+	ubo.proj[1][1] *= -1; 
 
 	uniformBuffers[currentImage].Upload(&ubo, sizeof(ubo));
 }

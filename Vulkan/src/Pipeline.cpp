@@ -7,7 +7,7 @@
 #include "Core/ManagerImple.h"
 #include "PhysicalDevice.h"
 
-KGR::_Vulkan::Pipeline::Pipeline(const ShaderInfo& shaderInfo, Device* device, SwapChain* swapChain , DescriptorLayouts* layouts,PhysicalDevice* phDevice)
+KGR::_Vulkan::Pipeline::Pipeline(const ShaderInfo& shaderInfo, Device* device, SwapChain* swapChain , DescriptorLayouts* layouts,PhysicalDevice* phDevice, vk::PolygonMode mode)
 {
 
 	//
@@ -45,7 +45,7 @@ KGR::_Vulkan::Pipeline::Pipeline(const ShaderInfo& shaderInfo, Device* device, S
 	vk::PipelineRasterizationStateCreateInfo rasterizer{
 		.depthClampEnable = vk::False,
 		.rasterizerDiscardEnable = vk::False,
-		.polygonMode = vk::PolygonMode::eFill,
+		.polygonMode = mode,
 		.cullMode = vk::CullModeFlagBits::eBack,
 		.frontFace = vk::FrontFace::eCounterClockwise,
 		.depthBiasEnable = vk::False,

@@ -24,7 +24,7 @@ namespace KGR
 			using vkDescriptorLayout = vk::raii::DescriptorSetLayout;
 
 			Pipeline() = default;
-			Pipeline(const ShaderInfo& shaderInfo,Device* device,SwapChain* swapChain, DescriptorLayouts* layouts,PhysicalDevice* phDevice);
+			Pipeline(const ShaderInfo& shaderInfo,Device* device,SwapChain* swapChain, DescriptorLayouts* layouts,PhysicalDevice* phDevice, vk::PolygonMode mode);
 
 			vkPipelineLayout& GetLayout();
 

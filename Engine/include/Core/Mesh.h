@@ -3,31 +3,58 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
-struct Vertex3
+#include "Buffer.h"
+#include "RessourcesManager.h"
+#include "Vertex.h"
+
+
+namespace KGR::_Vulkan
 {
-	glm::vec3 pos;
-	glm::vec3 normal;
-	glm::vec4 color;
-	glm::vec2 uv;
+	class VulkanCore;
+}
 
-	static vk::VertexInputBindingDescription getBindingDescription() {
-		return { 0, sizeof(Vertex3), vk::VertexInputRate::eVertex };
-	}
-	static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescriptions() {
-		return {
-			vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex3, pos)),
-			vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex3, normal)),
-			vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(Vertex3, color)),
-			vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex3, uv))
-		};
-
-	}
-	bool operator==(const Vertex3& other) const
-	{
-		return pos == other.pos && color == other.color && uv == other.uv;
-	}
+class SubMeshes
+{
+public:
+	~SubMeshes();
+	SubMeshes(std::vector<Vertex> vertices, std::vector<uint32_t> indices, const std::string tag,KGR::_Vulkan::VulkanCore* core);
+	std::vector<Vertex> GetVertices() const;
+	std::vector<uint32_t> GetIndex() const ;
+	size_t VertexCount() const;
+	size_t IndexCount() const;
+	uint64_t GetID() const;
+	
+	void BindVertices(const vk::raii::CommandBuffer* buffer);
+	void BindIndices(const vk::raii::CommandBuffer* buffer);
+private:
+	std::vector<Vertex> m_vertices;
+	KGR::_Vulkan::Buffer m_vertexBuffer;
+	std::vector<uint32_t> m_indices;
+	KGR::_Vulkan::Buffer m_indexBuffer;
+	uint64_t m_id;
 };
+
 class Mesh
 {
-	
+public:
+	Mesh() = default;
+	uint32_t GetSubMeshesCount() const;
+	const SubMeshes& GetSubMesh(const std::string& name) const;
+	const SubMeshes& GetSubMesh(uint32_t id) const;
+	void Bind(const vk::raii::CommandBuffer* buffer, uint32_t index);
+	void AddSubMesh(std::unique_ptr<SubMeshes> mesh);
+private:
+	std::vector <std::unique_ptr<SubMeshes>> m_subMeshes;
 };
+
+struct MeshComponent
+{
+	Mesh* mesh = nullptr;
+};
+
+
+
+std::unique_ptr<Mesh> LoadMesh(const std::string& filePat, KGR::_Vulkan::VulkanCore* core);
+
+
+using MeshLoader = KGR::ResourceManager<Mesh, KGR::TypeWrapper<KGR::_Vulkan::VulkanCore*>, LoadMesh>;

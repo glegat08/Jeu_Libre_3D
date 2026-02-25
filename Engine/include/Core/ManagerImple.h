@@ -67,4 +67,4 @@ struct Obj
 	std::vector<uint32_t> indices;
 };
 std::unique_ptr<Obj> LoadFile3(const std::string& filePath);
-using TOLManager = KGR::ResourceManager<Obj, KGR::TypeWrapper<>, LoadFile3>;
+
