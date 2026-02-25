@@ -39,17 +39,16 @@ namespace KGR
 		class VulkanCore
 		{
 		public:
+			using pair = std::pair<glm::mat4, MeshComponent*>;
 			/**
 			 * @brief 
 			 * @param window 
 			 */
 			VulkanCore(GLFWwindow* window);
 			void initVulkan();
-			void mainLoop();
 			void recreateSwapChain();
 			std::uint32_t PresentImage();
 			void recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer);
-			void LoadModel();
 			void transition_image_layout(
 				vk::Image               image,
 				vk::ImageLayout         old_layout,
@@ -62,17 +61,12 @@ namespace KGR
 			void transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout,uint32_t mipLevels);
 
 			void generateMipmaps(vk::raii::Image& image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
-			void SetCamera(TransformComponent& transform);
-			void DrawMesh(MeshComponent& mesh,TransformComponent& transform);
-			void SetCamera(CameraComponent& cam,TransformComponent& transform);
-			void drawFrame();
-			void TMPUPDATE();
 			// to move 
 			void	createTextureSampler();
 
 			void BeginRendering();
 			void EndRendering();
-
+			
 		
 			template<typename Type>
 			Type& Get()
@@ -102,6 +96,12 @@ namespace KGR
 			void updateUniformBuffer(uint32_t currentImage);
 			// callBack for instance
 			static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
+
+
+
+			void RegisterCam(CameraComponent& cam, TransformComponent& transform);
+			void RegisterRender(MeshComponent& mesh, TransformComponent& transform);
+			void Render();
 		private:
 			// window
 			GLFWwindow* window = nullptr;
@@ -143,6 +143,10 @@ namespace KGR
 			//std::vector<uint32_t> indices;
 
 			vk::raii::CommandBuffer* m_currentBuffer;
+
+
+			std::optional<UniformBufferObject> m_ubo;
+			std::vector<pair> m_toRenderObject;
 		};
 	}
 }

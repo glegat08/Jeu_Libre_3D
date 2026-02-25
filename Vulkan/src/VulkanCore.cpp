@@ -163,11 +163,6 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 
 }
 
-void KGR::_Vulkan::VulkanCore::mainLoop()
-{
-	drawFrame();
-	device.Get().waitIdle();
-}
 
 
 
@@ -281,18 +276,6 @@ void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii
 
 }
 
-void KGR::_Vulkan::VulkanCore::LoadModel()
-{
-	
-
-	//auto& obj = TOLManager::Load("Models\\viking_room.obj");
-
-	////auto& obj = TOLManager::Load("Models\\briet_claire_decorsfantasy_grpB.obj");
-	//for (auto& v : obj.vertices)
-	//	vertices.emplace_back(v.pos,glm::vec3(), glm::vec4{ v.color.x, v.color.y, v.color.z, 1.0f }, v.texCoord);
-	//for (auto& i : obj.indices)
-	//	indices.push_back(i);
-}
 
 void KGR::_Vulkan::VulkanCore::transition_image_layout(vk::Image image, vk::ImageLayout old_layout,
                                                        vk::ImageLayout new_layout, vk::AccessFlags2 src_access_mask, vk::AccessFlags2 dst_access_mask,
@@ -346,81 +329,8 @@ std::uint32_t KGR::_Vulkan::VulkanCore::PresentImage()
 	return result;
 }
 
-void KGR::_Vulkan::VulkanCore::drawFrame()
-{
-	//// Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by frameIndex,
-	////       while renderFinishedSemaphores is indexed by imageIndex
-	//auto fenceResult = device.Get().waitForFences(*syncObject.GetCurrentFence(), vk::True, UINT64_MAX);
-	//device.Get().resetFences(*syncObject.GetCurrentFence());
-
-	//if (fenceResult != vk::Result::eSuccess)
-	//{
-	//	throw std::runtime_error("failed to wait for fence!");
-	//}
-
-	//std::uint32_t result = syncObject.AcquireNextImage(&swapChain,&device);
-
-	//// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
-	//// here and does not need to be caught by an exception.
-	//if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	//{
-	//	recreateSwapChain();
-	//	return;
-	//}
-	//// On other success codes than eSuccess and eSuboptimalKHR we just throw an exception.
 
 
-	//// Only reset the fence if we are submitting work
-	//auto& buffer = commandBuffers.Acquire(&device);
-	//buffer.reset();
-
-
-	//updateUniformBuffer(syncObject.GetCurrentFrame());
-	//recordCommandBuffer(syncObject.GetCurrentImage(), buffer);
-
-	//vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-	//const auto submitInfo = vk::SubmitInfo{
-	//		   .waitSemaphoreCount = 1,
-	//		   .pWaitSemaphores = &*syncObject.GetCurrentPresentSemaphore(),
-	//		   .pWaitDstStageMask = &waitDestinationStageMask,
-	//		   .commandBufferCount = 1,
-	//		   .pCommandBuffers = &*buffer,
-	//		   .signalSemaphoreCount = 1,
-	//		   .pSignalSemaphores = &*syncObject.GetCurrentRenderSemaphore(),
-	//};
-
-	//device.Get().resetFences({ commandBuffers.GetFence(buffer) });
-	//queue.Get().submit(submitInfo, commandBuffers.GetFence(buffer));
-
-	//
-	//queue.Get().submit({}, *syncObject.GetCurrentFence());
-
-	//result = PresentImage();
-	//// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
-	//// here and does not need to be caught by an exception.
-	//if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	//{
-	//	recreateSwapChain();
-	//}
-	//commandBuffers.ReleaseCommandBuffer(buffer);
-	//syncObject.IncrementFrame();
-
-	updateUniformBuffer(syncObject.GetCurrentFrame());
-	BeginRendering();
-	
-	m_currentBuffer->bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
-	m_currentBuffer->bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
-	m_currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, glm::mat4(1));
-	m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
-	//m_currentBuffer->drawIndexed(indices.size(), 1, 0, 0, 0);
-
-	EndRendering();
-}
-
-void KGR::_Vulkan::VulkanCore::TMPUPDATE()
-{
-	updateUniformBuffer(syncObject.GetCurrentFrame());
-}
 
 
 void KGR::_Vulkan::VulkanCore::transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout,
@@ -533,36 +443,7 @@ void KGR::_Vulkan::VulkanCore::generateMipmaps(vk::raii::Image& image, vk::Forma
 	commandBuffers.ReleaseCommandBuffer(commandBuffer);
 }
 
-void KGR::_Vulkan::VulkanCore::SetCamera(TransformComponent& transform)
-{
 
-}
-
-void KGR::_Vulkan::VulkanCore::DrawMesh(MeshComponent& mesh, TransformComponent& transform)
-{
-	
-
-	for (int i = 0 ; i < mesh.mesh->GetSubMeshesCount(); ++i)
-	{
-		mesh.mesh->Bind(m_currentBuffer,i);
-		m_currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, transform.GetFullTransform());
-		m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
-		m_currentBuffer->drawIndexed(mesh.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
-
-	}
-}
-
-void KGR::_Vulkan::VulkanCore::SetCamera(CameraComponent& cam, TransformComponent& transform)
-{
-	UniformBufferObject ubo;
-	ubo.transform = transform.GetFullTransform();
-	ubo.view = cam.GetView();
-	if (cam.GetWidth() != static_cast<float>(swapChain.GetExtend().width)|| cam.GetHeight() != static_cast<float>(swapChain.GetExtend().height))
-		cam.SetAspect(static_cast<float>(swapChain.GetExtend().width), static_cast<float>(swapChain.GetExtend().height));
-	ubo.proj = cam.GetProj();
-	ubo.proj[1][1] *= -1;
-	uniformBuffers[syncObject.GetCurrentImage()].Upload(&ubo, sizeof(ubo));
-}
 
 void KGR::_Vulkan::VulkanCore::createTextureSampler()
 {
@@ -765,6 +646,44 @@ vk::Bool32 KGR::_Vulkan::VulkanCore::debugCallback(vk::DebugUtilsMessageSeverity
 	return vk::False;
 }
 
+void KGR::_Vulkan::VulkanCore::RegisterCam(CameraComponent& cam, TransformComponent& transform)
+{
+
+	m_ubo = UniformBufferObject{};
+	m_ubo->transform = transform.GetFullTransform();
+	m_ubo->view = cam.GetView();
+	if (cam.GetWidth() != static_cast<float>(swapChain.GetExtend().width) || cam.GetHeight() != static_cast<float>(swapChain.GetExtend().height))
+		cam.SetAspect(static_cast<float>(swapChain.GetExtend().width), static_cast<float>(swapChain.GetExtend().height));
+	m_ubo->proj = cam.GetProj();
+	m_ubo->proj[1][1] *= -1;
+}
+
+void KGR::_Vulkan::VulkanCore::RegisterRender(MeshComponent& mesh, TransformComponent& transform)
+{
+	m_toRenderObject.push_back({transform.GetFullTransform() ,&mesh });
+}
+
+void KGR::_Vulkan::VulkanCore::Render()
+{
+	if (!m_ubo.has_value())
+		throw std::runtime_error("need to register Camera");
+	// Update the Camera
+	uniformBuffers[syncObject.GetCurrentImage()].Upload(&m_ubo.value(), sizeof(UniformBufferObject));
+	BeginRendering();
+	for (auto& it: m_toRenderObject)
+	{
+		for (int i = 0; i < it.second->mesh->GetSubMeshesCount(); ++i)
+		{
+			it.second->mesh->Bind(m_currentBuffer, i);
+			m_currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, it.first);
+			m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
+			m_currentBuffer->drawIndexed(it.second->mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
+		}
+	}
+	EndRendering();
+	m_ubo.reset();
+	m_toRenderObject.clear();
+}
 
 
 //IMPL

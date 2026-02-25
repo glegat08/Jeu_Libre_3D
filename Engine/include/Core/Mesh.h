@@ -52,8 +52,6 @@ struct MeshComponent
 	Mesh* mesh = nullptr;
 };
 
-
-
 std::unique_ptr<Mesh> LoadMesh(const std::string& filePat, KGR::_Vulkan::VulkanCore* core);
 
 
