@@ -1,8 +1,11 @@
 ﻿#include <filesystem>
-
+#include <iostream>
+#include "Core/CameraComponent.h"
 #include "VulkanCore.h"
 #include "_GLFW.h"
 #include "Core/ManagerImple.h"
+#include "Core/Mesh.h"
+#include "Core/TrasformComponent.h"
 
 int main(int argc, char** argv)
 {
@@ -12,7 +15,7 @@ int main(int argc, char** argv)
 
 	fileManager::SetGlobalFIlePath(projectRoot / "Ressources");
 	STBManager::SetGlobalFIlePath(projectRoot / "Ressources");
-	TOLManager::SetGlobalFIlePath(projectRoot / "Ressources");
+	MeshLoader::SetGlobalFIlePath(projectRoot / "Ressources");
 
 	KGR::_GLFW::Window::Init();
 	KGR::_GLFW::Window::AddHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -25,14 +28,60 @@ int main(int argc, char** argv)
 
 	app.initVulkan();
 
+
+	MeshComponent meshComp;
+	meshComp.mesh = &MeshLoader::Load("Models\\viking_room.obj", &app);
+	MeshComponent meshComp2;
+	meshComp2.mesh = &MeshLoader::Load("Models\\briet_claire_decorsfantasy_grpB.obj", &app);
+	TransformComponent transform;
+	transform.SetPosition(glm::vec3(0, 0, 0));
+	transform.SetScale({2, 2, 2});
+	transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(-90.0f));
+	TransformComponent transform2;
+	transform2.RotateQuat<RotData::Orientation::Pitch>(glm::radians(-90.0f));
+
+	CameraComponent cam = CameraComponent :: Create(45.0f,static_cast<float>(window.GetSize().x),static_cast<float>(window.GetSize().y),0.01f,1000.0f,CameraComponent::Type::Perspective);
+	TransformComponent camTransform;
+
+
+
+
+
 	do
 	{
+		// event
 		KGR::_GLFW::Window::PollEvent();
-		app.mainLoop();
+		//Update
+		static auto lastTime = std::chrono::high_resolution_clock::now();
+		static float angle = 0.0f;
+		const float rotationSpeed = 1.0f;
+
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+		lastTime = currentTime;
+
+		angle += deltaTime * rotationSpeed;
+
+
+		float radius = 5.0f;
+		float camX = std::cos(angle) * radius;
+		float camY = 0.0f;
+		float camZ = std::sin(angle) * radius;
+
+		camTransform.SetPosition({ camX, camY, camZ });
+		camTransform.LookAt({ 0.0f, 0.0f, 0.0f });
+		cam.UpdateCamera(camTransform.GetFullTransform());
+		// Render
+		app.BeginRendering();
+		app.SetCamera(cam, camTransform);
+		app.DrawMesh(meshComp, transform);
+		//app.DrawMesh(meshComp2, transform2);
+		app.EndRendering();
 	} 
 	while (!window.ShouldClose());
 
 	 window.DestroyMyWindow();
+	 MeshLoader::UnloadAll();
      KGR::_GLFW::Window::Destroy();
 
 

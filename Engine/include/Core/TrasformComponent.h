@@ -4,12 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-template<typename T>
-struct DataDirty
-{
-	bool isDirty = false;
-	T data = T{};
-};
+#include "Tools/Util.h"
 
 struct Rep
 {

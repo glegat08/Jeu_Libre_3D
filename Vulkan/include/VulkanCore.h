@@ -26,9 +26,13 @@
 #include "DescriptorPool.h"
 #include "DescriptorSet.h"
 #include "Image.h"
+#include "RTTI.h"
 #include "SyncObject.h"
 #include "Core/Vertex.h"
 
+struct CameraComponent;
+class TransformComponent;
+class MeshComponent;
 
 namespace KGR
 {
@@ -59,14 +63,40 @@ namespace KGR
 
 			void transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout,uint32_t mipLevels);
 			void generateMipmaps(vk::raii::Image& image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+			void SetCamera(TransformComponent& transform);
+			void DrawMesh(MeshComponent& mesh,TransformComponent& transform);
+			void SetCamera(CameraComponent& cam,TransformComponent& transform);
 			void drawFrame();
-
+			void TMPUPDATE();
 			// to move 
 			void	createTextureSampler();
 
 			void BeginRendering();
 			void EndRendering();
 
+		
+			template<typename Type>
+			Type& Get()
+			{
+				if constexpr (std::is_same_v<Type, Instance>)
+					return instance;
+				else if constexpr (std::is_same_v<Type, Surface>)
+					return surface;
+				else if constexpr (std::is_same_v<Type, PhysicalDevice>)
+					return physicalDevice;
+				else if constexpr (std::is_same_v<Type, Device>)
+					return device;
+				else if constexpr (std::is_same_v<Type, Queue>)
+					return queue;
+				else if constexpr (std::is_same_v<Type, SwapChain>)
+					return swapChain;
+				else if constexpr (std::is_same_v<Type, Pipeline>)
+					return graphicsPipeline;
+				else if constexpr (std::is_same_v<Type, CommandBuffers>)
+					return commandBuffers;
+				else static_assert("Type not supported");
+
+			}
 			// never Use !!!
 			static bool hasStencilComponent(vk::Format format);
 			// find the depth format generic version
@@ -110,8 +140,8 @@ namespace KGR
 			std::vector<const char*> requiredDeviceExtension = {
 				vk::KHRSwapchainExtensionName };
 
-			std::vector<Vertex> vertices;
-			std::vector<uint32_t> indices;
+			//std::vector<Vertex> vertices;
+			//std::vector<uint32_t> indices;
 
 			vk::raii::CommandBuffer* m_currentBuffer;
 		};

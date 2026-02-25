@@ -26,7 +26,7 @@ KGR::_Vulkan::Device::Device(PhysicalDevice* device, Surface* surface, ui32t cou
 		vk::PhysicalDeviceVulkan11Features,
 		vk::PhysicalDeviceVulkan12Features,
 		vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain = {
-		{.features = {.fillModeNonSolid = true, .samplerAnisotropy = true } },
+		{.features = {.fillModeNonSolid = true,.samplerAnisotropy = true } },
 		{.shaderDrawParameters = true },
 		{.bufferDeviceAddress = true },
 		{.synchronization2 = true, .dynamicRendering = true },{}
