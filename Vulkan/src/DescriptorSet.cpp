@@ -9,7 +9,7 @@ KGR::_Vulkan::DescriptorSet::DescriptorSet(Device* device, DescriptorPool* pool,
 	vk::DescriptorSetAllocateInfo        allocInfo{
 		   .descriptorPool = pool->Get(),
 		   .descriptorSetCount = 1,
-		   .pSetLayouts = reinterpret_cast<vk::DescriptorSetLayout*>(&layout->Get()) };
+		   .pSetLayouts = &(*layout->Get()) };
 	m_set =std::move(device->Get().allocateDescriptorSets(allocInfo).front());
 }
 

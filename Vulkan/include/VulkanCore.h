@@ -24,8 +24,13 @@
 #include "DescriptorPool.h"
 #include "DescriptorSet.h"
 #include "Image.h"
+#include "RTTI.h"
 #include "SyncObject.h"
+#include "Core/Vertex.h"
 
+struct CameraComponent;
+class TransformComponent;
+class MeshComponent;
 
 struct ImDrawData;
 
@@ -36,9 +41,13 @@ namespace KGR
 		class VulkanCore
 		{
 		public:
+			using pair = std::pair<glm::mat4, MeshComponent*>;
+			/**
+			 * @brief 
+			 * @param window 
+			 */
 			VulkanCore(GLFWwindow* window);
 			void initVulkan();
-			void mainLoop();
 			void recreateSwapChain();
 			std::uint32_t PresentImage();
 			void recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer);
@@ -64,16 +73,42 @@ namespace KGR
 			// to move 
 			void	createTextureSampler();
 
+		
+			
+		
+			template<typename Type>
+			Type& Get()
+			{
+				if constexpr (std::is_same_v<Type, Instance>)
+					return instance;
+				else if constexpr (std::is_same_v<Type, Surface>)
+					return surface;
+				else if constexpr (std::is_same_v<Type, PhysicalDevice>)
+					return physicalDevice;
+				else if constexpr (std::is_same_v<Type, Device>)
+					return device;
+				else if constexpr (std::is_same_v<Type, Queue>)
+					return queue;
+				else if constexpr (std::is_same_v<Type, SwapChain>)
+					return swapChain;
+				else if constexpr (std::is_same_v<Type, Pipeline>)
+					return graphicsPipeline;
+				else if constexpr (std::is_same_v<Type, CommandBuffers>)
+					return commandBuffers;
+				else static_assert("Type not supported");
 
+			}
 			// never Use !!!
 			static bool hasStencilComponent(vk::Format format);
 			// find the depth format generic version
-			void updateUniformBuffer(uint32_t currentImage);
 			// callBack for instance
 			static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
 
 
 
+			void RegisterCam(CameraComponent& cam, TransformComponent& transform);
+			void RegisterRender(MeshComponent& mesh, TransformComponent& transform);
+			void Render(const glm::vec4& color = { 0,0,0,1 });
 			Instance& GetInstance();
 			const Instance& GetInstance() const;
 
@@ -102,6 +137,8 @@ namespace KGR
 			const DescriptorPool& GetDescriptorPool() const;
 
 		private:
+			int BeginRendering(const glm::vec4& color = {0,0,0,1});
+			int EndRendering();
 			// window
 			GLFWwindow* window = nullptr;
 
@@ -115,7 +152,7 @@ namespace KGR
 
 			DescriptorLayouts descriptorSetLayout;
 			DescriptorPool descriptorPool;
-			std::vector<DescriptorSet> descriptorSets;
+			DescriptorSet descriptorSets;
 			Pipeline               graphicsPipeline;
 
 			Buffer vertexBuffer;
@@ -123,7 +160,7 @@ namespace KGR
 			CommandBuffers         commandBuffers;
 
 
-			std::vector<Buffer> uniformBuffers;
+		Buffer uniformBuffers;
 
 			SyncObject syncObject;
 
@@ -138,8 +175,14 @@ namespace KGR
 			std::vector<const char*> requiredDeviceExtension = {
 				vk::KHRSwapchainExtensionName };
 
-			std::vector<Vertex> vertices;
-			std::vector<uint32_t> indices;
+			//std::vector<Vertex> vertices;
+			//std::vector<uint32_t> indices;
+
+			vk::raii::CommandBuffer* m_currentBuffer;
+
+
+			std::optional<UniformBufferObject> m_ubo;
+			std::vector<pair> m_toRenderObject;
 		};
 	}
 }
