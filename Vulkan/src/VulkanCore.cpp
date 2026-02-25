@@ -163,18 +163,6 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 
 }
 
-void KGR::_Vulkan::VulkanCore::mainLoop()
-{
-	while (!glfwWindowShouldClose(window))
-	{
-		_GLFW::Window::PollEvent();
-		drawFrame();
-	}
-
-	device.Get().waitIdle();
-}
-
-
 
 void KGR::_Vulkan::VulkanCore::recreateSwapChain()
 {
@@ -267,7 +255,7 @@ void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.GetExtend()));
 	commandBuffer.bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
 	commandBuffer.bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
 	commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 	commandBuffer.endRendering();
 	// After rendering, transition the swapchain image to PRESENT_SRC
@@ -342,7 +330,7 @@ void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.GetExtend()));
 	commandBuffer.bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
 	commandBuffer.bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
 	commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 	
 	if (drawData)
@@ -361,13 +349,6 @@ void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii
 		vk::ImageAspectFlagBits::eColor, commandBuffer);
 	commandBuffer.end();
 }
-
-void KGR::_Vulkan::VulkanCore::LoadModel()
-{
-	
-
-	auto& obj = TOLManager::Load("Models\\viking_room.obj");
-
 
 void KGR::_Vulkan::VulkanCore::transition_image_layout(vk::Image image, vk::ImageLayout old_layout,
                                                        vk::ImageLayout new_layout, vk::AccessFlags2 src_access_mask, vk::AccessFlags2 dst_access_mask,
@@ -449,8 +430,6 @@ void KGR::_Vulkan::VulkanCore::drawFrame()
 	auto& buffer = commandBuffers.Acquire(&device);
 	buffer.reset();
 
-
-	updateUniformBuffer(syncObject.GetCurrentFrame());
 	recordCommandBuffer(syncObject.GetCurrentImage(), buffer);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -509,8 +488,6 @@ void KGR::_Vulkan::VulkanCore::drawFrame(ImDrawData* drawData)
 	auto& buffer = commandBuffers.Acquire(&device);
 	buffer.reset();
 
-
-	updateUniformBuffer(syncObject.GetCurrentFrame());
 	recordCommandBuffer(syncObject.GetCurrentImage(), buffer, drawData);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -759,8 +736,11 @@ int KGR::_Vulkan::VulkanCore::BeginRendering(const glm::vec4& color)
 	return 0;
 }
 
-int KGR::_Vulkan::VulkanCore::EndRendering()
+int KGR::_Vulkan::VulkanCore::EndRendering(ImDrawData* drawData)
 {
+	if (drawData)
+		ImGui_ImplVulkan_RenderDrawData(drawData, **m_currentBuffer);
+
 	m_currentBuffer->endRendering();
 	// After rendering, transition the swapchain image to PRESENT_SRC
 	transition_image_layout(
@@ -839,10 +819,11 @@ void KGR::_Vulkan::VulkanCore::RegisterRender(MeshComponent& mesh, TransformComp
 	m_toRenderObject.push_back({transform.GetFullTransform() ,&mesh });
 }
 
-void KGR::_Vulkan::VulkanCore::Render(const glm::vec4& color )
+void KGR::_Vulkan::VulkanCore::Render(const glm::vec4& color, ImDrawData* drawData)
 {
 	if (!m_ubo.has_value())
 		throw std::runtime_error("need to register Camera");
+
 	// Update the Camera
 	uniformBuffers.Upload(&m_ubo.value(), sizeof(UniformBufferObject));
 
@@ -854,7 +835,7 @@ void KGR::_Vulkan::VulkanCore::Render(const glm::vec4& color )
 		m_toRenderObject.clear();
 		return;
 	}
-	for (auto& it: m_toRenderObject)
+	for (auto& it : m_toRenderObject)
 	{
 		for (int i = 0; i < it.second->mesh->GetSubMeshesCount(); ++i)
 		{
@@ -864,15 +845,18 @@ void KGR::_Vulkan::VulkanCore::Render(const glm::vec4& color )
 			m_currentBuffer->drawIndexed(it.second->mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
 		}
 	}
-	result = EndRendering();
+	result = EndRendering(drawData);
 	if (result == -1)
 	{
 		m_ubo.reset();
 		m_toRenderObject.clear();
 		return;
 	}
+
 	m_ubo.reset();
 	m_toRenderObject.clear();
+}
+
 KGR::_Vulkan::Instance& KGR::_Vulkan::VulkanCore::GetInstance()
 {
 	return instance;
@@ -964,5 +948,3 @@ const KGR::_Vulkan::DescriptorPool& KGR::_Vulkan::VulkanCore::GetDescriptorPool(
 }
 
 //IMPL
-
-

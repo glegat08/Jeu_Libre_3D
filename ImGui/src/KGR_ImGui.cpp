@@ -2,6 +2,7 @@
 
 #include "Backends/imgui_impl_glfw.h"
 #include "Backends/imgui_impl_vulkan.h"
+#include <Windows.h>
 
 void KGR::_ImGui::ImGuiCore::InitImGui(KGR::_Vulkan::VulkanCore* vulkanCore, KGR::_GLFW::Window* engineWindow)
 {
@@ -28,24 +29,6 @@ void KGR::_ImGui::ImGuiCore::EndFrame(ContextTarget target, VkCommandBuffer comm
 
 void KGR::_ImGui::ImGuiCore::Render(ContextTarget target)
 {
-    SetContext(target);
-
-    if (target == ContextTarget::Engine)
-    {
-        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
-        ImGui::Begin("OBJ Loader");
-
-		ImGui::Text("Filepath :");
-        ImGui::InputText("##Filepath", m_ObjFilePath, sizeof(m_ObjFilePath));
-		ImGui::SameLine();
-
-        if (ImGui::Button("Load"))
-        {
-            TOLManager::Load(m_ObjFilePath);
-        }
-
-        ImGui::Spacing();
-    }
 }
 
 void KGR::_ImGui::ImGuiCore::SetContext(ContextTarget target)
@@ -59,6 +42,20 @@ void KGR::_ImGui::ImGuiCore::Destroy()
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext(m_EngineContext);
+}
+
+std::string KGR::_ImGui::ImGuiCore::OpenFile()
+{
+    OPENFILENAMEA ofn = {};
+	char path[512]    = "";
+	ofn.lStructSize   = sizeof(ofn);
+	ofn.lpstrFilter   = "OBJ Files\0*.obj\0All Files\0*.*\0";
+	ofn.lpstrFile     = path;
+	ofn.nMaxFile      = sizeof(path);
+	ofn.Flags         = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+	ofn.lpstrDefExt   = "obj";
+
+	return GetOpenFileNameA(&ofn) ? std::string(path) : std::string();
 }
 
 void KGR::_ImGui::ImGuiCore::InitInfo()
@@ -88,7 +85,7 @@ void KGR::_ImGui::ImGuiCore::InitInfo()
         .depthAttachmentFormat = DepthFormat
     };
 
-    ImGui_ImplVulkan_Init((ImGui_ImplVulkan_InitInfo*)&m_InitInfo);
+    ImGui_ImplVulkan_Init(&m_InitInfo);
 }
 
 void KGR::_ImGui::ImGuiCore::InitContext(ImGuiContext*& context, KGR::_Vulkan::VulkanCore* vulkanCore,

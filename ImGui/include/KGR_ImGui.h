@@ -17,23 +17,6 @@ namespace KGR
 			Game
 		};
 
-		struct ImGuiInitInfo
-		{
-			uint32_t                        ApiVersion;
-			VkInstance                      Instance;
-			VkPhysicalDevice                PhysicalDevice;
-			VkDevice                        Device;
-			uint32_t                        QueueFamily;
-			VkQueue                         Queue;
-			VkDescriptorPool                DescriptorPool;
-			uint32_t                        MinImageCount;
-			uint32_t                        ImageCount;
-			ImGui_ImplVulkan_PipelineInfo   PipelineInfoMain;
-			bool                            UseDynamicRendering;
-			VkFormat						ColorFormat;
-			VkFormat						DepthFormat;
-		};
-
 		class ImGuiCore
 		{
 		public:
@@ -50,6 +33,8 @@ namespace KGR
 
 			void Destroy();
 
+			static std::string OpenFile();
+
 		private:
 			template<typename ReturnType, typename WrapperType>
 			ReturnType Get(WrapperType& type)
@@ -60,7 +45,7 @@ namespace KGR
 			KGR::_Vulkan::VulkanCore* m_VulkanCore = nullptr;
 			ImGuiContext* m_EngineContext = nullptr;
 			ImGuiContext* m_GameContext = nullptr;
-			ImGuiInitInfo m_InitInfo = {};
+			ImGui_ImplVulkan_InitInfo m_InitInfo = {};
 
 			char		m_ObjFilePath[512] = "";
 			std::string m_LoadedObjName    = "";

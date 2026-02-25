@@ -98,6 +98,7 @@ namespace KGR
 				else static_assert("Type not supported");
 
 			}
+
 			// never Use !!!
 			static bool hasStencilComponent(vk::Format format);
 			// find the depth format generic version
@@ -108,7 +109,8 @@ namespace KGR
 
 			void RegisterCam(CameraComponent& cam, TransformComponent& transform);
 			void RegisterRender(MeshComponent& mesh, TransformComponent& transform);
-			void Render(const glm::vec4& color = { 0,0,0,1 });
+			void Render(const glm::vec4& color = { 0,0,0,1 }, ImDrawData* drawData = nullptr);
+
 			Instance& GetInstance();
 			const Instance& GetInstance() const;
 
@@ -138,7 +140,8 @@ namespace KGR
 
 		private:
 			int BeginRendering(const glm::vec4& color = {0,0,0,1});
-			int EndRendering();
+			int EndRendering(ImDrawData* drawData = nullptr);
+
 			// window
 			GLFWwindow* window = nullptr;
 
@@ -175,8 +178,8 @@ namespace KGR
 			std::vector<const char*> requiredDeviceExtension = {
 				vk::KHRSwapchainExtensionName };
 
-			//std::vector<Vertex> vertices;
-			//std::vector<uint32_t> indices;
+			std::vector<Vertex> vertices;
+			std::vector<uint32_t> indices;
 
 			vk::raii::CommandBuffer* m_currentBuffer;
 
