@@ -27,6 +27,8 @@
 #include "SyncObject.h"
 
 
+struct ImDrawData;
+
 namespace KGR
 {
 	namespace _Vulkan
@@ -40,6 +42,7 @@ namespace KGR
 			void recreateSwapChain();
 			std::uint32_t PresentImage();
 			void recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer);
+			void recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer, ImDrawData* drawData);
 			void LoadModel();
 			void transition_image_layout(
 				vk::Image               image,
@@ -56,6 +59,7 @@ namespace KGR
 
 
 			void drawFrame();
+			void drawFrame(ImDrawData* drawData);
 
 			// to move 
 			void	createTextureSampler();

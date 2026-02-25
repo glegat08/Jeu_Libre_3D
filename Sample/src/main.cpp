@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	KGR::_GLFW::Window window;
 
 
-	window.CreateMyWindow({ 1280, 720 }, "GC goes Vulkan", nullptr, nullptr);
+	window.CreateMyWindow({ 1400, 900 }, "GC goes Vulkan", nullptr, nullptr);
 
 
 	KGR::_Vulkan::VulkanCore app(&window.GetWindow());
@@ -60,11 +60,16 @@ int main(int argc, char** argv)
 	init_info.ApiVersion = VK_API_VERSION_1_4;
 	init_info.UseDynamicRendering = true;
 	VkFormat colorFormat = static_cast<VkFormat>(app.GetSwapChain().GetFormat().format);
+	VkFormat depthFormat = static_cast<VkFormat>(app.GetPhysicalDevice().findSupportedFormat(
+		{ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
+		vk::ImageTiling::eOptimal,
+		vk::FormatFeatureFlagBits::eDepthStencilAttachment));
 	init_info.PipelineInfoMain.PipelineRenderingCreateInfo = 
 	{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
 		.colorAttachmentCount = 1,
-		.pColorAttachmentFormats = &colorFormat
+		.pColorAttachmentFormats = &colorFormat,
+		.depthAttachmentFormat = depthFormat
 	};
 
 	ImGui_ImplVulkan_Init(&init_info);
@@ -75,6 +80,8 @@ int main(int argc, char** argv)
 
 	do
 	{
+		KGR::_GLFW::Window::PollEvent();
+
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -115,9 +122,11 @@ int main(int argc, char** argv)
 		}
 
 		 ImGui::Render();
-
+		 app.drawFrame(ImGui::GetDrawData());
 	} 
 	while (!window.ShouldClose());
+
+	app.GetDevice().Get().waitIdle();
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
