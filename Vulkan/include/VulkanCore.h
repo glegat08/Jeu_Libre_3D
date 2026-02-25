@@ -48,7 +48,6 @@ namespace KGR
 			void initVulkan();
 			void recreateSwapChain();
 			std::uint32_t PresentImage();
-			void recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer);
 			void transition_image_layout(
 				vk::Image               image,
 				vk::ImageLayout         old_layout,
@@ -64,8 +63,7 @@ namespace KGR
 			// to move 
 			void	createTextureSampler();
 
-			void BeginRendering();
-			void EndRendering();
+		
 			
 		
 			template<typename Type>
@@ -93,7 +91,6 @@ namespace KGR
 			// never Use !!!
 			static bool hasStencilComponent(vk::Format format);
 			// find the depth format generic version
-			void updateUniformBuffer(uint32_t currentImage);
 			// callBack for instance
 			static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
 
@@ -101,8 +98,10 @@ namespace KGR
 
 			void RegisterCam(CameraComponent& cam, TransformComponent& transform);
 			void RegisterRender(MeshComponent& mesh, TransformComponent& transform);
-			void Render();
+			void Render(const glm::vec4& color = { 0,0,0,1 });
 		private:
+			void BeginRendering(const glm::vec4& color = {0,0,0,1});
+			void EndRendering();
 			// window
 			GLFWwindow* window = nullptr;
 
@@ -116,7 +115,7 @@ namespace KGR
 
 			DescriptorLayouts descriptorSetLayout;
 			DescriptorPool descriptorPool;
-			std::vector<DescriptorSet> descriptorSets;
+			DescriptorSet descriptorSets;
 			Pipeline               graphicsPipeline;
 
 			Buffer vertexBuffer;
@@ -124,7 +123,7 @@ namespace KGR
 			CommandBuffers         commandBuffers;
 
 
-			std::vector<Buffer> uniformBuffers;
+		Buffer uniformBuffers;
 
 			SyncObject syncObject;
 

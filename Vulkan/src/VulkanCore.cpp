@@ -118,12 +118,12 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 
 
 	// UniformBuffer
-	for (size_t i = 0; i < swapChain.GetImagesCount(); i++) {
+
 		vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-		auto buffer = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize);
-		buffer.MapMemory(bufferSize);
-		uniformBuffers.emplace_back(std::move(buffer));
-	}
+		auto bufferD = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize);
+		bufferD.MapMemory(bufferSize);
+		uniformBuffers = std::move(bufferD);
+	
 	// descriptorPool
 	std::vector<vk::DescriptorPoolSize> poolSize{
 				vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, swapChain.GetImagesCount()),
@@ -131,11 +131,10 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 	descriptorPool = DescriptorPool(poolSize, 100, &device);
 	
 	// DescriptorSet
-	descriptorSets = DescriptorSet::Create(&device, &descriptorPool, &descriptorSetLayout.Get(0), swapChain.GetImagesCount());
-	for (size_t i = 0; i < swapChain.GetImagesCount(); i++)
-	{
+	descriptorSets = DescriptorSet(&device, &descriptorPool, &descriptorSetLayout.Get(0));
+	
 		vk::DescriptorBufferInfo bufferInfo{
-			.buffer = uniformBuffers[i].Get(),
+			.buffer = uniformBuffers.Get(),
 			.offset = 0,
 			.range = sizeof(UniformBufferObject) };
 		vk::DescriptorImageInfo imageInfo{
@@ -144,21 +143,20 @@ void KGR::_Vulkan::VulkanCore::initVulkan()
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal };
 		std::array descriptorWrites{
 			vk::WriteDescriptorSet{
-				.dstSet = descriptorSets[i].Get(),
+				.dstSet = descriptorSets.Get(),
 				.dstBinding = 0,
 				.dstArrayElement = 0,
 				.descriptorCount = 1,
 				.descriptorType = vk::DescriptorType::eUniformBuffer,
 				.pBufferInfo = &bufferInfo},
 			vk::WriteDescriptorSet{
-				.dstSet = descriptorSets[i].Get(),
+				.dstSet = descriptorSets.Get(),
 				.dstBinding = 1,
 				.dstArrayElement = 0,
 				.descriptorCount = 1,
 				.descriptorType = vk::DescriptorType::eCombinedImageSampler,
 				.pImageInfo = &imageInfo} };
 		device.Get().updateDescriptorSets(descriptorWrites, {});
-	}
 
 
 }
@@ -200,81 +198,6 @@ void KGR::_Vulkan::VulkanCore::recreateSwapChain()
 
 
 
-void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer)
-{
-
-
-	//
-	auto& commandBuffer = buffer;
-	commandBuffer.begin({});
-	// Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
-	transition_image_layout(
-		swapChain.GetImages()[imageIndex],
-		vk::ImageLayout::eUndefined,
-		vk::ImageLayout::eColorAttachmentOptimal,
-		{},                                                        // srcAccessMask (no need to wait for previous operations)
-		vk::AccessFlagBits2::eColorAttachmentWrite,                // dstAccessMask
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // dstStage
-		vk::ImageAspectFlagBits::eColor,commandBuffer);
-	// Transition depth image to depth attachment optimal layout
-	transition_image_layout(
-		*depthImage.Get(),
-		vk::ImageLayout::eUndefined,
-		vk::ImageLayout::eDepthAttachmentOptimal,
-		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-		vk::ImageAspectFlagBits::eDepth,commandBuffer);
-
-	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
-	vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
-
-	vk::RenderingAttachmentInfo colorAttachmentInfo = {
-		.imageView = swapChainImageViews.Get()[imageIndex],
-		.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-		.loadOp = vk::AttachmentLoadOp::eClear,
-		.storeOp = vk::AttachmentStoreOp::eStore,
-		.clearValue = clearColor };
-
-	vk::RenderingAttachmentInfo depthAttachmentInfo = {
-		.imageView = depthImage.GetView(),
-		.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-		.loadOp = vk::AttachmentLoadOp::eClear,
-		.storeOp = vk::AttachmentStoreOp::eDontCare,
-		.clearValue = clearDepth };
-
-	vk::RenderingInfo renderingInfo = {
-		.renderArea = {.offset = {0, 0}, .extent = swapChain.GetExtend()},
-		.layerCount = 1,
-		.colorAttachmentCount = 1,
-		.pColorAttachments = &colorAttachmentInfo,
-		.pDepthAttachment = &depthAttachmentInfo };
-	commandBuffer.beginRendering(renderingInfo);
-	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline.Get());
-	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.GetExtend().width), static_cast<float>(swapChain.GetExtend().height), 0.0f, 1.0f));
-	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.GetExtend()));
-	commandBuffer.bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
-	commandBuffer.bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
-	//commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
-	commandBuffer.endRendering();
-	// After rendering, transition the swapchain image to PRESENT_SRC
-	transition_image_layout(
-		swapChain.GetImages()[imageIndex],
-		vk::ImageLayout::eColorAttachmentOptimal,
-		vk::ImageLayout::ePresentSrcKHR,
-		vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
-		{},                                                        // dstAccessMask
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-		vk::PipelineStageFlagBits2::eBottomOfPipe,                 // dstStage
-		vk::ImageAspectFlagBits::eColor,commandBuffer);
-	commandBuffer.end();
-
-
-
-}
 
 
 void KGR::_Vulkan::VulkanCore::transition_image_layout(vk::Image image, vk::ImageLayout old_layout,
@@ -465,7 +388,7 @@ void KGR::_Vulkan::VulkanCore::createTextureSampler()
 	textureSampler = vk::raii::Sampler(device.Get(), samplerInfo);
 }
 
-void KGR::_Vulkan::VulkanCore::BeginRendering()
+void KGR::_Vulkan::VulkanCore::BeginRendering(const glm::vec4& color)
 {
 	// Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by frameIndex,
 	//       while renderFinishedSemaphores is indexed by imageIndex
@@ -519,7 +442,7 @@ void KGR::_Vulkan::VulkanCore::BeginRendering()
 		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
 		vk::ImageAspectFlagBits::eDepth, *m_currentBuffer);
 
-	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+	vk::ClearValue clearColor = vk::ClearColorValue(color.x, color.y, color.z, color.w);
 	vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 
 	vk::RenderingAttachmentInfo colorAttachmentInfo = {
@@ -599,42 +522,6 @@ bool KGR::_Vulkan::VulkanCore::hasStencilComponent(vk::Format format)
 	return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
 }
 
-
-
-void KGR::_Vulkan::VulkanCore::updateUniformBuffer(uint32_t currentImage)
-{
-	static TransformComponent cameraTransform;
-	static auto lastTime = std::chrono::high_resolution_clock::now();
-	static float angle = 0.0f;
-	const float rotationSpeed = 1.0f;
-
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
-	lastTime = currentTime;
-
-	angle += deltaTime * rotationSpeed;
-
-
-	float radius = 5.0f;
-	float camX = std::cos(angle) * radius;
-	float camY = 0.0f; 
-	float camZ = std::sin(angle) * radius;
-
-	cameraTransform.SetPosition({ camX, camY, camZ });
-	cameraTransform.LookAt({ 0.0f, 0.0f, 0.0f });
-
-	UniformBufferObject ubo{};
-	ubo.transform = cameraTransform.GetFullTransform();           // modèle = transform caméra
-	ubo.view = glm::inverse(cameraTransform.GetFullTransform()); // view = inverse
-	ubo.proj = glm::perspective(glm::radians(45.0f),
-		static_cast<float>(swapChain.GetExtend().width) / static_cast<float>(swapChain.GetExtend().height),
-		0.1f, 1000.0f);
-	ubo.proj[1][1] *= -1; 
-
-	uniformBuffers[currentImage].Upload(&ubo, sizeof(ubo));
-}
-
-
 vk::Bool32 KGR::_Vulkan::VulkanCore::debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
                                                    vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
 {
@@ -663,20 +550,22 @@ void KGR::_Vulkan::VulkanCore::RegisterRender(MeshComponent& mesh, TransformComp
 	m_toRenderObject.push_back({transform.GetFullTransform() ,&mesh });
 }
 
-void KGR::_Vulkan::VulkanCore::Render()
+void KGR::_Vulkan::VulkanCore::Render(const glm::vec4& color )
 {
 	if (!m_ubo.has_value())
 		throw std::runtime_error("need to register Camera");
 	// Update the Camera
-	uniformBuffers[syncObject.GetCurrentImage()].Upload(&m_ubo.value(), sizeof(UniformBufferObject));
-	BeginRendering();
+	uniformBuffers.Upload(&m_ubo.value(), sizeof(UniformBufferObject));
+
+
+	BeginRendering(color);
 	for (auto& it: m_toRenderObject)
 	{
 		for (int i = 0; i < it.second->mesh->GetSubMeshesCount(); ++i)
 		{
 			it.second->mesh->Bind(m_currentBuffer, i);
 			m_currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, it.first);
-			m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets[syncObject.GetCurrentFrame()].Get(), nullptr);
+			m_currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
 			m_currentBuffer->drawIndexed(it.second->mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
 		}
 	}

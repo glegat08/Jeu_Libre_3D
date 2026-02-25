@@ -75,11 +75,14 @@ int main(int argc, char** argv)
 		camTransform.SetPosition({ camX, camY, camZ });
 		camTransform.LookAt({ 0.0f, 0.0f, 0.0f });
 		cam.UpdateCamera(camTransform.GetFullTransform());
+
 		// Render
+		
 		app.RegisterCam(cam, camTransform);
 		app.RegisterRender(meshComp, transform);
 		app.Render();
-	} 
+	
+	}
 	while (!window.ShouldClose());
 
 	 window.DestroyMyWindow();
