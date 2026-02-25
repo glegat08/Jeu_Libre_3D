@@ -92,6 +92,7 @@ target_link_libraries(${PROJECT_NAME}
   # ${MYLIB_LIB}/YourLib.lib
     glfw
     ${VulkanLib}/vulkan-1.lib
+    Vulkan
     PRIVATE
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
