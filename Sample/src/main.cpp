@@ -101,10 +101,10 @@ int main(int argc, char** argv)
 
 			ImGui::Separator();
 
-			ImGui::DragFloat3("Position", &objPosition.x, 0.05f);
-			ImGui::DragFloat3("Scale",    &objScale.x,    0.05f, 0.01f, 50.0f);
+			ImGui::DragFloat3("Position",     &objPosition.x, 0.05f);
+			ImGui::DragFloat3("Scale",        &objScale.x,    0.05f, 0.01f, 50.0f);
 			ImGui::SliderAngle("Pitch (x)",   &objRotation.x, -180.0f, 180.0f);
-			ImGui::SliderAngle("Yaw (y)",	  &objRotation.y, -180.0f, 180.0f);
+			ImGui::SliderAngle("Yaw (y)",	   &objRotation.y, -180.0f, 180.0f);
 			ImGui::SliderAngle("Roll (z)",    &objRotation.z, -180.0f, 180.0f);
 			ImGui::End();
 		}

@@ -92,6 +92,7 @@ target_link_libraries(${PROJECT_NAME}
         ${VulkanLib}/vulkan-1.lib
         GLFW_
         GameLib
+        ImGuizmo
 	Engine
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
