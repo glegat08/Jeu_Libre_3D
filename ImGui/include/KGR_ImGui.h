@@ -4,6 +4,7 @@
 #include "_GLFW.h"
 #include "Backends/imgui_impl_vulkan.h"
 #include "Core/ManagerImple.h"
+#include <ImGuizmo.h>
 
 struct ImGuiContext;
 

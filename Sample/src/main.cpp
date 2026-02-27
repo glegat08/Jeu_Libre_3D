@@ -12,7 +12,6 @@
 #include "Core/TrasformComponent.h"
 #include "KGR_ImGui.h"
 
-
 int main(int argc, char** argv)
 {
 	std::filesystem::path exePath = argv[0];

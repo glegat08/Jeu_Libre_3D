@@ -84,7 +84,6 @@ target_link_libraries(${PROJECT_NAME}
     glfw
     ${VulkanLib}/vulkan-1.lib
     Engine
-    ImGuizmo
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
     PRIVATE
