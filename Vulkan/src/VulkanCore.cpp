@@ -78,7 +78,7 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 
 
 	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice,vk::PolygonMode::eFill,Vertex::getBindingDescription(), Vertex::getAttributeDescriptions());
-	linePipeLine = _Vulkan::Pipeline(info2, &device, &swapChain, &descriptorSetLayout, &physicalDevice, vk::PolygonMode::eFill, SimpleVertex::getBindingDescription(), SimpleVertex::getAttributeDescriptions());
+	linePipeLine = _Vulkan::Pipeline(info2, &device, &swapChain, &descriptorSetLayout, &physicalDevice, vk::PolygonMode::eFill, SegmentVertex::getBindingDescription(), SegmentVertex::getAttributeDescriptions());
 
 	// Command Buffer
 	commandBuffers = _Vulkan::CommandBuffers(&device);
@@ -169,7 +169,7 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 
 
 
-		size_t vertSize =4096 * sizeof(SimpleVertex) * 4;
+		size_t vertSize =4096 * sizeof(SegmentVertex) * 4;
 		stagingVertexBuffer = KGR::_Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertSize);
 		vertexBuffer = KGR::_Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, vertSize);
 		vertexBuffer.Copy(&stagingVertexBuffer, &device, &queue, &commandBuffers);
@@ -208,7 +208,7 @@ void KGR::_Vulkan::VulkanCore::recreateSwapChain(GLFWwindow* window)
 		.fragmentMain = "fragMain"
 	};
 	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice, vk::PolygonMode::eFill,Vertex::getBindingDescription(),Vertex::getAttributeDescriptions());
-	linePipeLine = _Vulkan::Pipeline(info2, &device, &swapChain, &descriptorSetLayout, &physicalDevice, vk::PolygonMode::eFill, SimpleVertex::getBindingDescription(), SimpleVertex::getAttributeDescriptions());
+	linePipeLine = _Vulkan::Pipeline(info2, &device, &swapChain, &descriptorSetLayout, &physicalDevice, vk::PolygonMode::eFill, SegmentVertex::getBindingDescription(), SegmentVertex::getAttributeDescriptions());
 
 	vk::Format depthFormat = physicalDevice.findSupportedFormat(
 		{ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },

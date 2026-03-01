@@ -36,21 +36,21 @@ struct std::hash<Vertex>
 
 
 
-struct SimpleVertex
+struct SegmentVertex
 {
 	glm::vec3 pos;
 	glm::vec4 color;
 
 	static vk::VertexInputBindingDescription getBindingDescription() {
-		return { 0, sizeof(SimpleVertex), vk::VertexInputRate::eVertex };
+		return { 0, sizeof(SegmentVertex), vk::VertexInputRate::eVertex };
 	}
 	static std::vector<vk::VertexInputAttributeDescription> getAttributeDescriptions() {
 		return {
-			vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(SimpleVertex, pos)),
-			vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(SimpleVertex, color))
+			vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(SegmentVertex, pos)),
+			vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(SegmentVertex, color))
 		};
 	}
-	bool operator==(const SimpleVertex& other) const
+	bool operator==(const SegmentVertex& other) const
 	{
 		return pos == other.pos && color == other.color ;
 	}
@@ -58,9 +58,9 @@ struct SimpleVertex
 
 
 template <>
-struct std::hash<SimpleVertex>
+struct std::hash<SegmentVertex>
 {
-	size_t operator()(SimpleVertex const& vertex) const noexcept
+	size_t operator()(SegmentVertex const& vertex) const noexcept
 	{
 		return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1);
 	}
