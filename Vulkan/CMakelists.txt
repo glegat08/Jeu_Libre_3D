@@ -44,6 +44,7 @@ source_group(
 #    CONFIG REQUIRED
 # )
 find_package(glfw3 CONFIG REQUIRED)
+find_package(imguizmo CONFIG REQUIRED)
 
 # Manual Lib here
 # Dont forget to link lib
@@ -88,11 +89,11 @@ target_include_directories(${PROJECT_NAME}
 # exemple bellow
 
 target_link_libraries(${PROJECT_NAME}
-    PUBLIC
-        ${VulkanLib}/vulkan-1.lib
-        GLFW_
-        GameLib
-        ImGuizmo
+	PUBLIC
+		${VulkanLib}/vulkan-1.lib
+		GLFW_
+		GameLib
+		imguizmo::imguizmo
 	Engine
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib

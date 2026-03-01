@@ -26,10 +26,10 @@
 void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 {
 	// good Api
-	
+
 
 	// instance creation
-	instance = _Vulkan::Instance(AppInfo{},validationLayers);
+	instance = _Vulkan::Instance(AppInfo{}, validationLayers);
 	instance.setupDebugMessenger<&debugCallback>();
 	//surface 
 	surface = _Vulkan::Surface(&instance, window);
@@ -40,7 +40,7 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 	// Queue
 	queue = _Vulkan::Queue(&device);
 	// swapChain
-	swapChain = _Vulkan::SwapChain(&physicalDevice, &device, &surface, window, SwapChain::PresMode::Mailbox, 3,nullptr);
+	swapChain = _Vulkan::SwapChain(&physicalDevice, &device, &surface, window, SwapChain::PresMode::Mailbox, 3, nullptr);
 	// images view
 	swapChainImageViews = _Vulkan::ImagesViews(&swapChain, &device, ImagesViews::ViewType::vt2D);
 	// Pipeline
@@ -74,11 +74,11 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 	descriptorSetLayout.Add(std::move(layout3));
 
 
-	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice,vk::PolygonMode::eFill);
+	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain, &descriptorSetLayout, &physicalDevice, vk::PolygonMode::eFill);
 	// Command Buffer
 	commandBuffers = _Vulkan::CommandBuffers(&device);
 
-	
+
 
 	// SyncObject
 	syncObject = SyncObject(&device, swapChain.GetImagesCount());
@@ -89,89 +89,82 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 		vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 
 	auto swapChainExtent = swapChain.GetExtend();
-	depthImage = Image(swapChainExtent.width, swapChainExtent.height,1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, &device, &physicalDevice);
+	depthImage = Image(swapChainExtent.width, swapChainExtent.height, 1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, &device, &physicalDevice);
 	depthImage.CreateView(depthFormat, vk::ImageAspectFlagBits::eDepth, &device);
 	createTextureSampler();
 
 
 	// UniformBuffer
 
-		vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-		auto bufferD = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize);
-		bufferD.MapMemory(bufferSize);
-		uniformBuffers = std::move(bufferD);
-	
+	vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
+	auto bufferD = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize);
+	bufferD.MapMemory(bufferSize);
+	uniformBuffers = std::move(bufferD);
+
 
 	// light Buffer 
-		vk::DeviceSize bufferSize2 = (StorageContainer < LightData, 200 >::Capacity() );
-		auto bufferD2 = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize2);
-		bufferD2.MapMemory(bufferSize2);
-		m_lightBuffer = std::move(bufferD2);
+	vk::DeviceSize bufferSize2 = (StorageContainer < LightData, 200 >::Capacity());
+	auto bufferD2 = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize2);
+	bufferD2.MapMemory(bufferSize2);
+	m_lightBuffer = std::move(bufferD2);
 
-		vk::DeviceSize bufferSize3 = sizeof(uint32_t);
-		auto bufferD3= Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize3);
-		bufferD3.MapMemory(bufferSize3);
-		m_lightCount = std::move(bufferD3);
+	vk::DeviceSize bufferSize3 = sizeof(uint32_t);
+	auto bufferD3 = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize3);
+	bufferD3.MapMemory(bufferSize3);
+	m_lightCount = std::move(bufferD3);
 
 	// descriptorPool
 	std::vector<vk::DescriptorPoolSize> poolSize{
 				vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 2),
 				vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 497),
-		        vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer,1)
+				vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer,1)
 	};
 	descriptorPool = DescriptorPool(poolSize, 500, &device);
-	
+
 	// DescriptorSet
 	descriptorSets = DescriptorSet(&device, &descriptorPool, &descriptorSetLayout.Get(0));
 	m_LightSet = DescriptorSet(&device, &descriptorPool, &descriptorSetLayout.Get(1));
-	
-		vk::DescriptorBufferInfo bufferInfo{
-			.buffer = uniformBuffers.Get(),
-			.offset = 0,
-			.range = uniformBuffers.GetSize() };
-		vk::DescriptorBufferInfo bufferInfo2{
-		.buffer = m_lightBuffer.Get(),
+
+	vk::DescriptorBufferInfo bufferInfo{
+		.buffer = uniformBuffers.Get(),
 		.offset = 0,
-		.range = m_lightBuffer.GetSize() };
-		vk::DescriptorBufferInfo bufferInfo3{
-			.buffer = m_lightCount.Get(),
-			.offset = 0,
-			.range = m_lightCount.GetSize()};
-		std::array descriptorWrites{
-			vk::WriteDescriptorSet{
-				.dstSet = descriptorSets.Get(),
+		.range = uniformBuffers.GetSize() };
+	vk::DescriptorBufferInfo bufferInfo2{
+	.buffer = m_lightBuffer.Get(),
+	.offset = 0,
+	.range = m_lightBuffer.GetSize() };
+	vk::DescriptorBufferInfo bufferInfo3{
+		.buffer = m_lightCount.Get(),
+		.offset = 0,
+		.range = m_lightCount.GetSize() };
+	std::array descriptorWrites{
+		vk::WriteDescriptorSet{
+			.dstSet = descriptorSets.Get(),
+			.dstBinding = 0,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = vk::DescriptorType::eUniformBuffer,
+			.pBufferInfo = &bufferInfo},
+		vk::WriteDescriptorSet{
+				.dstSet = m_LightSet.Get(),
 				.dstBinding = 0,
 				.dstArrayElement = 0,
 				.descriptorCount = 1,
+				.descriptorType = vk::DescriptorType::eStorageBuffer,
+				.pBufferInfo = &bufferInfo2},
+		vk::WriteDescriptorSet{
+				.dstSet = m_LightSet.Get(),
+				.dstBinding = 1,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
 				.descriptorType = vk::DescriptorType::eUniformBuffer,
-				.pBufferInfo = &bufferInfo},
-			vk::WriteDescriptorSet{
-					.dstSet = m_LightSet.Get(),
-					.dstBinding = 0,
-					.dstArrayElement = 0,
-					.descriptorCount = 1,
-					.descriptorType = vk::DescriptorType::eStorageBuffer,
-					.pBufferInfo = &bufferInfo2},
-			vk::WriteDescriptorSet{
-					.dstSet = m_LightSet.Get(),
-					.dstBinding = 1,
-					.dstArrayElement = 0,
-					.descriptorCount = 1,
-					.descriptorType = vk::DescriptorType::eUniformBuffer,
-					.pBufferInfo = &bufferInfo3}
-		};
-		device.Get().updateDescriptorSets(descriptorWrites, {});
+				.pBufferInfo = &bufferInfo3}
+	};
 
-
-
-
-
-		
+	device.Get().updateDescriptorSets(descriptorWrites, {});
 }
 
-
-
-// void KGR::_Vulkan::VulkanCore::recreateSwapChain() FOR IMGUI
+// FOR IMGUI
 void KGR::_Vulkan::VulkanCore::recreateSwapChain(GLFWwindow* window)
 {
 	int width = 0, height = 0;
@@ -181,16 +174,16 @@ void KGR::_Vulkan::VulkanCore::recreateSwapChain(GLFWwindow* window)
 		glfwGetFramebufferSize(window, &width, &height);
 		glfwWaitEvents();
 	}
-	
+
 	device.Get().waitIdle();
-	swapChain = _Vulkan::SwapChain(&physicalDevice, &device, &surface, window,SwapChain::PresMode::Mailbox ,3, &swapChain);
+	swapChain = _Vulkan::SwapChain(&physicalDevice, &device, &surface, window, SwapChain::PresMode::Mailbox, 3, &swapChain);
 	swapChainImageViews = _Vulkan::ImagesViews(&swapChain, &device, ImagesViews::ViewType::vt2D);
 	_Vulkan::ShaderInfo info{
 		.ShaderPath = "Shaders/slang.spv",
 		.vertexMain = "vertMain",
 		.fragmentMain = "fragMain"
 	};
-	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice, vk::PolygonMode::eFill);
+	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain, &descriptorSetLayout, &physicalDevice, vk::PolygonMode::eFill);
 
 	vk::Format depthFormat = physicalDevice.findSupportedFormat(
 		{ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
@@ -198,169 +191,13 @@ void KGR::_Vulkan::VulkanCore::recreateSwapChain(GLFWwindow* window)
 		vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 
 	auto swapChainExtent = swapChain.GetExtend();
-	depthImage = Image(swapChainExtent.width, swapChainExtent.height,1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, &device, &physicalDevice);
+	depthImage = Image(swapChainExtent.width, swapChainExtent.height, 1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, &device, &physicalDevice);
 	depthImage.CreateView(depthFormat, vk::ImageAspectFlagBits::eDepth, &device);
 }
 
-
-
-
-
-void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer)
-{
-
-
-	//
-	auto& commandBuffer = buffer;
-	commandBuffer.begin({});
-	// Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
-	transition_image_layout(
-		swapChain.GetImages()[imageIndex],
-		vk::ImageLayout::eUndefined,
-		vk::ImageLayout::eColorAttachmentOptimal,
-		{},                                                        // srcAccessMask (no need to wait for previous operations)
-		vk::AccessFlagBits2::eColorAttachmentWrite,                // dstAccessMask
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // dstStage
-		vk::ImageAspectFlagBits::eColor,commandBuffer);
-	// Transition depth image to depth attachment optimal layout
-	transition_image_layout(
-		*depthImage.Get(),
-		vk::ImageLayout::eUndefined,
-		vk::ImageLayout::eDepthAttachmentOptimal,
-		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-		vk::ImageAspectFlagBits::eDepth,commandBuffer);
-
-	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
-	vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
-
-	vk::RenderingAttachmentInfo colorAttachmentInfo = {
-		.imageView = swapChainImageViews.Get()[imageIndex],
-		.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-		.loadOp = vk::AttachmentLoadOp::eClear,
-		.storeOp = vk::AttachmentStoreOp::eStore,
-		.clearValue = clearColor };
-
-	vk::RenderingAttachmentInfo depthAttachmentInfo = {
-		.imageView = depthImage.GetView(),
-		.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-		.loadOp = vk::AttachmentLoadOp::eClear,
-		.storeOp = vk::AttachmentStoreOp::eDontCare,
-		.clearValue = clearDepth };
-
-	vk::RenderingInfo renderingInfo = {
-		.renderArea = {.offset = {0, 0}, .extent = swapChain.GetExtend()},
-		.layerCount = 1,
-		.colorAttachmentCount = 1,
-		.pColorAttachments = &colorAttachmentInfo,
-		.pDepthAttachment = &depthAttachmentInfo };
-	commandBuffer.beginRendering(renderingInfo);
-	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline.Get());
-	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.GetExtend().width), static_cast<float>(swapChain.GetExtend().height), 0.0f, 1.0f));
-	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.GetExtend()));
-	commandBuffer.bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
-	commandBuffer.bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
-	commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
-	commandBuffer.endRendering();
-	// After rendering, transition the swapchain image to PRESENT_SRC
-	transition_image_layout(
-		swapChain.GetImages()[imageIndex],
-		vk::ImageLayout::eColorAttachmentOptimal,
-		vk::ImageLayout::ePresentSrcKHR,
-		vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
-		{},                                                        // dstAccessMask
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-		vk::PipelineStageFlagBits2::eBottomOfPipe,                 // dstStage
-		vk::ImageAspectFlagBits::eColor,commandBuffer);
-	commandBuffer.end();
-
-
-
-}
-
-void KGR::_Vulkan::VulkanCore::recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer,
-	ImDrawData* drawData)
-{
-	//
-	auto& commandBuffer = buffer;
-	commandBuffer.begin({});
-	// Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
-	transition_image_layout(
-		swapChain.GetImages()[imageIndex],
-		vk::ImageLayout::eUndefined,
-		vk::ImageLayout::eColorAttachmentOptimal,
-		{},                                                        // srcAccessMask (no need to wait for previous operations)
-		vk::AccessFlagBits2::eColorAttachmentWrite,                // dstAccessMask
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // dstStage
-		vk::ImageAspectFlagBits::eColor, commandBuffer);
-	// Transition depth image to depth attachment optimal layout
-	transition_image_layout(
-		*depthImage.Get(),
-		vk::ImageLayout::eUndefined,
-		vk::ImageLayout::eDepthAttachmentOptimal,
-		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-		vk::ImageAspectFlagBits::eDepth, commandBuffer);
-
-	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
-	vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
-
-	vk::RenderingAttachmentInfo colorAttachmentInfo = {
-		.imageView = swapChainImageViews.Get()[imageIndex],
-		.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-		.loadOp = vk::AttachmentLoadOp::eClear,
-		.storeOp = vk::AttachmentStoreOp::eStore,
-		.clearValue = clearColor };
-
-	vk::RenderingAttachmentInfo depthAttachmentInfo = {
-		.imageView = depthImage.GetView(),
-		.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
-		.loadOp = vk::AttachmentLoadOp::eClear,
-		.storeOp = vk::AttachmentStoreOp::eDontCare,
-		.clearValue = clearDepth };
-
-	vk::RenderingInfo renderingInfo = {
-		.renderArea = {.offset = {0, 0}, .extent = swapChain.GetExtend()},
-		.layerCount = 1,
-		.colorAttachmentCount = 1,
-		.pColorAttachments = &colorAttachmentInfo,
-		.pDepthAttachment = &depthAttachmentInfo };
-	commandBuffer.beginRendering(renderingInfo);
-	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline.Get());
-	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.GetExtend().width), static_cast<float>(swapChain.GetExtend().height), 0.0f, 1.0f));
-	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.GetExtend()));
-	commandBuffer.bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
-	commandBuffer.bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
-	commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
-	
-	if (drawData)
-		ImGui_ImplVulkan_RenderDrawData(drawData, *commandBuffer);
-	
-	commandBuffer.endRendering();
-	// After rendering, transition the swapchain image to PRESENT_SRC
-	transition_image_layout(
-		swapChain.GetImages()[imageIndex],
-		vk::ImageLayout::eColorAttachmentOptimal,
-		vk::ImageLayout::ePresentSrcKHR,
-		vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
-		{},                                                        // dstAccessMask
-		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-		vk::PipelineStageFlagBits2::eBottomOfPipe,                 // dstStage
-		vk::ImageAspectFlagBits::eColor, commandBuffer);
-	commandBuffer.end();
-}
-
 void KGR::_Vulkan::VulkanCore::transition_image_layout(vk::Image image, vk::ImageLayout old_layout,
-                                                       vk::ImageLayout new_layout, vk::AccessFlags2 src_access_mask, vk::AccessFlags2 dst_access_mask,
-                                                       vk::PipelineStageFlags2 src_stage_mask, vk::PipelineStageFlags2 dst_stage_mask, vk::ImageAspectFlags image_aspect_flags, vk::raii::CommandBuffer& buffer)
+	vk::ImageLayout new_layout, vk::AccessFlags2 src_access_mask, vk::AccessFlags2 dst_access_mask,
+	vk::PipelineStageFlags2 src_stage_mask, vk::PipelineStageFlags2 dst_stage_mask, vk::ImageAspectFlags image_aspect_flags, vk::raii::CommandBuffer& buffer)
 {
 	vk::ImageMemoryBarrier2 barrier = {
 			.srcStageMask = src_stage_mask,
@@ -410,125 +247,8 @@ std::uint32_t KGR::_Vulkan::VulkanCore::PresentImage()
 	return result;
 }
 
-void KGR::_Vulkan::VulkanCore::drawFrame()
-{
-	// Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by frameIndex,
-	//       while renderFinishedSemaphores is indexed by imageIndex
-	auto fenceResult = device.Get().waitForFences(*syncObject.GetCurrentFence(), vk::True, UINT64_MAX);
-	device.Get().resetFences(*syncObject.GetCurrentFence());
-
-	if (fenceResult != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("failed to wait for fence!");
-	}
-
-	std::uint32_t result = syncObject.AcquireNextImage(&swapChain,&device);
-
-	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
-	// here and does not need to be caught by an exception.
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	{
-		recreateSwapChain();
-		return;
-	}
-	// On other success codes than eSuccess and eSuboptimalKHR we just throw an exception.
-
-
-	// Only reset the fence if we are submitting work
-	auto& buffer = commandBuffers.Acquire(&device);
-	buffer.reset();
-
-	recordCommandBuffer(syncObject.GetCurrentImage(), buffer);
-
-	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-	const auto submitInfo = vk::SubmitInfo{
-			   .waitSemaphoreCount = 1,
-			   .pWaitSemaphores = &*syncObject.GetCurrentPresentSemaphore(),
-			   .pWaitDstStageMask = &waitDestinationStageMask,
-			   .commandBufferCount = 1,
-			   .pCommandBuffers = &*buffer,
-			   .signalSemaphoreCount = 1,
-			   .pSignalSemaphores = &*syncObject.GetCurrentRenderSemaphore(),
-	};
-
-	device.Get().resetFences({ commandBuffers.GetFence(buffer) });
-	queue.Get().submit(submitInfo, commandBuffers.GetFence(buffer));
-
-	
-	queue.Get().submit({}, *syncObject.GetCurrentFence());
-
-	result = PresentImage();
-	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
-	// here and does not need to be caught by an exception.
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	{
-		recreateSwapChain();
-	}
-	commandBuffers.ReleaseCommandBuffer(buffer);
-	syncObject.IncrementFrame();
-}
-
-void KGR::_Vulkan::VulkanCore::drawFrame(ImDrawData* drawData)
-{
-	// Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by frameIndex,
-//       while renderFinishedSemaphores is indexed by imageIndex
-	auto fenceResult = device.Get().waitForFences(*syncObject.GetCurrentFence(), vk::True, UINT64_MAX);
-	device.Get().resetFences(*syncObject.GetCurrentFence());
-
-	if (fenceResult != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("failed to wait for fence!");
-	}
-
-	std::uint32_t result = syncObject.AcquireNextImage(&swapChain, &device);
-
-	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
-	// here and does not need to be caught by an exception.
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	{
-		recreateSwapChain();
-		return;
-	}
-	// On other success codes than eSuccess and eSuboptimalKHR we just throw an exception.
-
-
-	// Only reset the fence if we are submitting work
-	auto& buffer = commandBuffers.Acquire(&device);
-	buffer.reset();
-
-	recordCommandBuffer(syncObject.GetCurrentImage(), buffer, drawData);
-
-	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-	const auto submitInfo = vk::SubmitInfo{
-			   .waitSemaphoreCount = 1,
-			   .pWaitSemaphores = &*syncObject.GetCurrentPresentSemaphore(),
-			   .pWaitDstStageMask = &waitDestinationStageMask,
-			   .commandBufferCount = 1,
-			   .pCommandBuffers = &*buffer,
-			   .signalSemaphoreCount = 1,
-			   .pSignalSemaphores = &*syncObject.GetCurrentRenderSemaphore(),
-	};
-
-	device.Get().resetFences({ commandBuffers.GetFence(buffer) });
-	queue.Get().submit(submitInfo, commandBuffers.GetFence(buffer));
-
-
-	queue.Get().submit({}, *syncObject.GetCurrentFence());
-
-	result = PresentImage();
-	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
-	// here and does not need to be caught by an exception.
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	{
-		recreateSwapChain();
-	}
-	commandBuffers.ReleaseCommandBuffer(buffer);
-	syncObject.IncrementFrame();
-}
-
-
 void KGR::_Vulkan::VulkanCore::transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout,
-                                                     vk::ImageLayout newLayout,uint32_t mipLevels)
+	vk::ImageLayout newLayout, uint32_t mipLevels)
 {
 	auto& commandBuffer = commandBuffers.Acquire(&device);
 	commandBuffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
@@ -632,7 +352,7 @@ void KGR::_Vulkan::VulkanCore::generateMipmaps(vk::raii::Image& image, vk::Forma
 	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, {}, {}, {}, barrier);
 	commandBuffer.end();
 	vk::SubmitInfo submitInfo{ .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer };
-	queue.Get().submit(submitInfo,nullptr);
+	queue.Get().submit(submitInfo, nullptr);
 	queue.Get().waitIdle();
 	commandBuffers.ReleaseCommandBuffer(commandBuffer);
 }
@@ -659,7 +379,7 @@ void KGR::_Vulkan::VulkanCore::createTextureSampler()
 	textureSampler = vk::raii::Sampler(device.Get(), samplerInfo);
 }
 
-int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::CommandBuffer* currentBuffer,const glm::vec4& color)
+int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::CommandBuffer* currentBuffer, const glm::vec4& color)
 {
 	// Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by frameIndex,
 	//       while renderFinishedSemaphores is indexed by imageIndex
@@ -688,7 +408,7 @@ int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::Comma
 
 
 
-	
+
 	// Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
 	transition_image_layout(
 		swapChain.GetImages()[syncObject.GetCurrentImage()],
@@ -698,7 +418,7 @@ int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::Comma
 		vk::AccessFlagBits2::eColorAttachmentWrite,                // dstAccessMask
 		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
 		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // dstStage
-		vk::ImageAspectFlagBits::eColor, * currentBuffer);
+		vk::ImageAspectFlagBits::eColor, *currentBuffer);
 	// Transition depth image to depth attachment optimal layout
 	transition_image_layout(
 		*depthImage.Get(),
@@ -741,18 +461,16 @@ int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::Comma
 	return 0;
 }
 
-int KGR::_Vulkan::VulkanCore::EndRendering(GLFWwindow* window, vk::raii::CommandBuffer* currentBuffer)
+// FOR IMGUI
+int KGR::_Vulkan::VulkanCore::EndRendering(GLFWwindow* window, vk::raii::CommandBuffer* currentBuffer, ImDrawData* imguiDrawData)
 {
-	currentBuffer->endRendering();
-  
-/*int KGR::_Vulkan::VulkanCore::EndRendering(ImDrawData* drawData) FOR IMGUI
-{
-	if (drawData)
-		ImGui_ImplVulkan_RenderDrawData(drawData, **m_currentBuffer);
+	// FOR IMGUI
+	if (imguiDrawData)
+		ImGui_ImplVulkan_RenderDrawData(imguiDrawData, **currentBuffer);
 
-	m_currentBuffer->endRendering();*/
+	currentBuffer->endRendering();
+
 	// After rendering, transition the swapchain image to PRESENT_SRC
-  
 	transition_image_layout(
 		swapChain.GetImages()[syncObject.GetCurrentImage()],
 		vk::ImageLayout::eColorAttachmentOptimal,
@@ -761,7 +479,7 @@ int KGR::_Vulkan::VulkanCore::EndRendering(GLFWwindow* window, vk::raii::Command
 		{},                                                        // dstAccessMask
 		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
 		vk::PipelineStageFlagBits2::eBottomOfPipe,                 // dstStage
-		vk::ImageAspectFlagBits::eColor, * currentBuffer);
+		vk::ImageAspectFlagBits::eColor, *currentBuffer);
 	currentBuffer->end();
 
 
@@ -796,7 +514,7 @@ int KGR::_Vulkan::VulkanCore::EndRendering(GLFWwindow* window, vk::raii::Command
 
 
 vk::Bool32 KGR::_Vulkan::VulkanCore::debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
-                                                   vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
+	vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
 {
 	if (severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eError || severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
 	{
@@ -832,7 +550,7 @@ KGR::_Vulkan::DescriptorSet KGR::_Vulkan::VulkanCore::CreateSetForImage(Image* i
 			.imageView = image->GetView(),
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal };
 
-	std::array<vk::WriteDescriptorSet,1> descriptorWrites{
+	std::array<vk::WriteDescriptorSet, 1> descriptorWrites{
 		vk::WriteDescriptorSet{
 				.dstSet = set.Get(),
 				.dstBinding = 0,
@@ -842,17 +560,12 @@ KGR::_Vulkan::DescriptorSet KGR::_Vulkan::VulkanCore::CreateSetForImage(Image* i
 				.pImageInfo = &imageInfo}
 	};
 
-
-
 	device.Get().updateDescriptorSets(descriptorWrites, {});
 	return set;
 }
 
-
-
 void KGR::_Vulkan::VulkanCore::RegisterCam(CameraComponent& cam, TransformComponent& transform)
 {
-
 	m_ubo = UniformBufferObject{};
 	m_ubo->transform = transform.GetFullTransform();
 	m_ubo->view = cam.GetView();
@@ -862,38 +575,36 @@ void KGR::_Vulkan::VulkanCore::RegisterCam(CameraComponent& cam, TransformCompon
 	m_ubo->proj[1][1] *= -1;
 }
 
-void KGR::_Vulkan::VulkanCore::RegisterRender(MeshComponent& mesh, TransformComponent& transform,TextureComponent& texture)
+void KGR::_Vulkan::VulkanCore::RegisterRender(MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture)
 {
-	m_toRenderObject.push_back(MeshData{transform.GetFullTransform() ,&mesh,&texture });
+	m_toRenderObject.push_back(MeshData{ transform.GetFullTransform() ,&mesh,&texture });
 }
 
-// void KGR::_Vulkan::VulkanCore::Render(const glm::vec4& color, ImDrawData* drawData) FOR IMGUI
-void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window,const glm::vec4& color )
+// FOR IMGUI
+void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color, ImDrawData* imguiDrawData)
 {
 	if (!m_ubo.has_value())
 		throw std::runtime_error("need to register Camera");
 
 	// Update the Camera
-	uniformBuffers.Upload(&m_ubo.value(),uniformBuffers.GetSize());
+	uniformBuffers.Upload(&m_ubo.value(), uniformBuffers.GetSize());
 	StorageContainer<LightData, 200> lData = StorageContainer < LightData, 200> ::FromVec(m_lights);
 	m_lightBuffer.Upload(lData.Data(), lData.UploadSize());
 	m_lightCount.Upload(lData.GetSizeData(), m_lightCount.GetSize());
-	
 
 	auto currentBuffer = &commandBuffers.Acquire(&device);
 	currentBuffer->reset();
 	currentBuffer->begin({});
 
-
-
 	int result = 0;
-	result = BeginRendering( window, currentBuffer,color);
+	result = BeginRendering(window, currentBuffer, color);
 	if (result == -1)
 	{
 		m_ubo.reset();
 		m_toRenderObject.clear();
 		return;
 	}
+
 	for (auto& it : m_toRenderObject)
 	{
 		for (int i = 0; i < it.mesh->mesh->GetSubMeshesCount(); ++i)
@@ -906,18 +617,11 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window,const glm::vec4& color 
 			currentBuffer->drawIndexed(it.mesh->mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
 		}
 	}
-	result = EndRendering(window, currentBuffer);
+
+	result = EndRendering(window, currentBuffer, imguiDrawData);
 	commandBuffers.ReleaseCommandBuffer(*currentBuffer);
 	syncObject.IncrementFrame();
 	device.Get().waitIdle();
-  
-	/*result = EndRendering(drawData); FOR IMGUI
-	if (result == -1)
-	{
-		m_ubo.reset();
-		m_toRenderObject.clear();
-		return;
-	}*/
 
 	m_ubo.reset();
 	m_toRenderObject.clear();

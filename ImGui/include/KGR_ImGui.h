@@ -44,9 +44,9 @@ namespace KGR
 			}
 
 			KGR::_Vulkan::VulkanCore* m_VulkanCore = nullptr;
-			ImGuiContext* m_EngineContext = nullptr;
-			ImGuiContext* m_GameContext = nullptr;
-			ImGui_ImplVulkan_InitInfo m_InitInfo = {};
+			ImGuiContext* m_EngineContext		   = nullptr;
+			ImGuiContext* m_GameContext			   = nullptr;
+			ImGui_ImplVulkan_InitInfo m_InitInfo   = {};
 
 			char		m_ObjFilePath[512] = "";
 			std::string m_LoadedObjName    = "";

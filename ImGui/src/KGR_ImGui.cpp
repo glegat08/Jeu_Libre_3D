@@ -60,15 +60,15 @@ std::string KGR::_ImGui::ImGuiCore::OpenFile()
 
 void KGR::_ImGui::ImGuiCore::InitInfo()
 {
-    m_InitInfo.ApiVersion = VK_API_VERSION_1_4;
-    m_InitInfo.Instance = Get<VkInstance>(m_VulkanCore->GetInstance());
-    m_InitInfo.PhysicalDevice = Get<VkPhysicalDevice>(m_VulkanCore->GetPhysicalDevice());
-    m_InitInfo.Device = Get<VkDevice>(m_VulkanCore->GetDevice());
-    m_InitInfo.Queue = Get<VkQueue>(m_VulkanCore->GetQueue());
-    m_InitInfo.QueueFamily = m_VulkanCore->GetDevice().GetQueueIndex();
-    m_InitInfo.DescriptorPool = Get<VkDescriptorPool>(m_VulkanCore->GetDescriptorPool());
-    m_InitInfo.MinImageCount = m_VulkanCore->GetSwapChain().GetImagesCount();
-    m_InitInfo.ImageCount = m_VulkanCore->GetSwapChain().GetImagesCount();
+    m_InitInfo.ApiVersion          = VK_API_VERSION_1_4;
+    m_InitInfo.Instance            = Get<VkInstance>(m_VulkanCore->GetInstance());
+    m_InitInfo.PhysicalDevice      = Get<VkPhysicalDevice>(m_VulkanCore->GetPhysicalDevice());
+    m_InitInfo.Device              = Get<VkDevice>(m_VulkanCore->GetDevice());
+    m_InitInfo.Queue               = Get<VkQueue>(m_VulkanCore->GetQueue());
+    m_InitInfo.QueueFamily         = m_VulkanCore->GetDevice().GetQueueIndex();
+    m_InitInfo.DescriptorPool      = Get<VkDescriptorPool>(m_VulkanCore->GetDescriptorPool());
+    m_InitInfo.MinImageCount       = m_VulkanCore->GetSwapChain().GetImagesCount();
+    m_InitInfo.ImageCount          = m_VulkanCore->GetSwapChain().GetImagesCount();
     m_InitInfo.UseDynamicRendering = true;
 
     VkFormat ColorFormat = static_cast<VkFormat>(m_VulkanCore->GetSwapChain().GetFormat().format);
