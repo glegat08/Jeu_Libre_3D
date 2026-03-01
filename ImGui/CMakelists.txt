@@ -57,6 +57,7 @@ source_group(
 # set(MYLIB_LIB ${MYLIB}/libFolder)
 
  find_package(glfw3 CONFIG REQUIRED)
+ find_package(imguizmo CONFIG REQUIRED)
  set(VulkanSDK_DIR $ENV{VULKAN_SDK})
  set(VukanHeader ${VulkanSDK_DIR}/Include)
  set(VulkanLib ${VulkanSDK_DIR}/Lib)
@@ -92,6 +93,8 @@ target_link_libraries(${PROJECT_NAME}
   # ${MYLIB_LIB}/YourLib.lib
     glfw
     ${VulkanLib}/vulkan-1.lib
+    Vulkan
+    imguizmo::imguizmo
     PRIVATE
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib

@@ -5,6 +5,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "Tools/Util.h"
+#include <concepts>
 
 struct Rep
 {
@@ -16,9 +17,9 @@ struct Rep
 template<typename Type>
 concept IsValidRep = requires
 {
-	{ Type::up }-> std::same_as <const  glm::vec3&>;
-	{ Type::right }-> std::same_as < const  glm::vec3&>;
-	{ Type::forward }-> std::same_as < const  glm::vec3&>;
+	{ Type::up }-> std::convertible_to <const  glm::vec3&>;
+	{ Type::right }-> std::convertible_to < const  glm::vec3&>;
+	{ Type::forward }-> std::convertible_to < const  glm::vec3&>;
 };
 
 struct RotData

@@ -153,8 +153,3 @@ namespace KGR
 		return local.string();
 	}
 }
-
-
-
-
-

@@ -41,6 +41,9 @@ struct MeshData
 	MeshComponent* mesh = nullptr;
 	TextureComponent* texture = nullptr;
 };
+
+struct ImDrawData;
+
 namespace KGR
 {
 	namespace _Vulkan
@@ -73,6 +76,9 @@ namespace KGR
 			int EndRendering(GLFWwindow* window, vk::raii::CommandBuffer* currentBuffer);
 			void recreateSwapChain(GLFWwindow* window);
 			std::uint32_t PresentImage();
+			void recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer);
+			void recordCommandBuffer(uint32_t imageIndex, vk::raii::CommandBuffer& buffer, ImDrawData* drawData);
+			void LoadModel();
 			void transition_image_layout(
 				vk::Image               image,
 				vk::ImageLayout         old_layout,
@@ -83,6 +89,86 @@ namespace KGR
 				vk::PipelineStageFlags2 dst_stage_mask, vk::ImageAspectFlags    image_aspect_flags, vk::raii::CommandBuffer& buffer);
 			void transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels);
 			void generateMipmaps(vk::raii::Image& image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+/*
+
+			void drawFrame();
+			void drawFrame(ImDrawData* drawData);
+
+			// to move 
+			void	createTextureSampler();
+
+		
+			
+		
+			template<typename Type>
+			Type& Get()
+			{
+				if constexpr (std::is_same_v<Type, Instance>)
+					return instance;
+				else if constexpr (std::is_same_v<Type, Surface>)
+					return surface;
+				else if constexpr (std::is_same_v<Type, PhysicalDevice>)
+					return physicalDevice;
+				else if constexpr (std::is_same_v<Type, Device>)
+					return device;
+				else if constexpr (std::is_same_v<Type, Queue>)
+					return queue;
+				else if constexpr (std::is_same_v<Type, SwapChain>)
+					return swapChain;
+				else if constexpr (std::is_same_v<Type, Pipeline>)
+					return graphicsPipeline;
+				else if constexpr (std::is_same_v<Type, CommandBuffers>)
+					return commandBuffers;
+				else static_assert("Type not supported");
+
+			}
+
+			// never Use !!!
+			static bool hasStencilComponent(vk::Format format);
+			// find the depth format generic version
+			// callBack for instance
+			static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
+
+
+
+			void RegisterCam(CameraComponent& cam, TransformComponent& transform);
+			void RegisterRender(MeshComponent& mesh, TransformComponent& transform);
+			void Render(const glm::vec4& color = { 0,0,0,1 }, ImDrawData* drawData = nullptr);
+
+			Instance& GetInstance();
+			const Instance& GetInstance() const;
+
+			Surface& GetSurface();
+			const Surface& GetSurface() const;
+
+			PhysicalDevice& GetPhysicalDevice();
+			const PhysicalDevice& GetPhysicalDevice() const;
+
+			Device& GetDevice();
+			const Device& GetDevice() const;
+
+			Queue& GetQueue();
+			const Queue& GetQueue() const;
+
+			SwapChain& GetSwapChain();
+			const SwapChain& GetSwapChain() const;
+
+			ImagesViews& GetImagesViews();
+			const ImagesViews& GetImagesViews() const;
+
+			Pipeline& GetGraphicsPipeline();
+			const Pipeline& GetGraphicsPipeline() const;
+
+			DescriptorPool& GetDescriptorPool();
+			const DescriptorPool& GetDescriptorPool() const;
+
+		private:
+			int BeginRendering(const glm::vec4& color = {0,0,0,1});
+			int EndRendering(ImDrawData* drawData = nullptr);
+
+			// window
+			GLFWwindow* window = nullptr;
+*/
 			Instance               instance;
 			Surface                surface;
 			PhysicalDevice         physicalDevice ;
@@ -103,6 +189,12 @@ namespace KGR
 			std::vector<const char*> requiredDeviceExtension = {
 				vk::KHRSwapchainExtensionName };
 
+  /*
+			std::vector<Vertex> vertices;
+			std::vector<uint32_t> indices;
+
+			vk::raii::CommandBuffer* m_currentBuffer;
+*/
 
 			Buffer uniformBuffers;
 			std::vector<LightData> m_lights;

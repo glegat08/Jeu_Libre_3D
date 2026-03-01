@@ -77,6 +77,7 @@ target_include_directories(${PROJECT_NAME}
     ${VukanHeader}
     ${CMAKE_CURRENT_SOURCE_DIR}/../External/STB/Includes
         ${CMAKE_CURRENT_SOURCE_DIR}/../External/TOL/Includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/../ImGui/include
 
   # ${MYLIB_HEADER}
     PRIVATE
@@ -91,6 +92,7 @@ target_link_libraries(${PROJECT_NAME}
         ${VulkanLib}/vulkan-1.lib
         GLFW_
         GameLib
+        ImGuizmo
 	Engine
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
