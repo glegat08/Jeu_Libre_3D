@@ -13,6 +13,7 @@ namespace KGR
 			const char* vertexMain;
 			const char* fragmentMain;
 		};
+
 		class Device;
 		class SwapChain;
 		class DescriptorLayout;

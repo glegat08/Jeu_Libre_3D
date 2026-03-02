@@ -154,7 +154,7 @@ template <RotData::Orientation orientation, IsValidRep rep = Rep>
 void TransformComponent::RotateEuler(float angleRad)
 {
 
-		m_eulerAngle += angleRad * RotData::ToAxes <orientation,rep>();
+	m_eulerAngle += angleRad * RotData::ToAxes <orientation,rep>();
 	UpdateQuaternion();
 	m_rotation.isDirty = true;
 

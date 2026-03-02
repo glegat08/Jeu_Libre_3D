@@ -26,7 +26,6 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 {
 	// good Api
 	
-
 	// instance creation
 	instance = _Vulkan::Instance(AppInfo{},validationLayers);
 	instance.setupDebugMessenger<&debugCallback>();
@@ -255,10 +254,6 @@ void KGR::_Vulkan::VulkanCore::transition_image_layout(vk::Image image, vk::Imag
 	buffer.pipelineBarrier2(dependency_info);
 }
 
-
-
-
-
 std::uint32_t KGR::_Vulkan::VulkanCore::PresentImage()
 {
 	VkSemaphore vkSemaphore = static_cast<VkSemaphore>(*syncObject.GetCurrentRenderSemaphore());
@@ -423,9 +418,7 @@ int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::Comma
 	device.Get().resetFences(*syncObject.GetCurrentFence());
 
 	if (fenceResult != vk::Result::eSuccess)
-	{
 		throw std::runtime_error("failed to wait for fence!");
-	}
 
 	std::uint32_t result = syncObject.AcquireNextImage(&swapChain, &device);
 
@@ -437,8 +430,7 @@ int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::Comma
 		return -1;
 	}
 	// On other success codes than eSuccess and eSuboptimalKHR we just throw an exception.
-
-
+	// 
 	// Only reset the fence if we are submitting work
 
 

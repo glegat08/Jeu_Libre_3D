@@ -13,6 +13,8 @@
 #include "Queue.h"
 #include "SwapChain.h"
 #include "CommandBuffers.h"
+#include "DebugRenderer.h"
+#include "VertexDebug.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -94,7 +96,6 @@ namespace KGR
 			Instance               instance;
 			Surface                surface;
 			PhysicalDevice         physicalDevice ;
-			Device				   device;
 			Queue				   queue ;
 			SwapChain              swapChain;
 			ImagesViews            swapChainImageViews;

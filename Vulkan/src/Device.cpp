@@ -1,6 +1,7 @@
 #include "Device.h"
 #include "PhysicalDevice.h"
 #include "Surface.h"
+
 KGR::_Vulkan::Device::Device(PhysicalDevice* device, Surface* surface, ui32t count)
 {
 

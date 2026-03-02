@@ -44,6 +44,16 @@ GLFWwindow& KGR::_GLFW::Window::GetWindow()
 	return *m_window;
 }
 
+const GLFWwindow* KGR::_GLFW::Window::GetWindowPtr() const
+{
+	return m_window;
+}
+
+GLFWwindow* KGR::_GLFW::Window::GetWindowPtr()
+{
+	return m_window;
+}
+
 void KGR::_GLFW::Window::CreateMyWindow(glm::ivec2 size, const char* name, Monitor* monitor,Window* window)
 {
 	if (!IsState<WinState::Error>())

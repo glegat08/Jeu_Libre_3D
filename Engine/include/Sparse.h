@@ -6,10 +6,16 @@
 #include <stdexcept>
 
 /**
- * @brief Sparse storage for arithmetic type.
+ * @brief Sparse set–style storage for arithmetic entity types.
  *
- * @tparam Type   type of entity (must be arithmetic)
- * @tparam offset Growth offset when resizing
+ * This container implements a classic sparse set structure:
+ * - `m_entities` stores all active entities densely.
+ * - `m_sparse` maps an entity value to its index in `m_entities`.
+ *
+ * It provides O(1) insertion, removal, lookup, and index retrieval.
+ *
+ * @tparam Type   Entity type (must be arithmetic).
+ * @tparam offset Growth offset used when resizing the sparse array.
  */
 template<typename Type,size_t offset = 100> requires (std::is_arithmetic_v<Type>)
 struct Sparse_Storage

@@ -49,6 +49,8 @@ namespace KGR
 
 			const GLFWwindow& GetWindow() const;
 			GLFWwindow& GetWindow();
+			const GLFWwindow* GetWindowPtr() const;
+			GLFWwindow* GetWindowPtr();
 
 			void CreateMyWindow(glm::ivec2 size, const char* name, Monitor* monitor, Window* window);
 			void DestroyMyWindow();
