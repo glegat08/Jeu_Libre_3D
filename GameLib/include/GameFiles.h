@@ -16,4 +16,8 @@
 #include "SAT.h"
 #include "InputManager.h"
 
+#include "Player.h"
+#include "Enemy.h"
+#include "Weapon.h"
+
 #endif

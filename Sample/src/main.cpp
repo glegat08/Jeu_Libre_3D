@@ -11,6 +11,8 @@
 #include "Core/Window.h"
 #include "ECS/Registry.h"
 #include "ECS/Entities.h"
+#include "GameFiles.h"
+
 // to move 
 struct ControllerComponent
 {
@@ -51,13 +53,13 @@ int main(int argc, char** argv)
 	using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 	auto registry = ecsType{};
 	// Cam
-	{
+	/*{
 	auto cam = registry.CreateEntity();
 	CameraComponent camComp = CameraComponent::Create(45.0f, static_cast<float>(window.GetSize().x), static_cast<float>(window.GetSize().y), 0.01f, 1000.0f, CameraComponent::Type::Perspective);
 	TransformComponent transform;
 	transform.SetPosition({ 0,3,5 });
 	registry.AddComponents<CameraComponent, TransformComponent, ControllerComponent>(cam, std::move(camComp), std::move(transform),std::move(ControllerComponent{}));
-	}
+	}*/
 
 	// entity
 	{
@@ -72,24 +74,49 @@ int main(int argc, char** argv)
 		registry.AddComponents<MeshComponent, TransformComponent, TextureComponent,ControllerComponent>(mesh, std::move(meshComp), std::move(transform), std::move(texture),std::move(ControllerComponent{}));
 	}
 
-	// IA
+	//Player
 	{
+		auto player = registry.CreateEntity();
 
-		auto ia = registry.CreateEntity();
+		//Mesh
 		MeshComponent meshComp;
 		meshComp.mesh = &MeshLoader::Load("Models\\CUBE.obj", window.App());
-		TransformComponent transform;
-		transform.SetPosition({ 10, 0, 10}); // starting pos
+
+		//Camera
+		CameraComponent camComp = CameraComponent::Create(45.0f, static_cast<float>(window.GetSize().x), static_cast<float>(window.GetSize().y), 0.01f, 1000.0f, CameraComponent::Type::Perspective);
+
+		//Transform
+		TransformComponent camTransform;
+		camTransform.SetPosition({ 0,3,5 });
+
+		//Texture
 		TextureComponent texture;
 		texture.SetSize(meshComp.mesh->GetSubMeshesCount());
 		for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
 			texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
-		IAComp iaC;
-		iaC.UpdateTarget({ 0,0,0 }); //player pos
 
-		registry.AddComponents<MeshComponent, TransformComponent, TextureComponent, IAComp>(ia, std::move(meshComp), std::move(transform), std::move(texture), std::move(iaC));
-
+		registry.AddComponents<MeshComponent, CameraComponent, TransformComponent, TextureComponent, ControllerComponent, PlayerComponent /*WeaponComponent*/ >
+			(player, std::move(meshComp), std::move(camComp), std::move(camTransform), std::move(texture), ControllerComponent{}, PlayerComponent{});
 	}
+
+	//// IA
+	//{
+
+	//	auto ia = registry.CreateEntity();
+	//	MeshComponent meshComp;
+	//	meshComp.mesh = &MeshLoader::Load("Models\\CUBE.obj", window.App());
+	//	TransformComponent transform;
+	//	transform.SetPosition({ 10, 0, 10}); // starting pos
+	//	TextureComponent texture;
+	//	texture.SetSize(meshComp.mesh->GetSubMeshesCount());
+	//	for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
+	//		texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
+	//	IAComp iaC;
+	//	iaC.UpdateTarget({ 0,0,0 }); //player pos
+
+	//	registry.AddComponents<MeshComponent, TransformComponent, TextureComponent, IAComp>(ia, std::move(meshComp), std::move(transform), std::move(texture), std::move(iaC));
+
+	//}
 
 
 	auto colorTransform = [](const glm::vec3& color)
@@ -159,19 +186,55 @@ int main(int argc, char** argv)
 		}
 
 		// UpdateIa
+		static float spawnTimer = 0.0f;
+		spawnTimer -= deltaTime;
+
+		//Player pos
+		glm::vec3 playerPos{ 0.0f };
+		{
+			auto view = registry.GetAllComponentsView<PlayerComponent, TransformComponent>();
+			for (auto e : view)
+			{
+				playerPos = registry.GetComponent<TransformComponent>(e).GetPosition();
+				break;
+			}
+		}
+
+		//Spawn enemy
+		if (spawnTimer <= 0.0f)
+		{
+			spawnTimer = 5.0f;
+
+			KGR::GameLib::AIComponent ai;
+			ai.SpawnEnemy(registry, window, playerPos);
+		}
+
+		
+		//Update enemy
 		{
 
-			auto es = registry.GetAllComponentsView<IAComp,TransformComponent>();
-			for (auto& e : es)
+			auto view = registry.GetAllComponentsView<KGR::GameLib::AIComponent, TransformComponent, KGR::GameLib::EnemyComponent>();
+			for (auto& e : view)
 			{
 				auto& transform = registry.GetComponent<TransformComponent>(e);
-				auto& ia = registry.GetComponent<IAComp>(e);
+				auto& ia = registry.GetComponent<KGR::GameLib::AIComponent>(e);
+				auto& enemy = registry.GetComponent<KGR::GameLib::EnemyComponent>(e);
 
-				auto pos = ia.Update(deltaTime, transform.GetPosition());
-				transform.SetPosition(pos);
+				ia.UpdateTarget(playerPos);
 
-				std::cout << pos.x << "\n";
+				glm::vec3 newPos = ia.Update(deltaTime, transform.GetPosition(), enemy.speed);
+				transform.SetPosition(newPos);
+
+				float dist = glm::length(playerPos - newPos);
+
+				enemy.timeSinceLastAttack -= deltaTime;
+				if (dist <= enemy.attackRange && enemy.timeSinceLastAttack <= 0.0f)
+				{
+					enemy.timeSinceLastAttack = enemy.attackCooldown;
+					std::cout << "Enemy attacks player!\n";
+				}
 			}
+
 
 		}
 
