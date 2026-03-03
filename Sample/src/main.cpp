@@ -12,9 +12,7 @@
 #include "ECS/Registry.h"
 #include "ECS/Entities.h"
 // to move 
-struct ControllerComponent
-{
-};
+struct ControllerComponent {};
 
 
 
@@ -115,9 +113,6 @@ int main(int argc, char** argv)
 				auto delta = inputData->GetMouseDelta();
 				transform.RotateEuler<RotData::Orientation::Pitch>(-glm::radians(delta.y * deltaTime * 100));
 				transform.RotateEuler<RotData::Orientation::Yaw>(-glm::radians(delta.x * deltaTime * 100));
-
-				std::cout << delta.x << "\n";
-
 				transform.Translate(dir * deltaTime);
 			}
 		}
