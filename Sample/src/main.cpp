@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 
 		for (auto& obj : objects)
 			if (obj.isAnimating)
-				obj.rotation.y -= glm::radians(90.0f) * deltaTime;
+				obj.rotation.y += glm::radians(90.0f) * deltaTime;
 
 		// ImGui
 		imguiCore.BeginFrame(KGR::_ImGui::ContextTarget::Engine);
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 
 			ImGui::Separator();
 
-			for (int i = 0; i < (int)objects.size(); i++)
+			for (int i = 0; i < static_cast<int>(objects.size()); i++)
 				if (ImGui::Selectable(objects[i].name.c_str(), selectedObj == i))
 					selectedObj = i;
 

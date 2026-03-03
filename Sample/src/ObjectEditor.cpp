@@ -45,11 +45,11 @@ bool ObjectEditor::Render()
 
 	ImGui::Separator();
 
-	ImGui::DragFloat3("Position",	&m_Obj->position.x, 0.05f);
-	ImGui::DragFloat3("Scale",		&m_Obj->scale.x,    0.05f, 0.01f, 50.0f);
+	ImGui::DragFloat3("Position",	 &m_Obj->position.x, 0.05f);
+	ImGui::DragFloat3("Scale",		 &m_Obj->scale.x,    0.05f, 0.01f, 50.0f);
 	ImGui::SliderAngle("Pitch (x)", &m_Obj->rotation.x, -180.0f, 180.0f);
-	ImGui::SliderAngle("Yaw (y)",	&m_Obj->rotation.y, -180.0f, 180.0f);
-	ImGui::SliderAngle("Roll (z)",	&m_Obj->rotation.z, -180.0f, 180.0f);
+	ImGui::SliderAngle("Yaw (y)",	 &m_Obj->rotation.y, -180.0f, 180.0f);
+	ImGui::SliderAngle("Roll (z)",	 &m_Obj->rotation.z, -180.0f, 180.0f);
 
 	ImGui::Separator();
 
