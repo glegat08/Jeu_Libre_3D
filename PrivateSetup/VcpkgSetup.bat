@@ -109,6 +109,13 @@ Rem )
      EXIT /B 1
  )
 
+ ECHO Installation de ImGuizmo ...
+ CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" install imguizmo
+ IF %ERRORLEVEL% NEQ 0 (
+     ECHO Erreur lors de l'installation de ImGuizmo .
+     PAUSE
+     EXIT /B 1
+ )
 
 
 GOTO GLOBALCHOICE

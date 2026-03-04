@@ -11,7 +11,7 @@ KGR::RenderWindow::RenderWindow(glm::ivec2 size, const char* name, const std::fi
 	FileManager::SetGlobalFIlePath(GlobResourcesPath);
 
 
-	m_window.CreateMyWindow({ 1280, 720 }, "GC goes Vulkan", nullptr, nullptr);
+	m_window.CreateMyWindow(size, name, nullptr, nullptr);
 	m_core.initVulkan(&m_window.GetWindow());
 	m_manager.Initialize(&m_window.GetWindow());
 

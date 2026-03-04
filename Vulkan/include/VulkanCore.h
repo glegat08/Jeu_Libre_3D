@@ -41,11 +41,12 @@ struct MeshComponent;
 
 struct MeshData
 {
-	glm::mat4 matrixModel; 
+	glm::mat4 matrixModel;
 	Mesh* mesh = nullptr;
 	std::vector<Texture*>* texture;
 };
 
+struct ImDrawData;
 
 struct Segment
 {
@@ -53,9 +54,7 @@ struct Segment
 	glm::vec3 pos2;
 	float  thickness;
 	glm::vec4 color;
-
 };
-
 
 namespace KGR
 {
@@ -64,6 +63,7 @@ namespace KGR
 		class VulkanCore
 		{
 		public:
+
 			void initVulkan(GLFWwindow* window);
 			static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
 			void createTextureSampler();
@@ -74,15 +74,45 @@ namespace KGR
 			template<typename IndexT>
 			Buffer CreateIndexBuffer(const std::vector<IndexT>& indices);
 
+			Instance& GetInstance();
+			const Instance& GetInstance() const;
+
+			Surface& GetSurface();
+			const Surface& GetSurface() const;
+
+			PhysicalDevice& GetPhysicalDevice();
+			const PhysicalDevice& GetPhysicalDevice() const;
+
+			Device& GetDevice();
+			const Device& GetDevice() const;
+
+			Queue& GetQueue();
+			const Queue& GetQueue() const;
+
+			SwapChain& GetSwapChain();
+			const SwapChain& GetSwapChain() const;
+
+			ImagesViews& GetImagesViews();
+			const ImagesViews& GetImagesViews() const;
+
+			Pipeline& GetGraphicsPipeline();
+			const Pipeline& GetGraphicsPipeline() const;
+
+			DescriptorPool& GetDescriptorPool();
+			const DescriptorPool& GetDescriptorPool() const;
+
 			void RegisterLight(const LightData& light);
 			void RegisterCam(const glm::mat4& model,const glm::mat4& view , const glm::mat4& proj);
 			void RegisterRender(Mesh& mesh,const  glm::mat4& model,std::vector<Texture*>& texture);
 			void Render(GLFWwindow* window,const glm::vec4& clearColor = { 0,0,0,1 }, ImDrawData* imguiDraw = nullptr);
-		private:
+		
+      private:
 			int BeginRendering(GLFWwindow* window, vk::raii::CommandBuffer* currentBuffer, Pipeline* pipeline, const glm::vec4& color = {0,0,0,1});
 			int EndRendering(GLFWwindow* window, vk::raii::CommandBuffer* currentBuffer,const std::vector<vk::Semaphore>& waitS, ImDrawData* imguiDraw = nullptr);
 			void recreateSwapChain(GLFWwindow* window);
 			std::uint32_t PresentImage();
+
+			void LoadModel();
 			void transition_image_layout(
 				vk::Image               image,
 				vk::ImageLayout         old_layout,
@@ -93,11 +123,14 @@ namespace KGR
 				vk::PipelineStageFlags2 dst_stage_mask, vk::ImageAspectFlags    image_aspect_flags, vk::raii::CommandBuffer& buffer);
 			void transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels);
 			void generateMipmaps(vk::raii::Image& image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+
+
+
 			Instance               instance;
 			Surface                surface;
-			Device device;
-			PhysicalDevice         physicalDevice ;
-			Queue				   queue ;
+			PhysicalDevice         physicalDevice;
+			Device				   device;
+			Queue				   queue;
 			SwapChain              swapChain;
 			ImagesViews            swapChainImageViews;
 
@@ -108,7 +141,7 @@ namespace KGR
 			Pipeline               linePipeLine;
 
 			CommandBuffers         commandBuffers;
-			
+
 			SyncObject syncObject;
 			vk::raii::Sampler textureSampler = nullptr;
 			Image depthImage;
