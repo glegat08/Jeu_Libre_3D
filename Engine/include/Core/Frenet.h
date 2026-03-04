@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 #include <glm/glm.hpp>
 
@@ -7,9 +8,14 @@
 	Example how to use the RMF to build a Frenet frame along a curve defined by a set of points:
 
 	std::vector<glm::vec3> points = ...; // Your curve points
-	std::vector<glm::vec3> forwardDirs = KGR::RMF::EstimateForwardDirs(points);
+	std::vector<glm::vec3> tangents = KGR::RMF::EstimateForwardDirs(points);
 	std::vector<KGR::CurveFrame> frames = KGR::RMF::BuildFrames(points, forwardDirs);
 
+	If needed, you can also interpolate between frames using the InterpolateFrame function:
+	KGR::CurveFrame interpolatedFrame = KGR::RMF::InterpolateFrame(frames[i], frames[i + 1], t);
+
+	It provides a robust way to compute frames along a curve while minimizing twisting, 
+	making it suitable for applications like camera movement, object orientation along paths, and more.
 */
 
 namespace KGR
@@ -35,47 +41,50 @@ namespace KGR
 
 			The function returns the next frame, which includes the forward, up, and right vectors that define the orientation of the curve at the next point.
 		*/
-		CurveFrame MovingFrame(const CurveFrame& previousFrame,
-			const glm::vec3& from,
-			const glm::vec3& to,
-			const glm::vec3& nextForward);
+		CurveFrame MovingFrame(const CurveFrame& previousFrame, const glm::vec3& from, const glm::vec3& to, const glm::vec3& nextForward);
 
 		/*
-			The BuildFrames function constructs a sequence of frames along the curve defined by the input points and their corresponding forward directions.
-			The result is a vector of CurveFrame objects, each representing the orientation of the curve at a specific point.
+			The EstimateForwardDir function estimates the forward direction at a given point on the curve based on its previous and next points.
 
-			- points: A vector of points defining the curve.
-			- forwardDirs: A vector of forward directions corresponding to each point on the curve. Must be the same size as points.
+			- prev: An optional previous point on the curve. If not provided, the function will only consider the next point.
+			- current: The current point on the curve for which the forward direction is being estimated.
+			- next: An optional next point on the curve. If not provided, the function will only consider the previous point.
 
-			The function returns a vector of CurveFrame. Each frame is computed using the MovingFrame function, 
-			starting from an initial frame at the first point and iteratively building the frames along the curve.
+			The function returns the estimated forward direction as a normalized vector. 
+			If both previous and next points are provided, the forward direction is computed as the average of the directions 
+			from the previous point to the current point and from the current point to the next point. 
+			If only one of the points is provided, the forward direction is simply the direction from that point to the current point.
 		*/
-		std::vector<CurveFrame> BuildFrames(const std::vector<glm::vec3>& points,
-			const std::vector<glm::vec3>& forwardDirs);
+		glm::vec3 EstimateForwardDir(const std::optional<glm::vec3>& prev, const glm::vec3& current, const std::optional<glm::vec3>& next);
 
 		/*
-			Surcharged functions to estimate forward directions based on the positions of the points on the curve. 
-			These are used to provide initial forward directions for the BuildFrames function.
-			You can use these functions to estimate the forward direction for each point on the curve based on its position relative to its neighbors:
+			The EstimateForwardDirs function estimates the forward directions for a sequence of points on a curve.
 
-			 - EstimateFirstForwardDir: Estimates the forward direction for the first point using the first and second points.
-			 - EstimateMiddleForwardDir: Estimates the forward direction for a middle point using the previous, current, and next points.
-			 - EstimateLastForwardDir: Estimates the forward direction for the last point using the last and second-to-last points.
+			- points: A vector of points that define the curve.
 
-			The functions returns a normalized forward direction vector that can be used as input for the BuildFrames function.
-		*/
-		glm::vec3 EstimateFirstForwardDir(const glm::vec3& current, const glm::vec3& next);
-		glm::vec3 EstimateMiddleForwardDir(const glm::vec3& prev, const glm::vec3& current, const glm::vec3& next);
-		glm::vec3 EstimateLastForwardDir(const glm::vec3& prev, const glm::vec3& current);
-
-		/*
-			The EstimateForwardDirs function computes the forward directions for a sequence of points on the curve. 
-			It uses the surcharged functions to estimate the forward direction for each point based on its position relative to its neighbors.
-
-			- points: A vector of points defining the curve. Must contain at least 2 points.
-
-			The function returns a vector of forward directions corresponding to each point on the curve, which can be used as input for the BuildFrames function.
+			The function returns a vector of estimated forward directions corresponding to each point in the input vector.
 		*/
 		std::vector<glm::vec3> EstimateForwardDirs(const std::vector<glm::vec3>& points);
+
+		/*
+			The BuildFrames function constructs a sequence of frames along a curve defined by a set of points and their corresponding forward directions.
+			
+			- points: A vector of points that define the curve.
+			- tangents: A vector of forward directions corresponding to each point in the input vector.
+			
+			The function returns a vector of CurveFrame objects, each representing the orientation of the curve at the corresponding point.
+		*/
+		std::vector<CurveFrame> BuildFrames(const std::vector<glm::vec3>& points, const std::vector<glm::vec3>& tangents);
+
+		/*
+			The InterpolateFrame function performs linear interpolation between two frames, a and b, based on a parameter t that ranges from 0 to 1.
+			
+			- a: The first frame to interpolate from.
+			- b: The second frame to interpolate to.
+			- t: The interpolation parameter, where 0 corresponds to frame a and 1 corresponds to frame b.
+			
+			The function returns a new CurveFrame that represents the interpolated orientation between frames a and b.
+		*/
+		CurveFrame InterpolateFrame(const CurveFrame& a, const CurveFrame& b, float t);
 	}
 }

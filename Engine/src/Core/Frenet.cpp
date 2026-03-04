@@ -23,64 +23,67 @@ KGR::CurveFrame KGR::RMF::MovingFrame(const CurveFrame& previousFrame, const glm
     return nextFrame;
 }
 
-glm::vec3 KGR::RMF::EstimateFirstForwardDir(const glm::vec3& current, const glm::vec3& next)
+glm::vec3 KGR::RMF::EstimateForwardDir(const std::optional<glm::vec3>& prev, const glm::vec3& current, const std::optional<glm::vec3>& next)
 {
-    return glm::normalize(next - current);
-}
+    const glm::vec3 fromPrev = prev ? glm::normalize(current - *prev) : glm::vec3(0);
+    const glm::vec3 toNext = next ? glm::normalize(*next - current) : glm::vec3(0);
 
-glm::vec3 KGR::RMF::EstimateMiddleForwardDir(const glm::vec3& prev, const glm::vec3& current, const glm::vec3& next)
-{
-    return glm::normalize(next - prev);
-}
+    if (!prev) 
+        return toNext;
 
-glm::vec3 KGR::RMF::EstimateLastForwardDir(const glm::vec3& prev, const glm::vec3& current)
-{
-    return glm::normalize(current - prev);
+    if (!next) 
+        return fromPrev;
+
+    return glm::normalize(fromPrev + toNext);
 }
 
 std::vector<glm::vec3> KGR::RMF::EstimateForwardDirs(const std::vector<glm::vec3>& points)
 {
-        const std::size_t pointCount = points.size();
+    const std::size_t pointCount = points.size();
 
-        if (pointCount < 2)
-            throw std::invalid_argument("at least 2 points required");
+    if (pointCount < 2)
+        throw std::invalid_argument("at least 2 points required");
 
-        std::vector<glm::vec3> forwardDirs(pointCount);
+    std::vector<glm::vec3> tangents(pointCount);
+    for (std::size_t i = 0; i < pointCount; ++i)
+    {
+        auto prev = (i > 0) ? std::optional(points[i - 1]) : std::nullopt;
+        auto next = (i < pointCount - 1) ? std::optional(points[i + 1]) : std::nullopt;
+        tangents[i] = EstimateForwardDir(prev, points[i], next);
+    }
 
-        forwardDirs[0]              = EstimateFirstForwardDir(points[0], points[1]);
-        forwardDirs[pointCount - 1] = EstimateLastForwardDir(points[pointCount - 2], points[pointCount - 1]);
-
-        for (std::size_t i = 1; i < pointCount - 1; ++i)
-            forwardDirs[i] = EstimateMiddleForwardDir(points[i - 1], points[i], points[i + 1]);
-
-        return forwardDirs;
+    return tangents;
 }
 
-
-std::vector<KGR::CurveFrame> KGR::RMF::BuildFrames(const std::vector<glm::vec3>& points,
-                                             const std::vector<glm::vec3>& forwardDirs)
+std::vector<KGR::CurveFrame> KGR::RMF::BuildFrames(const std::vector<glm::vec3>& points, const std::vector<glm::vec3>& tangents)
 {
-        const std::size_t pointCount = points.size();
+    const std::size_t pointCount = points.size();
 
-        if (pointCount < 2 || forwardDirs.size() != pointCount)
-            throw std::invalid_argument("points and forwardDirs must have the same size (>= 2)");
+    if (pointCount < 2 || tangents.size() != pointCount)
+        throw std::invalid_argument("points and tangents must have the same size (>= 2)");
 
-        std::vector<CurveFrame> frames(pointCount);
-        {
-            const glm::vec3& firstForward = forwardDirs[0];
+    std::vector<CurveFrame> frames(pointCount);
 
-				glm::vec3 worldAxis = (std::abs(firstForward.y) < 0.9f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+    glm::vec3 worldAxis = (std::abs(tangents[0].y) < 0.9f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
 
-			// Gram-Schmidt process: u' = u - proj_v(u) where proj_v(u) = (dot(u, v) / dot(v, v)) * v
-            glm::vec3 firstUp = glm::normalize(worldAxis - glm::dot(worldAxis, firstForward) * firstForward);
+    frames[0].forward = tangents[0];
+    frames[0].up = glm::normalize(worldAxis - glm::dot(worldAxis, tangents[0]) * tangents[0]);
+    frames[0].right = glm::normalize(glm::cross(frames[0].forward, frames[0].up));
 
-            frames[0].forward = firstForward;
-            frames[0].up = firstUp;
-            frames[0].right = glm::normalize(glm::cross(firstForward, firstUp));
-        }
+    for (std::size_t i = 0; i < pointCount - 1; ++i)
+        frames[i + 1] = MovingFrame(frames[i], points[i], points[i + 1], tangents[i + 1]);
 
-        for (std::size_t i = 0; i < pointCount - 1; ++i)
-            frames[i + 1] = MovingFrame(frames[i], points[i], points[i + 1], forwardDirs[i + 1]);
+    return frames;
+}
 
-        return frames;
+KGR::CurveFrame KGR::RMF::InterpolateFrame(const CurveFrame& a, const CurveFrame& b, float t)
+{
+    CurveFrame frame;
+
+	// glm::mix performs linear interpolation between two vectors, and we normalize the results to ensure they remain unit vectors.
+    frame.forward = glm::normalize(glm::mix(a.forward, b.forward, t));
+    frame.up = glm::normalize(glm::mix(a.up, b.up, t));
+    frame.right = glm::normalize(glm::cross(frame.forward, frame.up));
+
+    return frame;
 }

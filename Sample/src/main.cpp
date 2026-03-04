@@ -151,16 +151,14 @@ int main(int argc, char** argv)
 			{
 				auto& transform = registry.GetComponent<TransformComponent>(e);
 
-					transform.SetPosition(curve.Compute(curveT));
-					float frameIndex = (curveT / maxT) * static_cast<float>(sampleCount - 1);
-					int lowerIdx = glm::clamp(static_cast<int>(frameIndex), 0, sampleCount - 2);
-					int upperIdx = lowerIdx + 1;
-					float lerpFactor = frameIndex - static_cast<float>(lowerIdx);
+				transform.SetPosition(curve.Compute(curveT));
 
-					KGR::CurveFrame interpolatedFrame;
-					interpolatedFrame.forward = glm::normalize(glm::mix(curveFrames[lowerIdx].forward, curveFrames[upperIdx].forward, lerpFactor));
-					interpolatedFrame.up = glm::normalize(glm::mix(curveFrames[lowerIdx].up, curveFrames[upperIdx].up, lerpFactor));
-					transform.SetOrientation(glm::quatLookAt(interpolatedFrame.forward, interpolatedFrame.up));
+				float frameIndex = (curveT / maxT) * static_cast<float>(sampleCount - 1);
+				int   lowerIdx = glm::clamp(static_cast<int>(frameIndex), 0, sampleCount - 2);
+				float t = frameIndex - static_cast<float>(lowerIdx);
+
+				KGR::CurveFrame frame = KGR::RMF::InterpolateFrame(curveFrames[lowerIdx], curveFrames[lowerIdx + 1], t);
+				transform.SetOrientation(glm::quatLookAt(frame.forward, frame.up));
 			}
 		}
 
