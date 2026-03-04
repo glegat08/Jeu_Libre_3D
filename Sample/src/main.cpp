@@ -11,6 +11,8 @@
 #include "Core/Window.h"
 #include "ECS/Registry.h"
 #include "ECS/Entities.h"
+#include "Tools/Random.h"
+
 #include "GameFiles.h"
 
 // to move 
@@ -18,28 +20,16 @@ struct ControllerComponent
 {
 };
 
-
-struct IAComp
+struct LivingComponent
 {
-	
-	void UpdateTarget(const glm::vec3& target)
-	{
-		m_target = target;
-	}
-	glm::vec3  Update(float dt,const  glm::vec3& pos)
-	{
-		glm::vec3 result = pos;
-		glm::vec3 dir = glm::normalize(m_target - pos);
-		result += dir * dt;
-		return result;
-	}
-
-private :
-	glm::vec3 m_target;
+	float health;
+	bool isAlive;
 };
 
-
-
+struct TakeDamageComponent
+{
+	float damage;
+};
 
 int main(int argc, char** argv)
 {
@@ -95,8 +85,8 @@ int main(int argc, char** argv)
 		for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
 			texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
 
-		registry.AddComponents<MeshComponent, CameraComponent, TransformComponent, TextureComponent, ControllerComponent, PlayerComponent /*WeaponComponent*/ >
-			(player, std::move(meshComp), std::move(camComp), std::move(camTransform), std::move(texture), ControllerComponent{}, PlayerComponent{});
+		registry.AddComponents<MeshComponent, CameraComponent, TransformComponent, TextureComponent, ControllerComponent, PlayerComponent, KGR::GameLib::WeaponComponent >
+			(player, std::move(meshComp), std::move(camComp), std::move(camTransform), std::move(texture), ControllerComponent{}, PlayerComponent{}, KGR::GameLib::WeaponComponent{});
 	}
 
 	//// IA
@@ -148,7 +138,7 @@ int main(int argc, char** argv)
 		KGR::RenderWindow::PollEvent();
 		window.Update();
 		// EVENT
-		
+
 
 
 		//Update PAS TOUCHE
@@ -158,14 +148,14 @@ int main(int argc, char** argv)
 		lastTime = currentTime;
 		// Update
 
-		
+		//Update player movement
 		{
-			auto es = registry.GetAllComponentsView<ControllerComponent, TransformComponent,CameraComponent>();
+			auto es = registry.GetAllComponentsView<ControllerComponent, TransformComponent, CameraComponent>();
 			auto* inputData = window.GetInputManager();
 			for (auto& e : es)
 			{
 				auto& transform = registry.GetComponent<TransformComponent>(e);
-				glm::vec3 dir = {0.0f,0.0f,0.0f};
+				glm::vec3 dir = { 0.0f,0.0f,0.0f };
 				if (inputData->IsKeyDown(KGR::Key::Z))
 					dir.z = -1;
 				if (inputData->IsKeyDown(KGR::Key::S))
@@ -182,6 +172,76 @@ int main(int argc, char** argv)
 				transform.RotateEuler<RotData::Orientation::Pitch>(-glm::radians(delta.y * deltaTime * 100));
 				transform.RotateEuler<RotData::Orientation::Yaw>(-glm::radians(delta.x * deltaTime * 100));
 				transform.Translate(dir * deltaTime);
+			}
+		}
+		
+		//Update player shoot
+		{
+			auto view = registry.GetAllComponentsView<PlayerComponent, KGR::GameLib::WeaponComponent, TransformComponent>();
+			auto* inputData = window.GetInputManager();
+			for (auto& e : view)
+			{
+				auto& weapon = registry.GetComponent<KGR::GameLib::WeaponComponent>(e);
+				auto& transform = registry.GetComponent<TransformComponent>(e);
+				weapon.cooldown -= deltaTime;
+				if (inputData->IsMouseDown(KGR::Mouse::Left))
+				{
+					const auto& weaponData = weapon.GetCurrentWeaponData();
+					if (weapon.cooldown <= 0.0f && weapon.currentAmmo > 0)
+					{
+						weapon.cooldown = weaponData.fireRate;
+						weapon.currentAmmo--;
+						glm::vec3 forward = transform.GetLocalAxe<RotData::Dir::Forward>();
+						if (weaponData.spread > 0.0f)
+						{
+							float sx = KGR::Tools::Random().getRandomNumber(-weaponData.spread, weaponData.spread);
+							float sy = KGR::Tools::Random().getRandomNumber(-weaponData.spread, weaponData.spread);
+
+						}
+
+						if (weapon.current == KGR::GameLib::WeaponType::Shotgun)
+							for (int i = 0; i < weaponData.maxAmmo; ++i)
+								weapon.CreateBullet(registry, window, transform.GetPosition(), forward);
+						else
+							weapon.CreateBullet(registry, window, transform.GetPosition(), forward);
+					}
+				}
+			}
+		}
+
+
+		//Update bullet
+		{
+			auto view = registry.GetAllComponentsView<KGR::GameLib::BulletComponent, TransformComponent, LivingTimeComponent>();
+			for (auto& e : view)
+			{
+				auto& bullet = registry.GetComponent<KGR::GameLib::BulletComponent>(e);
+				auto& transform = registry.GetComponent<TransformComponent>(e);
+
+				glm::vec3 newPos = transform.GetPosition();
+				newPos += bullet.direction * bullet.speed * deltaTime;
+				transform.SetPosition(newPos);
+
+				bullet.lifetime -= deltaTime;
+				if (bullet.lifetime <= 0.0f)
+				{
+					registry.DestroyEntity(e);
+					continue;
+				}
+
+				auto enemies = registry.GetAllComponentsView<KGR::GameLib::EnemyComponent, TransformComponent>();
+				for (auto enemyEntity : enemies)
+				{
+					auto& enemy = registry.GetComponent<KGR::GameLib::EnemyComponent>(enemyEntity);
+					auto& enemyTransform = registry.GetComponent<TransformComponent>(enemyEntity);
+					float dist = glm::length(enemyTransform.GetPosition() - transform.GetPosition());
+					if(dist <= 1.f)
+					{
+						enemy.health -= bullet.damage;
+						registry.DestroyEntity(e);
+						break;
+					}
+				}
 			}
 		}
 
@@ -232,6 +292,12 @@ int main(int argc, char** argv)
 				{
 					enemy.timeSinceLastAttack = enemy.attackCooldown;
 					std::cout << "Enemy attacks player!\n";
+				}
+
+				if(enemy.health <= 0.0f)
+				{
+					registry.DestroyEntity(e);
+					std::cout << "Enemy defeated!\n";
 				}
 			}
 
@@ -287,4 +353,3 @@ int main(int argc, char** argv)
 	 window.Destroy();
 	 KGR::RenderWindow::End();
 }
-

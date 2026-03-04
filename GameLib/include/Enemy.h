@@ -45,6 +45,7 @@ namespace KGR
 			//Transform
 			TransformComponent transform;
 			transform.SetPosition(RandomRange(playerPos, 15.0f, 20.0f));
+			transform.SetScale({ 0.5f,0.5f,0.5f });
 
 			//Texture
 			TextureComponent texture;

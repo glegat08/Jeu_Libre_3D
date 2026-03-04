@@ -3,6 +3,12 @@
 
 namespace KGR
 {
+    struct ColliderComponent
+    {
+        
+	};
+
+
     /**
      * @brief Represents the result of a 3D collision test.
      *
