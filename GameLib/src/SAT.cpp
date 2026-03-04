@@ -1,5 +1,6 @@
 #include "SAT.h"
 #define NOMINMAX
+#include <algorithm>
 #include <glm/geometric.hpp>
 
 namespace KGR

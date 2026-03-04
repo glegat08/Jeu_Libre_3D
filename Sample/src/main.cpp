@@ -1,4 +1,4 @@
-﻿#include <filesystem>
+#include <filesystem>
 #include <iostream>
 #include "Core/CameraComponent.h"
 #include "VulkanCore.h"
@@ -7,6 +7,8 @@
 #include "Core/Mesh.h"
 #include "Core/TrasformComponent.h"
 #include "Core/LightComponent.h"
+#include "Core/Spline.h"
+#include "Core/Frenet.h"
 #include "Core/Texture.h"
 #include "Core/Window.h"
 #include "ECS/Registry.h"
@@ -16,9 +18,7 @@
 #include "GameFiles.h"
 
 // to move 
-struct ControllerComponent
-{
-};
+struct ControllerComponent {};
 
 struct LivingComponent
 {
@@ -61,7 +61,7 @@ int main(int argc, char** argv)
 		texture.SetSize(meshComp.mesh->GetSubMeshesCount());
 		for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
 			texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
-		registry.AddComponents<MeshComponent, TransformComponent, TextureComponent,ControllerComponent>(mesh, std::move(meshComp), std::move(transform), std::move(texture),std::move(ControllerComponent{}));
+		registry.AddComponents<MeshComponent, TransformComponent, TextureComponent, ControllerComponent>(mesh, std::move(meshComp), std::move(transform), std::move(texture), std::move(ControllerComponent{}));
 	}
 
 	//Player
@@ -110,28 +110,50 @@ int main(int argc, char** argv)
 
 
 	auto colorTransform = [](const glm::vec3& color)
-	{
+		{
 			glm::vec3 result;
 			result.x = color.x * 1 / 255;
 			result.y = color.y * 1 / 255;
-			result.y = color.y * 1 / 255;
-			result.y = color.y * 1 / 255;
 			result.z = color.z * 1 / 255;
 			return result;
-	};
+		};
 	{
 		auto light = registry.CreateEntity();
 		auto lComp = LightComponent<LightData::Type::Directional>::Create(colorTransform({ 154,36,69 }), { 1,1,1 }, 1.0f);
 		TransformComponent lTransform;
-		lTransform.LookAt({ 0,-1,0});
+		lTransform.LookAt({ 0,-1,0 });
 		registry.AddComponents<LightComponent<LightData::Type::Directional>, TransformComponent>(light, std::move(lComp), std::move(lTransform));
 	}
 
+	std::vector<glm::vec3> points{
 
 
+		// --- boucle principale ---
+		{  0.0f,  6.0f,  0.0f },   // P1
+		{ -5.5f,  4.0f, -2.0f },   // P2
+		{ -6.0f, -1.0f, -3.0f },   // P3
+		{ -2.0f, -5.5f, -1.0f },   // P4
+		{  3.5f, -4.5f,  2.5f },   // P5
+		{  6.5f, -1.0f,  3.0f },   // P6
+		{  6.0f,  2.5f,  2.0f },   // P7
 
+	};
 
+	HermitCurve curve = HermitCurve::FromPoints(points, 0);
 
+	const float rmfStep = 0.001f;
+	const int rmfSampleCount = static_cast<int>(curve.MaxT() / rmfStep) + 1;
+
+	std::vector<glm::vec3> rmfPoints;
+	rmfPoints.reserve(rmfSampleCount);
+
+	for (int i = 0; i < rmfSampleCount; ++i)
+		rmfPoints.push_back(curve.Compute(i * rmfStep));
+
+	auto rmfForwardDirs = KGR::RMF::EstimateForwardDirs(rmfPoints);
+	auto rmfFrames = KGR::RMF::BuildFrames(rmfPoints, rmfForwardDirs);
+
+	static float curvesTest = 0.0f;
 	do
 	{
 		/// EVENT PAS TOUCHE
@@ -304,52 +326,63 @@ int main(int argc, char** argv)
 
 		}
 
-
-	/// RENDER PAS TOUCHE 
-
-	{	
-		auto es = registry.GetAllComponentsView<CameraComponent, TransformComponent>();
-		if (es.Size() != 1)
-			throw std::runtime_error("need one and one cam");
-		for (auto& e : es)
 		{
-			auto& cam = registry.GetComponent<CameraComponent>(e);
-			cam.UpdateCamera(registry.GetComponent<TransformComponent>(e).GetFullTransform());
-			if (cam.GetWidth() != window.GetSize().x || cam.GetHeight() != window.GetSize().y)
+			auto es = registry.GetAllComponentsView<ControllerComponent, TransformComponent, MeshComponent, TransformComponent>();
+			for (auto& e : es)
 			{
-				cam.SetAspect(window.GetSize().x, window.GetSize().y);
+				auto& transform = registry.GetComponent<TransformComponent>(e);
+				transform.SetPosition(curve.Compute(curvesTest));
+				int frameIndex = glm::clamp(static_cast<int>(curvesTest / rmfStep), 0, static_cast<int>(rmfFrames.size() - 1));
+				transform.SetOrientation(glm::quatLookAt(rmfFrames[frameIndex].forward, rmfFrames[frameIndex].up));
 			}
-			window.RegisterCam(registry.GetComponent<CameraComponent>(e), registry.GetComponent<TransformComponent>(e));
 		}
-	}
-	{
-		auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent,TextureComponent>();
 
-		for (auto& e : es)
+		curvesTest += 0.001f;
+		if (curvesTest > curve.MaxT())
+			curvesTest = 0.0f;
+
+		{
+			auto es = registry.GetAllComponentsView<CameraComponent, TransformComponent>();
+			if (es.Size() != 1)
+				throw std::runtime_error("need one and one cam");
+			for (auto& e : es)
+			{
+				//registry.GetComponent<TransformComponent>(e).SetPosition({ camX, camY, camZ });
+				//registry.GetComponent<TransformComponent>(e).LookAt({ 0.0f, 0.0f, 0.0f });
+				registry.GetComponent<CameraComponent>(e).UpdateCamera(registry.GetComponent<TransformComponent>(e).GetFullTransform());
+				window.RegisterCam(registry.GetComponent<CameraComponent>(e), registry.GetComponent<TransformComponent>(e));
+			}
+		}
+
+
+		// Render Mesh
+		{
+			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, TextureComponent>();
+
+			for (auto& e : es)
 				window.RegisterRender(registry.GetComponent<MeshComponent>(e), registry.GetComponent<TransformComponent>(e), registry.GetComponent<TextureComponent>(e));
-	}
+		}
 
-	{
-		auto es = registry.GetAllComponentsView<LightComponent<LightData::Type::Point>, TransformComponent>();
-		for (auto& e : es)
-		window.RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Point>>(e), registry.GetComponent<TransformComponent>(e));
-	}
-	{
-		auto es = registry.GetAllComponentsView<LightComponent<LightData::Type::Spot>, TransformComponent>();
-		for (auto& e : es)
-			window.RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Spot>>(e), registry.GetComponent<TransformComponent>(e));
-	}
+		{
+			auto es = registry.GetAllComponentsView<LightComponent<LightData::Type::Point>, TransformComponent>();
+			for (auto& e : es)
+				window.RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Point>>(e), registry.GetComponent<TransformComponent>(e));
+		}
+		{
+			auto es = registry.GetAllComponentsView<LightComponent<LightData::Type::Spot>, TransformComponent>();
+			for (auto& e : es)
+				window.RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Spot>>(e), registry.GetComponent<TransformComponent>(e));
+		}
 
-	{
-		auto es = registry.GetAllComponentsView<LightComponent<LightData::Type::Directional>, TransformComponent>();
-		for (auto& e : es)
-			window.RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Directional>>(e), registry.GetComponent<TransformComponent>(e));
-	}
-		window.Render({0.53f,0.81f,0.92f ,1.0f});
-	}
-	while (!window.ShouldClose());
+		{
+			auto es = registry.GetAllComponentsView<LightComponent<LightData::Type::Directional>, TransformComponent>();
+			for (auto& e : es)
+				window.RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Directional>>(e), registry.GetComponent<TransformComponent>(e));
+		}
+		window.Render({ 0.53f,0.81f,0.92f ,1.0f });
+	} while (!window.ShouldClose());
 
 
-	 window.Destroy();
-	 KGR::RenderWindow::End();
+	window.Destroy();
+	KGR::RenderWindow::End();
 }

@@ -1,36 +1,23 @@
-# Name the project here
-project(Vulkan)
 
-# do not touch
+
+
+# do not touch that part
+project(SampleGui)
 set(HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Build/app/bin)
+set(SOURCES
+${SOURCE_DIR}/main.cpp
+${SOURCE_DIR}/ObjectEditor.cpp
+)
 
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
     "${HEADER_DIR}/*.h"
     "${HEADER_DIR}/*.hpp"
 )
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
-    "${SOURCE_DIR}/*.cpp"
-)
-
-add_library(${PROJECT_NAME}
+add_executable(${PROJECT_NAME}
     ${SOURCES}
     ${HEADERS}
-)
-
-source_group(
-    TREE ${HEADER_DIR}
-    PREFIX "Header Files"
-    FILES ${HEADERS}
-)
-
-source_group(
-    TREE ${SOURCE_DIR}
-    PREFIX "Source Files"
-    FILES ${SOURCES}
 )
 
 # Automatic Lib here
@@ -43,8 +30,9 @@ source_group(
 #    System
 #    CONFIG REQUIRED
 # )
+
 find_package(glfw3 CONFIG REQUIRED)
-find_package(imguizmo CONFIG REQUIRED)
+
 
 # Manual Lib here
 # Dont forget to link lib
@@ -52,13 +40,14 @@ find_package(imguizmo CONFIG REQUIRED)
 #Copy Dll exemple ONLY MANUAL LIB
 
 # Set Variable for All_LIB
-set(VulkanSDK_DIR $ENV{VULKAN_SDK})
-set(VukanHeader ${VulkanSDK_DIR}/Include)
-set(VulkanLib ${VulkanSDK_DIR}/Lib)
 
 # set(MYLIB ${CMAKE_CURRENT_SOURCE_DIR}/YourlibFolderPath)
 # set(MYLIB_HEADER ${MYLIB}/includeFolder)
 # set(MYLIB_LIB ${MYLIB}/libFolder)
+
+set(VulkanSDK_DIR $ENV{VULKAN_SDK})
+set(VukanHeader ${VulkanSDK_DIR}/Include)
+set(VulkanLib ${VulkanSDK_DIR}/Lib)
 
 # # Debug
 # file(COPY "${MYLIB_LIB}/Yourlib.dll"
@@ -69,17 +58,15 @@ set(VulkanLib ${VulkanSDK_DIR}/Lib)
 #      DESTINATION "${EXECUTABLE_OUTPUT_PATH}/Release")
 
 
+
+
 # target your All Include here 
 # exemple bellow
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC 
-    ${HEADER_DIR}
-    ${VukanHeader}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../External/STB/Includes
-        ${CMAKE_CURRENT_SOURCE_DIR}/../External/TOL/Includes
-    ${CMAKE_CURRENT_SOURCE_DIR}/../ImGui/include
-
+     ${VukanHeader}
+      ${HEADER_DIR}
   # ${MYLIB_HEADER}
     PRIVATE
   # ${MYLIB_HEADER}
@@ -89,17 +76,20 @@ target_include_directories(${PROJECT_NAME}
 # exemple bellow
 
 target_link_libraries(${PROJECT_NAME}
-	PUBLIC
-		${VulkanLib}/vulkan-1.lib
-		GLFW_
-		GameLib
-		imguizmo::imguizmo
-	Engine
+    PUBLIC
+    EmptyProject
+    GameLib
+    GLFW_
+    Vulkan
+    ImGui
+    glfw
+    ${VulkanLib}/vulkan-1.lib
+    Engine
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
     PRIVATE
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
 )
-# Choisir le nom du dossier 
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Vulkan")
+
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "SampleGui")

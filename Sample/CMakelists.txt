@@ -1,17 +1,14 @@
-
-
-
-# do not touch that part
 project(Sample)
 set(HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(SOURCES
-${SOURCE_DIR}/main.cpp
-)
 
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
     "${HEADER_DIR}/*.h"
     "${HEADER_DIR}/*.hpp"
+)
+
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
+    "${SOURCE_DIR}/*.cpp"
 )
 
 add_executable(${PROJECT_NAME}
@@ -19,76 +16,27 @@ add_executable(${PROJECT_NAME}
     ${HEADERS}
 )
 
-# Automatic Lib here
-# Dont forget to link lib
-
-# find Packages
-# exemple bellow 
-
-# find_package(SFML COMPONENTS 
-#    System
-#    CONFIG REQUIRED
-# )
-
 find_package(glfw3 CONFIG REQUIRED)
-
-
-# Manual Lib here
-# Dont forget to link lib
-# Dont forget to include header lib
-#Copy Dll exemple ONLY MANUAL LIB
-
-# Set Variable for All_LIB
-
-# set(MYLIB ${CMAKE_CURRENT_SOURCE_DIR}/YourlibFolderPath)
-# set(MYLIB_HEADER ${MYLIB}/includeFolder)
-# set(MYLIB_LIB ${MYLIB}/libFolder)
 
 set(VulkanSDK_DIR $ENV{VULKAN_SDK})
 set(VukanHeader ${VulkanSDK_DIR}/Include)
 set(VulkanLib ${VulkanSDK_DIR}/Lib)
 
-# # Debug
-# file(COPY "${MYLIB_LIB}/Yourlib.dll"
-#      DESTINATION "${EXECUTABLE_OUTPUT_PATH}/Debug")
-
-# # Release
-# file(COPY "${MYLIB_LIB}/Yourlib.dll"
-#      DESTINATION "${EXECUTABLE_OUTPUT_PATH}/Release")
-
-
-
-
-# target your All Include here 
-# exemple bellow
-
 target_include_directories(${PROJECT_NAME}
-    PUBLIC 
+    PUBLIC
      ${VukanHeader}
-      ${HEADER_DIR}
-  # ${MYLIB_HEADER}
-    PRIVATE
-  # ${MYLIB_HEADER}
+     ${HEADER_DIR}
 )
-
-# target your All libraries here 
-# exemple bellow
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
-    EmptyProject
+    Engine
     GameLib
     GLFW_
     Vulkan
     ImGui
     glfw
     ${VulkanLib}/vulkan-1.lib
-    Engine
-  # YourLib
-  # ${MYLIB_LIB}/YourLib.lib
-    PRIVATE
-  # YourLib
-  # ${MYLIB_LIB}/YourLib.lib
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Sample")

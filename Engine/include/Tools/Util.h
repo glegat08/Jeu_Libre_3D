@@ -1,5 +1,6 @@
 #pragma once 
 #include <stdexcept>
+#include <vector>
 
 template<typename T>
 struct DataDirty
@@ -95,8 +96,6 @@ struct PadData<T, targetSize>
 template<typename type, size_t maxCount>
 struct StorageContainer
 {
-
-
 	static StorageContainer FromVec(const std::vector<type>& data)
 	{
 		if (data.size() > maxCount)

@@ -155,29 +155,29 @@ void KGR::_Vulkan::DebugRenderer::DrawMeshWireframe(const MeshComponent& meshCom
 
 void KGR::_Vulkan::DebugRenderer::Upload()
 {
-    if (m_lines.empty())
-        return;
+	if (m_lines.empty())
+		return;
 
-    vk::DeviceSize size = m_lines.size() * sizeof(VertexDebug);
-    m_debugBuffer = {};
-    m_debugBuffer = Buffer(
-        m_device,
-        m_physicalDevice,
-        vk::BufferUsageFlagBits::eVertexBuffer,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-        size
-    );
+	vk::DeviceSize size = m_lines.size() * sizeof(VertexDebug);
+	m_debugBuffer = {};
+	m_debugBuffer = Buffer(
+		m_device,
+		m_physicalDevice,
+		vk::BufferUsageFlagBits::eVertexBuffer,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+		size
+	);
 
 	m_debugBuffer.MapMemory(size);
 
-    m_debugBuffer.Upload(m_lines);
+	m_debugBuffer.Upload(m_lines);
 }
 
 void KGR::_Vulkan::DebugRenderer::Render(vk::raii::CommandBuffer& cmd, KGR::_Vulkan::Pipeline& debugPipeline)
 {
-    if (m_lines.empty())
-        return;
+	if (m_lines.empty())
+		return;
 
-    cmd.bindVertexBuffers(0, *m_debugBuffer.Get(), { 0 });
-    cmd.draw(m_lines.size(), 1, 0, 0);
+	cmd.bindVertexBuffers(0, *m_debugBuffer.Get(), { 0 });
+	cmd.draw(m_lines.size(), 1, 0, 0);
 }
