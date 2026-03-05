@@ -35,7 +35,7 @@ glm::vec3 TransformComponent::GetScale() const
 
 void TransformComponent::SetScale(const glm::vec3& other)
 {
-	m_scale.data = other;
+	m_scale.data = other / 2.0f;
 	m_scale.isDirty = true;
 }
 

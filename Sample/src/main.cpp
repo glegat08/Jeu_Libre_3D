@@ -38,6 +38,8 @@ struct TakeDamageComponent
 
 struct WaveManager
 {
+	WaveManager(const std::vector<float >& pts) : wavePositions(pts){}
+	WaveManager() = default;
 	int currentWave = 0;
 	int enemiesAlive = 0;
 
@@ -56,7 +58,7 @@ int main(int argc, char** argv)
 	window.GetInputManager()->SetMode(GLFW_CURSOR_DISABLED);
 	using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 	auto registry = ecsType{};
-	WaveManager waveManager;
+
 	//// entity
 	//{
 	//	auto mesh = registry.CreateEntity();
@@ -79,7 +81,7 @@ int main(int argc, char** argv)
 		meshComp.mesh = &MeshLoader::Load("Models\\CUBE.obj", window.App());
 
 		//Camera
-		CameraComponent camComp = CameraComponent::Create(45.0f, static_cast<float>(window.GetSize().x), static_cast<float>(window.GetSize().y), 0.01f, 1000.0f, CameraComponent::Type::Perspective);
+		CameraComponent camComp = CameraComponent::Create(45.0f, static_cast<float>(window.GetSize().x), static_cast<float>(window.GetSize().y), 0.01f, 1000000.0f, CameraComponent::Type::Perspective);
 
 		//Transform
 		TransformComponent camTransform;
@@ -106,6 +108,60 @@ int main(int argc, char** argv)
 				PlayerComponent{}, KGR::GameLib::WeaponComponent{}, std::move(playerLife), std::move(collider));
 	}
 
+	float y = -10;
+	// floor
+	{
+		MeshComponent meshComp;
+		meshComp.mesh = &MeshLoader::Load("Models\\CUBE.obj", window.App());
+
+		TransformComponent meshTransform;
+		meshTransform.SetScale({ 100,1,100 });
+		meshTransform.SetPosition({ 50,y,-50 });
+
+		TextureComponent texture;
+		texture.SetSize(meshComp.mesh->GetSubMeshesCount());
+		for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
+			texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
+
+		registry.AddComponents<MeshComponent, TransformComponent, TextureComponent>
+			(registry.CreateEntity(), std::move(meshComp), std::move(meshTransform), std::move(texture));
+	}
+
+	KGR::Tools::Random rd;
+	auto yScale = rd.getRandomNumberRange(30.0f, 150.0f, 8);
+
+	//building
+	{
+		std::vector<std::pair<glm::vec3, glm::vec3>> buildingDatas
+		{ {{25,y + yScale[0] / 2.0f,-90},{15 /1.5f,yScale[0] ,10 / 1.5f}},
+			{{80,y + yScale[1] / 2.0f,-85},{20 / 1.5f,yScale[1] ,10 / 1.5f}},
+			{{40,y + yScale[2] / 2.0f,-70},{20 / 1.5f,yScale[2] ,10 / 1.5f}},
+			{{10,y + yScale[3] / 2.0f,-67.5f},{10 / 1.5f,yScale[3] ,15 / 1.5f}},
+			{{22.5,y + yScale[4] / 2.0f,-40},{35 / 1.5f, yScale[4],15 / 1.5f}},
+			{{67.5f,y + yScale[5] / 2.0f,-45},{25 / 1.5f, yScale[5],20 / 1.5f}},
+			{{105,y + yScale[6] / 2.0f,-52.5},{20 / 1.5f, yScale[6],35 / 1.5f}},
+			{{90,y + yScale[7] / 2.0f,-15},{30 / 1.5f,yScale[7] ,20 / 1.5f}},
+		};
+
+		for (int i = 0; i < buildingDatas.size(); ++i)
+		{
+			MeshComponent meshComp;
+			meshComp.mesh = &MeshLoader::Load("Models\\CUBE.obj", window.App());
+
+			TransformComponent meshTransform;
+			meshTransform.SetScale(buildingDatas[i].second);
+			meshTransform.SetPosition(buildingDatas[i].first);
+
+			TextureComponent texture;
+			texture.SetSize(meshComp.mesh->GetSubMeshesCount());
+			for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
+				texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
+
+			registry.AddComponents<MeshComponent, TransformComponent, TextureComponent>
+				(registry.CreateEntity(), std::move(meshComp), std::move(meshTransform), std::move(texture));
+		}
+	}
+
 	auto colorTransform = [](const glm::vec3& color)
 		{
 			glm::vec3 result;
@@ -114,52 +170,42 @@ int main(int argc, char** argv)
 			result.z = color.z * 1 / 255;
 			return result;
 		};
+
+
+
+
+
 	{
 		auto light = registry.CreateEntity();
-		auto lComp = LightComponent<LightData::Type::Directional>::Create(colorTransform({ 154,36,69 }), { 1,1,1 }, 1.0f);
+		auto lComp = LightComponent<LightData::Type::Directional>::Create(colorTransform({ 255, 240, 200 }), { 1,1,1 }, 1.0f);
 		TransformComponent lTransform;
-		lTransform.LookAt({ 0,-1,0 });
+		lTransform.LookAt({ 1,-1,0 });
 		registry.AddComponents<LightComponent<LightData::Type::Directional>, TransformComponent>(light, std::move(lComp), std::move(lTransform));
 	}
 	std::vector<glm::vec3> points{
-	{  0.0f, 0.0f,  6.0f },   // départ
-	{  3.5f, 0.0f,  5.0f },
-	{  6.0f, 0.0f,  2.5f },
-	{  6.5f, 0.0f,  0.0f },
-	{  6.0f, 0.0f, -2.5f },
-	{  3.5f, 0.0f, -5.0f },
-	{  0.0f, 0.0f, -6.0f },
-	{ -3.5f, 0.0f, -5.0f },
-	{ -6.0f, 0.0f, -2.5f },
-	{ -6.5f, 0.0f,  0.0f },
-	{ -6.0f, 0.0f,  2.5f },
-	{ -3.5f, 0.0f,  5.0f },
-	{  0.0f, 0.0f,  6.0f }    // retour au départ pour boucler
+	{  -5.0f, 0.0f,  5.0f },   // départ
+	{  10.0f, 0.0f,  -20.0f },
+	{  20.0f, 0.0f,  -10.0f },
+	{  35.0f, 0.0f,  -15.0f },
+	{  50.0f, 0.0f, -25.0f },
+	{  60.0f, 0.0f, -20.0f },
+	{  70.0f, 0.0f, -25.0f },
+	{ 85.0f, 0.0f, -35.0f },
+	{ 90.0f, 0.0f, -50.0f },
+	{ 70.0f, 0.0f,  -70.0f },
+	{ 55.0f, 0.0f,  -60.0f },
+	{ 40.0f, 0.0f,  -50.0f },
+	{  25.0f, 0.0f,  -60.0f },
+    {  20.0f, 0.0f,  -75.0f },
+	{  20.0f, 0.0f,  -75.0f },
+	{  10.0f, 0.0f,  -90.0f },
+	{  0.0f, 0.0f,  -100.0f },
+	{  -5.0f, 0.0f,  -105.0f }
 	};
 
-	//std::vector<glm::vec3> points
-	//{
-	//	//Loop
-	//	{ -3.0f, 0.0f,  4.0f},
-	//	{  0.0f, 0.0f,  0.0f},
-	//	{  3.0f, 0.0f,  4.0f},
-	//	{  6.0f, 0.0f,  0.0f},
-	//	{  3.0f, 0.0f, -4.0f},
-	//	{  0.0f, 0.0f,  0.0f},
-	//	{ -3.0f, 0.0f,  4.0f},
-	//	{ -6.0f, 0.0f,  0.0f},
-	//	{ -3.0f, 0.0f, -4.0f},
-	//	{  0.0f, 0.0f,  0.0f},
-	//	{  3.0f, 0.0f,  4.0f},
-	//	{  6.0f, 0.0f,  0.0f},
-	//	{  3.0f, 0.0f, -4.0f},
-	//	{  0.0f, 0.0f,  0.0f},
-	//	{ -3.0f, 0.0f, -4.0f},
-	//	{ -6.0f, 0.0f,  0.0f},
-	//	{ -3.0f, 0.0f,  4.0f},
-	//	{  0.0f, 0.0f,  0.0f},
-	//	{  3.0f, 0.0f,  4.0f},
-	//};
+
+
+	
 
 	HermitCurve curve = HermitCurve::FromPoints(points, 0);
 
@@ -176,6 +222,35 @@ int main(int argc, char** argv)
 	auto rmfFrames = KGR::RMF::BuildFrames(rmfPoints, rmfForwardDirs);
 
 	static float curvesTest = 0.0f;
+	uint32_t count = points.size();
+	float maxT = curve.MaxT() - 0.001f;
+
+	std::vector<float> result;
+	result.reserve(count);
+
+	float step = maxT / (count - 1);
+
+	for (uint32_t i = 0; i < count; ++i)
+	{
+		result.push_back(i * step);
+		//lights
+		
+
+		{
+			auto light = registry.CreateEntity();
+			auto lComp = LightComponent<LightData::Type::Spot>::Create({ 0.4, 0.9, 0.6 }, { 1,1,1 }, 50.0f, 1.0f, glm::radians(5.0f), 1);
+			TransformComponent lTransform;
+			lTransform.LookAt({ 0,-1,0 });
+			static glm::vec3 upCoord = { 0,2,0 };
+			lTransform.SetPosition(curve.Compute(i* step) + upCoord);
+			registry.AddComponents<LightComponent<LightData::Type::Spot>, TransformComponent>(light, std::move(lComp), std::move(lTransform));
+
+		}
+
+	}
+	
+
+	WaveManager waveManager(result);
 
 	do
 	{
@@ -192,7 +267,7 @@ int main(int argc, char** argv)
 		float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 		lastTime = currentTime;
 		// Update
-
+		
 		//Camera control
 		{
 			auto es = registry.GetAllComponentsView<ControllerComponent, TransformComponent, CameraComponent>();
@@ -382,7 +457,6 @@ int main(int argc, char** argv)
 
 					auto& life = registry.GetComponent<LivingComponent>(playerEntity);
 					life.health -= enemy.damage;
-
 					if (life.health <= 0.0f)
 					{
 						life.isAlive = false;
@@ -391,7 +465,7 @@ int main(int argc, char** argv)
 				}
 
 				if (collision.IsColliding())
-					enemyTransform.SetPosition(enemyTransform.GetPosition() + collision.GetCollisionNormal() * collision.GetPenetration());
+					enemyTransform.SetPosition(enemyTransform.GetPosition() - collision.GetCollisionNormal() * collision.GetPenetration());
 
 				if (enemy.health <= 0.0f)
 				{
@@ -400,16 +474,15 @@ int main(int argc, char** argv)
 					waveManager.enemiesAlive--;
 
 					std::cout << "Enemy defeated!\n";
-
-					if (waveManager.enemiesAlive <= 0)
-					{
-						waveManager.isWaveActive = false;
-						waveManager.platformPaused = false;
-						waveManager.currentWave++;
-
-						std::cout << "Wave cleared!\n";
-					}
 				}
+			}
+			if (waveManager.enemiesAlive <= 0 && waveManager.isWaveActive)
+			{
+				waveManager.isWaveActive = false;
+				waveManager.platformPaused = false;
+				waveManager.currentWave++;
+
+				std::cout << "Wave cleared!\n";
 			}
 		}
 
@@ -442,8 +515,11 @@ int main(int argc, char** argv)
 			{
 				auto& transform = registry.GetComponent<TransformComponent>(e);
 				transform.SetPosition(curve.Compute(curvesTest));
+
 				int frameIndex = glm::clamp(static_cast<int>(curvesTest / rmfStep), 0, static_cast<int>(rmfFrames.size() - 1));
-				/*transform.SetOrientation(glm::quatLookAt(rmfFrames[frameIndex].forward, rmfFrames[frameIndex].up));*/
+			/*	if (!waveManager.isWaveActive)
+				transform.SetOrientation(glm::quatLookAt(rmfFrames[frameIndex].forward, rmfFrames[frameIndex].up));*/
+
 			}
 		}
 
