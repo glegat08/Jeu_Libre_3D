@@ -1,4 +1,5 @@
 #pragma once
+#include "ECS/Entities.h"
 
 /**
  * @brief Base event type for the event system.
@@ -143,4 +144,93 @@ struct FramebufferResizeEvent : public Event
 
     int m_width;  ///< New framebuffer width.
     int m_height; ///< New framebuffer height.
+};
+
+//Gameplay events
+
+/**
+ * @brief Event representing the death of an enemy entity.
+ */
+struct EnemyKilledEvent : public Event
+{
+    /**
+     * @brief Constructs a EnemyKilledEvent.
+     *
+	 * @param enemy The entity representing the killed enemy.
+     */
+    EnemyKilledEvent(KGR::ECS::Entity enemy) : m_enemy(enemy)
+    {
+    }
+
+	KGR::ECS::Entity m_enemy; ///< Entity ID of the killed enemy.
+};
+
+/**
+ * @brief Event representing the start of a new wave of enemies.
+ */
+struct WaveStartedEvent : public Event
+{
+    /**
+     * @brief Constructs a WaveStartedEvent.
+     *
+	 * @param index Index of the wave that has started.
+     */
+    WaveStartedEvent(int index) : m_waveIndex(index)
+    {
+    }
+
+	int m_waveIndex; ///< Index of the wave that started.
+};
+
+/**
+ * @brief Event representing the clearance of a wave of enemies.
+ */
+struct WaveClearedEvent : public Event
+{
+    /**
+     * @brief Constructs a WaveClearedEvent.
+     * 
+	 * @param index Index of the wave that has been cleared.
+	 */
+    WaveClearedEvent(int index) : m_waveIndex(index)
+    {
+    }
+
+	int m_waveIndex; ///< Index of the wave that was cleared.
+};
+
+/**
+ * @brief Event representing the player taking damage.
+ */
+struct PlayerDamagedEvent : public Event
+{
+    /**
+     * @brief Constructs a PlayerDamagedEvent.
+     * 
+	 * @param damage Amount of damage taken by the player.
+	 */
+    PlayerDamagedEvent(float damage) : m_damage(damage)
+    {
+    }
+
+	float m_damage; ///< Amount of damage taken by the player.
+};
+
+/**
+ * @brief Event representing the spline path trigger.
+ */
+struct PathTriggerEvent : public Event
+{
+    /**
+     * @brief Constructs a PathTriggerEvent.
+     * 
+	 * @param param Parameter along the spline where the trigger occurred (e.g., t value).
+	 * @param id Identifier for the specific trigger (useful if multiple triggers exist along the path).
+	 */
+    PathTriggerEvent(float param, int id) : m_t(param), m_eventID(id)
+    {
+    }
+
+	float m_t;     ///< Parameter along the spline where the trigger occurred.
+	int m_eventID; ///< Identifier for the specific trigger.
 };

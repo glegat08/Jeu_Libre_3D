@@ -5,6 +5,7 @@
 #include "Core/Texture.h"
 #include "Core/TrasformComponent.h"
 #include "ECS/Registry.h"
+#include "CollisionComponent.h"
 
 struct LivingTimeComponent
 {
@@ -92,6 +93,9 @@ namespace KGR
 			for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
 				texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
 
+			CollisionComp collider;
+			collider.collider = &ColliderManager::Load("bulletCollider", meshComp.mesh);
+
 			//Damage and direction
 			BulletComponent bulletComp;
 			bulletComp.direction = direction;
@@ -102,8 +106,8 @@ namespace KGR
 			LivingTimeComponent timeToLive;
 			timeToLive.timeToLive = bulletComp.lifetime;
 
-			registry.AddComponents<MeshComponent, TransformComponent, TextureComponent, BulletComponent, LivingTimeComponent>
-				(bullet, std::move(meshComp), std::move(transform), std::move(texture), std::move(bulletComp), std::move(timeToLive));
+			registry.AddComponents<MeshComponent, TransformComponent, TextureComponent, BulletComponent, LivingTimeComponent, CollisionComp>
+				(bullet, std::move(meshComp), std::move(transform), std::move(texture), std::move(bulletComp), std::move(timeToLive), std::move(collider));
 		}
 	}
 }

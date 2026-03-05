@@ -5,6 +5,7 @@
 #include "Core/Texture.h"
 #include "Core/TrasformComponent.h"
 #include "ECS/Registry.h"
+#include "CollisionComponent.h"
 
 namespace KGR
 {
@@ -53,6 +54,9 @@ namespace KGR
 			for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
 				texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
 
+			CollisionComp collider;
+			collider.collider = &ColliderManager::Load("enemyCollider", meshComp.mesh);
+
 			AIComponent ai;
 			ai.UpdateTarget(playerPos);
 
@@ -65,8 +69,8 @@ namespace KGR
 			enemyComp.timeSinceLastAttack = 0.0f;
 
 
-			registry.AddComponents<MeshComponent, TransformComponent, TextureComponent, AIComponent, EnemyComponent>
-				(enemy, std::move(meshComp), std::move(transform), std::move(texture), std::move(ai), std::move(enemyComp));
+			registry.AddComponents<MeshComponent, TransformComponent, TextureComponent, AIComponent, EnemyComponent, CollisionComp>
+				(enemy, std::move(meshComp), std::move(transform), std::move(texture), std::move(ai), std::move(enemyComp), std::move(collider));
 		}
 	}
 }

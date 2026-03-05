@@ -1,128 +1,345 @@
 #pragma once
-#include <deque>
+#include <vector>
+#include <stdexcept>
 #include <memory>
-#include <map>
-#include <iostream>
-#include "EventDispatcher.h"
+#include <RTTI.h>
 
-/**
- * @brief Central event bus responsible for queuing and dispatching events.
- *
- * Responsibilities:
- * - Stores all registered receivers (objects able to process events).
- * - Stores emitted events in a FIFO queue.
- * - Dispatches each event to receivers in priority order using EventDispatcher.
- * - Stops propagation when `evt.m_handled == true`.
- *
- * This is the core of the event system: receivers register themselves,
- * events are emitted asynchronously, and Dispatch() processes them.
- */
-struct EventBus
+namespace KGR
 {
-public:
-    /// @brief Alias for the dispatcher used internally.
-    using Dispatcher = EventDispatcher;
 
-    /**
-     * @brief Registers a receiver with an optional priority.
-     *
-     * Receivers with lower priority values are processed first.
-     *
-     * @param receiver Pointer to the receiver object.
-     * @param priority Priority value (lower = earlier dispatch).
-     */
-    void Register(Receiver* receiver, int priority = 0)
-    {
-        m_receivers.emplace(priority, receiver);
-    }
 
-    /**
-     * @brief Unregisters a receiver from the bus.
-     *
-     * @param receiver Pointer to the receiver to remove.
-     */
-    void Unregister(Receiver* receiver)
-    {
-        for (auto it = m_receivers.begin(); it != m_receivers.end();)
-        {
-            if (it->second == receiver)
-                it = m_receivers.erase(it);
-            else
-                ++it;
-        }
-    }
+	/**
+	 * @brief Event bus responsible for dispatching events of a specific type.
+	 *
+	 * @tparam EventType Type of event handled by this bus.
+	 */
+	template<typename EventType>
+	class EventBus;
 
-    /**
-     * @brief Emits an event by constructing it and pushing it into the queue.
-     *
-     * The event is dynamically allocated and stored until Dispatch() is called.
-     *
-     * @tparam EventType Type of the event to create.
-     * @tparam Args Constructor argument types.
-     *
-     * @param args Arguments forwarded to the event constructor.
-     */
-    template<typename EventType, typename ...Args>
-    void Emit(Args&& ... args)
-    {
-        m_queue.emplace_back(std::make_unique<EventType>(std::forward<Args>(args)...));
-    }
+	/**
+	 * @brief Internal interface representing a container of listeners for a given event type.
+	 *
+	 * This abstract structure is used by the EventBus to store
+	 * different types of listeners able to react to a specific event.
+	 *
+	 * @tparam EventType Type of the event.
+	 */
+	template<typename EventType>
+	struct IEventHolder
+	{
+		/// Allows EventBus to access private and protected members
+		friend EventBus<EventType>;
 
-    /**
-     * @brief Processes all pending events in the queue.
-     *
-     * For each event:
-     * - It is popped from the queue.
-     * - It is dispatched to receivers in priority order.
-     * - If a receiver handles the event (`m_handled == true`), propagation stops.
-     *
-     * Exceptions thrown by receivers or the dispatcher are caught and ignored.
-     */
-    void Dispatch()
-    {
-        while (!m_queue.empty())
-        {
-            auto evt = std::move(m_queue.front());
-            m_queue.pop_front();
+		/**
+		 * @brief Virtual destructor.
+		 */
+		virtual ~IEventHolder();
 
-            for (auto& [priority, receiver] : m_receivers)
-            {
-                try
-                {
-                    m_dispatcher(*receiver, *evt);
-                }
-                catch (...)
-                {
-					std::cerr << "Error dispatching event to receiver at priority " << priority << std::endl;
-                }
+	protected:
 
-                if (evt->m_handled)
-                    break;
-            }
-        }
-    }
+		/**
+		 * @brief Notifies listeners of an event.
+		 *
+		 * Must be implemented by derived classes.
+		 *
+		 * @param event Event to dispatch.
+		 */
+		virtual void Notify(const EventType& event) = 0;
 
-    /**
-     * @brief Accessor for the internal dispatcher.
-     *
-     * Allows receivers to register handlers for specific event types.
-     *
-     * @return Reference to the internal EventDispatcher.
-     */
-    Dispatcher& GetDispatcher()
-    {
-        return m_dispatcher;
-    }
+		/**
+		 * @brief Protected constructor.
+		 *
+		 * @param id Internal identifier of the holder.
+		 */
+		IEventHolder(int id);
 
-private:
-    std::deque<std::unique_ptr<Event>> m_queue; ///< FIFO queue of pending events.
+	private:
 
-    /**
-     * @brief Registered receivers sorted by priority.
-     *
-     * Lower priority values are processed first.
-     */
-    std::multimap<int, Receiver*> m_receivers;
+		/**
+		 * @brief Returns the holder identifier.
+		 *
+		 * @return Internal ID.
+		 */
+		int GetID() const;
 
-    Dispatcher m_dispatcher; ///< Internal dispatcher used to route events.
-};
+		/// Holder identifier
+		int m_id;
+	};
+
+
+	/**
+	 * @brief Concrete implementation of an event holder for a specific listener type.
+	 *
+	 * This class stores listeners and their associated callbacks
+	 * in order to notify them when an event occurs.
+	 *
+	 * @tparam Type Listener type.
+	 * @tparam EventType Event type.
+	 */
+	template<typename Type, typename EventType>
+	struct EventHolder : public IEventHolder<EventType>
+	{
+		/// Allows EventBus to access private members
+		friend EventBus<EventType>;
+
+		/**
+		 * @brief Default constructor.
+		 */
+		EventHolder();
+
+		/**
+		 * @brief Member function callback type.
+		 */
+		using CallBack = void(Type::*)(const EventType& event);
+
+	private:
+
+		/**
+		 * @brief Adds a callback to the callback list.
+		 *
+		 * @param cb Member function called when an event is dispatched.
+		 */
+		void AddCallBack(CallBack cb);
+
+		/**
+		 * @brief Registers a listener.
+		 *
+		 * @param listener Listener instance.
+		 */
+		void AddListener(Type* listener);
+
+		/**
+		 * @brief Removes a listener.
+		 *
+		 * @param listener Listener instance to remove.
+		 */
+		void RemoveListener(Type* listener);
+
+		/**
+		 * @brief Notifies all registered listeners.
+		 *
+		 * @param event Event to dispatch.
+		 */
+		void Notify(const EventType& event) override final;
+
+		/// List of listener instances
+		std::vector<Type*> m_listeners;
+
+		/// List of callbacks associated with listeners
+		std::vector<CallBack> m_callBack;
+	};
+
+
+
+
+
+	/**
+	 * @brief Static event bus used to manage listeners and event notifications.
+	 *
+	 * This class allows registering objects listening to a specific event type
+	 * and notifying them when an event is triggered.
+	 *
+	 * @tparam EventType Type of event handled by the bus.
+	 */
+	template<typename EventType>
+	class EventBus
+	{
+	public:
+
+		/**
+		 * @brief Alias for a listener callback.
+		 *
+		 * @tparam Type Listener type.
+		 */
+		template<typename Type>
+		using CallBack = void(Type::*)(const EventType& event);
+
+		/**
+		 * @brief Adds a listener to the event bus.
+		 *
+		 * @tparam Type Listener type.
+		 * @param listener Listener instance to register.
+		 */
+		template<typename Type>
+		static void AddListener(Type* listener);
+
+		/**
+		 * @brief Removes a listener from the event bus.
+		 *
+		 * @tparam Type Listener type.
+		 * @param listener Listener instance to remove.
+		 */
+		template<typename Type>
+		static void RemoveListener(Type* listener);
+
+		/**
+		 * @brief Registers a callback for a specific listener type.
+		 *
+		 * @tparam Type Listener type.
+		 * @param cb Callback called when an event occurs.
+		 */
+		template<typename Type>
+		static void AddCallBack(CallBack<Type> cb);
+
+		/**
+		 * @brief Notifies all registered listeners of an event.
+		 *
+		 * @param event Event to dispatch.
+		 */
+		static void Notify(const EventType& event);
+
+		/**
+		* @brief Constructs an event in place and notifies all registered listeners.
+		*
+		* This function forwards the provided arguments to the constructor of
+		* the event type in order to create the event instance. The constructed
+		* event is then dispatched to every listener registered in the EventBus.
+		*
+		* @tparam Args Types of the arguments forwarded to the event constructor.
+		* @param args Arguments used to construct the event.
+		*/
+		template<typename... Args>
+		static void EmplaceNotify(Args&&... args);
+
+	private:
+
+		/// List of holders containing the different listener types
+		static std::vector<std::unique_ptr<IEventHolder<EventType>>> m_listeners;
+	};
+
+	template<typename EventType>
+	std::vector<std::unique_ptr<IEventHolder<EventType>>> EventBus<EventType>::m_listeners;
+
+
+
+
+	template <typename EventType>
+	IEventHolder<EventType>::~IEventHolder() = default;
+
+	template <typename EventType>
+	IEventHolder<EventType>::IEventHolder(int id) :m_id(id)
+	{
+	}
+
+	template <typename EventType>
+	int IEventHolder<EventType>::GetID() const
+	{
+		return m_id;
+	}
+
+	template <typename Type, typename EventType>
+	EventHolder<Type, EventType>::EventHolder() : IEventHolder<EventType>(RTTI::Counter::GetTypeId<Type>())
+	{
+	}
+
+	template <typename Type, typename EventType>
+	void EventHolder<Type, EventType>::AddCallBack(CallBack cb)
+	{
+		auto it = std::find(m_callBack.begin(), m_callBack.end(), cb);
+		if (it == m_callBack.end())
+			m_callBack.push_back(cb);
+	}
+
+	template <typename Type, typename EventType>
+	void EventHolder<Type, EventType>::AddListener(Type* listener)
+	{
+		auto it = std::find(m_listeners.begin(), m_listeners.end(), listener);
+		if (it != m_listeners.end())
+			throw std::runtime_error("Listener already added");
+		m_listeners.push_back(listener);
+	}
+
+	template <typename Type, typename EventType>
+	void EventHolder<Type, EventType>::RemoveListener(Type* listener)
+	{
+		auto it = std::find(m_listeners.begin(), m_listeners.end(), listener);
+		if (it == m_listeners.end())
+			throw std::runtime_error("Listener not found");
+		m_listeners.erase(it);
+	}
+
+	template <typename Type, typename EventType>
+	void EventHolder<Type, EventType>::Notify(const EventType& event)
+	{
+		for (auto* listner : m_listeners)
+		{
+			if (!listner)
+				continue;
+			for (auto& cb : m_callBack)
+			{
+				if (cb)
+					(listner->*cb)(event);
+			}
+		}
+	}
+
+	template <typename EventType>
+	template <typename Type>
+	void EventBus<EventType>::AddListener(Type* listener)
+	{
+		auto it = std::find_if(m_listeners.begin(), m_listeners.end(),
+			[](const std::unique_ptr<IEventHolder<EventType>>& l) { return l->GetID() == RTTI::Counter::GetTypeId<Type>(); });
+
+		if (it == m_listeners.end())
+		{
+			auto linker = std::make_unique<EventHolder<Type, EventType>>();
+			linker->AddListener(listener);
+			m_listeners.push_back(std::move(linker));
+		}
+		else
+		{
+			EventHolder<Type, EventType>* linker = static_cast<EventHolder<Type, EventType>*>((*it).get());
+			linker->AddListener(listener);
+		}
+	}
+
+	template <typename EventType>
+	template <typename Type>
+	void EventBus<EventType>::RemoveListener(Type* listener)
+	{
+		auto it = std::find_if(m_listeners.begin(), m_listeners.end(),
+			[&](const std::unique_ptr<IEventHolder<EventType>>& l) { return l->GetID() == RTTI::Counter::GetTypeId<Type>(); });
+		if (it != m_listeners.end())
+		{
+			EventHolder<Type, EventType>* linker = static_cast<EventHolder<Type, EventType>*>((*it).get());
+			linker->RemoveListener(listener);
+		}
+		else
+		{
+			throw std::runtime_error("EventHolder not found");
+		}
+	}
+
+	template <typename EventType>
+	template <typename Type>
+	void EventBus<EventType>::AddCallBack(CallBack<Type> cb)
+	{
+		auto it = std::find_if(m_listeners.begin(), m_listeners.end(),
+			[&](const std::unique_ptr<IEventHolder<EventType>>& l) { return l->GetID() == RTTI::Counter::GetTypeId<Type>(); });
+		if (it != m_listeners.end())
+		{
+			EventHolder<Type, EventType>* linker = static_cast<EventHolder<Type, EventType>*>((*it).get());
+			linker->AddCallBack(cb);
+		}
+		else
+		{
+			throw std::runtime_error("EventHolder not found");
+		}
+	}
+
+	template <typename EventType>
+	void EventBus<EventType>::Notify(const EventType& event)
+	{
+		for (auto& listener : m_listeners)
+			listener->Notify(event);
+	}
+
+	template <typename EventType>
+	template <typename ... Args>
+	void EventBus<EventType>::EmplaceNotify(Args&&... args)
+	{
+		auto event = EventType(std::forward<Args>(args)...);
+		for (auto& listener : m_listeners)
+			listener->Notify(event);
+	}
+}

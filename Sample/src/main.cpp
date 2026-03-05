@@ -17,6 +17,8 @@
 #include "ECS/Entities.h"
 #include "Tools/Random.h"
 #include "DebugRenderer.h"
+#include "Event.h"
+#include "EventBus.h"
 
 #include "GameFiles.h"
 
@@ -34,6 +36,17 @@ struct TakeDamageComponent
 	float damage;
 };
 
+struct WaveManager
+{
+	int currentWave = 0;
+	int enemiesAlive = 0;
+
+	bool isWaveActive = false;
+	bool platformPaused = false;
+
+	std::vector<float> wavePositions = { 0.2f, 0.5f, 0.8f };
+};
+
 int main(int argc, char** argv)
 {
 	std::filesystem::path exePath = argv[0];
@@ -43,7 +56,7 @@ int main(int argc, char** argv)
 	window.GetInputManager()->SetMode(GLFW_CURSOR_DISABLED);
 	using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 	auto registry = ecsType{};
-
+	WaveManager waveManager;
 	//// entity
 	//{
 	//	auto mesh = registry.CreateEntity();
@@ -81,15 +94,16 @@ int main(int argc, char** argv)
 		texture.SetSize(meshComp.mesh->GetSubMeshesCount());
 		for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
 			texture.AddTexture(i, &TextureLoader::Load("Textures\\BaseTexture.png", window.App()));
+
 		CollisionComp collider;
-		collider.collider = &ColliderManager::Load("test",meshComp.mesh);
+		collider.collider = &ColliderManager::Load("playerCollider",meshComp.mesh);
 
 		/*registry.AddComponents<MeshComponent, TransformComponent, TextureComponent, ControllerComponent>(mesh, std::move(meshComp), std::move(transform), std::move(texture), std::move(ControllerComponent{}));*/
 
 		registry.AddComponents<MeshComponent, CameraComponent, TransformComponent, TextureComponent, ControllerComponent,
-			PlayerComponent, KGR::GameLib::WeaponComponent, LivingComponent>
+			PlayerComponent, KGR::GameLib::WeaponComponent, LivingComponent, CollisionComp>
 			(player, std::move(meshComp), std::move(camComp), std::move(camTransform), std::move(texture), ControllerComponent{},
-				PlayerComponent{}, KGR::GameLib::WeaponComponent{}, std::move(playerLife));
+				PlayerComponent{}, KGR::GameLib::WeaponComponent{}, std::move(playerLife), std::move(collider));
 	}
 
 	auto colorTransform = [](const glm::vec3& color)
@@ -162,22 +176,6 @@ int main(int argc, char** argv)
 	auto rmfFrames = KGR::RMF::BuildFrames(rmfPoints, rmfForwardDirs);
 
 	static float curvesTest = 0.0f;
-
-	for (int i = 0; i < rmfPoints.size() - 1; ++i)
-		{
-		glm::vec3 p0 = rmfPoints[i];
-		glm::vec3 p1 = rmfPoints[i + 1];
-		glm::vec3 forward = rmfFrames[i].forward;
-		glm::vec3 up = rmfFrames[i].up;
-		glm::vec3 right = rmfFrames[i].right;
-		curvesTest += 0.01f;
-		if (curvesTest >= 1.0f)
-			curvesTest = 0.0f;
-		/*window.App()->GetDebugRenderer().DrawLine(p0, p1, { 1,0,0 });
-		window.App()->GetDebugRenderer().DrawLine(p0, p0 + forward, { 0,1,0 });
-		window.App()->GetDebugRenderer().DrawLine(p0, p0 + up, { 0,0,1 });
-		window.App()->GetDebugRenderer().DrawLine(p0, p0 + right, { 1,1,0 });*/
-	}
 
 	do
 	{
@@ -281,18 +279,23 @@ int main(int argc, char** argv)
 			}
 		}
 
-
 		//Update bullet
 		{
-			auto view = registry.GetAllComponentsView<KGR::GameLib::BulletComponent, TransformComponent, LivingTimeComponent>();
+			auto view = registry.GetAllComponentsView<KGR::GameLib::BulletComponent, TransformComponent, LivingTimeComponent, CollisionComp>();
 			for (auto& e : view)
 			{
-				auto& bullet = registry.GetComponent<KGR::GameLib::BulletComponent>(e);
-				auto& transform = registry.GetComponent<TransformComponent>(e);
+				auto& bullet          = registry.GetComponent<KGR::GameLib::BulletComponent>(e);
+				auto& bulletTransform = registry.GetComponent<TransformComponent>(e);
+				auto& bulletCol       = registry.GetComponent<CollisionComp>(e);
 
-				glm::vec3 newPos = transform.GetPosition();
+				auto bulletOBB = bulletCol.collider->ComputeGlobalOBB(
+								 bulletTransform.GetScale(),
+								 bulletTransform.GetPosition(),
+								 bulletTransform.GetOrientation());
+
+				glm::vec3 newPos = bulletTransform.GetPosition();
 				newPos += bullet.direction * bullet.speed * deltaTime;
-				transform.SetPosition(newPos);
+				bulletTransform.SetPosition(newPos);
 
 				bullet.lifetime -= deltaTime;
 				if (bullet.lifetime <= 0.0f)
@@ -301,13 +304,23 @@ int main(int argc, char** argv)
 					continue;
 				}
 
-				auto enemies = registry.GetAllComponentsView<KGR::GameLib::EnemyComponent, TransformComponent>();
+				//collision with enemy
+				auto enemies = registry.GetAllComponentsView<KGR::GameLib::EnemyComponent, TransformComponent, CollisionComp>();
 				for (auto enemyEntity : enemies)
 				{
 					auto& enemy = registry.GetComponent<KGR::GameLib::EnemyComponent>(enemyEntity);
 					auto& enemyTransform = registry.GetComponent<TransformComponent>(enemyEntity);
-					float dist = glm::length(enemyTransform.GetPosition() - transform.GetPosition());
-					if(dist <= 1.f)
+					float dist = glm::length(enemyTransform.GetPosition() - bulletTransform.GetPosition());
+					auto& enemyCol = registry.GetComponent<CollisionComp>(enemyEntity);
+
+					auto enemyOBB = enemyCol.collider->ComputeGlobalOBB(
+						enemyTransform.GetScale(),
+						enemyTransform.GetPosition(),
+						enemyTransform.GetOrientation());
+
+					auto collision = KGR::SeparatingAxisTheorem::CheckCollisionOBB3D(bulletOBB, enemyOBB);
+
+					if (collision.IsColliding())
 					{
 						enemy.health -= bullet.damage;
 						registry.DestroyEntity(e);
@@ -318,8 +331,8 @@ int main(int argc, char** argv)
 		}
 
 		// UpdateIa
-		static float spawnTimer = 0.0f;
-		spawnTimer -= deltaTime;
+		/*static float spawnTimer = 0.0f;
+		spawnTimer -= deltaTime;*/
 
 		//Player pos
 		glm::vec3 playerPos{ 0.0f };
@@ -332,55 +345,104 @@ int main(int argc, char** argv)
 			}
 		}
 
-		//Spawn enemy
-		if (spawnTimer <= 0.0f)
+		////Spawn enemy
+		//if (spawnTimer <= 0.0f)
+		//{
+		//	spawnTimer = 5.0f;
+
+		//	KGR::GameLib::AIComponent ai;
+		//	ai.SpawnEnemy(registry, window, playerPos);
+		//}
+
+
+		//Wave manager
+		if (!waveManager.isWaveActive && waveManager.currentWave < waveManager.wavePositions.size())
 		{
-			spawnTimer = 5.0f;
+			if (curvesTest >= waveManager.wavePositions[waveManager.currentWave])
+			{
+				waveManager.isWaveActive = true;
+				waveManager.platformPaused = true;
 
-			KGR::GameLib::AIComponent ai;
-			ai.SpawnEnemy(registry, window, playerPos);
+				int enemyCount = 5 + waveManager.currentWave * 3;
+
+				for (int i = 0; i < enemyCount; i++)
+				{
+					KGR::GameLib::AIComponent ai;
+					ai.SpawnEnemy(registry, window, playerPos);
+					waveManager.enemiesAlive++;
+				}
+			}
 		}
-
 		
 		//Update enemy
 		{
 
-			auto view = registry.GetAllComponentsView<KGR::GameLib::AIComponent, TransformComponent, KGR::GameLib::EnemyComponent>();
-			for (auto& e : view)
+			auto enemies = registry.GetAllComponentsView<KGR::GameLib::AIComponent, TransformComponent, KGR::GameLib::EnemyComponent, CollisionComp>();
+			auto player = registry.GetAllComponentsView<PlayerComponent, TransformComponent, CollisionComp>();
+			for (auto& enemyEntity : enemies)
 			{
-				auto& transform = registry.GetComponent<TransformComponent>(e);
-				auto& ia = registry.GetComponent<KGR::GameLib::AIComponent>(e);
-				auto& enemy = registry.GetComponent<KGR::GameLib::EnemyComponent>(e);
+				auto& enemyTransform = registry.GetComponent<TransformComponent>(enemyEntity);
+				auto& enemyAI		 = registry.GetComponent<KGR::GameLib::AIComponent>(enemyEntity);
+				auto& enemy			 = registry.GetComponent<KGR::GameLib::EnemyComponent>(enemyEntity);
+				auto& enemyCol		 = registry.GetComponent<CollisionComp>(enemyEntity);
 
-				ia.UpdateTarget(playerPos);
+				auto playerEntity = *player.begin();
 
-				glm::vec3 newPos = ia.Update(deltaTime, transform.GetPosition(), enemy.speed);
-				transform.SetPosition(newPos);
+				auto& playerTransform = registry.GetComponent<TransformComponent>(playerEntity);
+				auto& playerCol = registry.GetComponent<CollisionComp>(playerEntity);
 
-				float dist = glm::length(playerPos - newPos);
+				auto playerOBB = playerCol.collider->ComputeGlobalOBB(
+					playerTransform.GetScale(),
+					playerTransform.GetPosition(),
+					playerTransform.GetOrientation());
+
+				auto enemyOBB = enemyCol.collider->ComputeGlobalOBB(
+					enemyTransform.GetScale(),
+					enemyTransform.GetPosition(),
+					enemyTransform.GetOrientation());
+
+				enemyAI.UpdateTarget(playerPos);
+
+				glm::vec3 newPos = enemyAI.Update(deltaTime, enemyTransform.GetPosition(), enemy.speed);
+				enemyTransform.SetPosition(newPos);
+
+				auto collision = KGR::SeparatingAxisTheorem::CheckCollisionOBB3D(enemyOBB, playerOBB);
 
 				enemy.timeSinceLastAttack -= deltaTime;
-				if (dist <= enemy.attackRange && enemy.timeSinceLastAttack <= 0.0f)
+
+				if (collision.IsColliding() && enemy.timeSinceLastAttack <= 0.0f)
 				{
 					enemy.timeSinceLastAttack = enemy.attackCooldown;
-					auto players = registry.GetAllComponentsView<PlayerComponent, LivingComponent>();
-					for (auto p : players)
-					{
-						auto& life = registry.GetComponent<LivingComponent>(p);
-						life.health -= enemy.damage;
 
-						if (life.health <= 0.0f)
-						{
-							life.isAlive = false;
-							std::cout << "Player Dead\n";
-						}
+					auto& life = registry.GetComponent<LivingComponent>(playerEntity);
+					life.health -= enemy.damage;
+
+					if (life.health <= 0.0f)
+					{
+						life.isAlive = false;
+						std::cout << "Player Dead\n";
 					}
 				}
 
-				if(enemy.health <= 0.0f)
+				if (collision.IsColliding())
+					enemyTransform.SetPosition(enemyTransform.GetPosition() + collision.GetCollisionNormal() * collision.GetPenetration());
+
+				if (enemy.health <= 0.0f)
 				{
-					registry.DestroyEntity(e);
+					registry.DestroyEntity(enemyEntity);
+
+					waveManager.enemiesAlive--;
+
 					std::cout << "Enemy defeated!\n";
+
+					if (waveManager.enemiesAlive <= 0)
+					{
+						waveManager.isWaveActive = false;
+						waveManager.platformPaused = false;
+						waveManager.currentWave++;
+
+						std::cout << "Wave cleared!\n";
+					}
 				}
 			}
 		}
@@ -409,7 +471,7 @@ int main(int argc, char** argv)
 		
 		//Update curve follower
 		{
-			auto es = registry.GetAllComponentsView<ControllerComponent, TransformComponent, MeshComponent, TransformComponent>();
+			auto es = registry.GetAllComponentsView<ControllerComponent, TransformComponent, MeshComponent>();
 			for (auto& e : es)
 			{
 				auto& transform = registry.GetComponent<TransformComponent>(e);
@@ -419,7 +481,8 @@ int main(int argc, char** argv)
 			}
 		}
 
-		curvesTest += 0.001f;
+		if (!waveManager.platformPaused)
+			curvesTest += 0.001f;
 		if (curvesTest > curve.MaxT())
 			curvesTest = 0.0f;
 
