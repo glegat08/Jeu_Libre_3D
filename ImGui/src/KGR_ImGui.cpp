@@ -107,6 +107,7 @@ void KGR::_ImGui::ImGuiCore::UpdateCamera(float deltaTime)
 
     glm::vec3 move(0.0f);
 
+    // NEED TO CHANGE THIS INTO OUR OWN KEY
     if (glfwGetKey(&m_Window->GetWindow(), GLFW_KEY_W) == GLFW_PRESS)
         move += m_CamTransform->GetLocalAxe<RotData::Dir::Forward>();
     if (glfwGetKey(&m_Window->GetWindow(), GLFW_KEY_S) == GLFW_PRESS)

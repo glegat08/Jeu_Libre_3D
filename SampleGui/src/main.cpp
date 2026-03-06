@@ -16,6 +16,18 @@
 #include <glm/gtc/constants.hpp>   // glm::two_pi
 #include "Core/Mesh.h"             // Vertex, Mesh, SubMeshes
 
+
+//----------------------------------------------------------------
+//----------------------------------------------------------------
+
+// WORK IN PROGRESS
+// THERE ARE SOME FRENCH COMMENTS FOR ALGORITHMS FOUND BY AI.
+// I LET THE COMMENTS HERE TO UNDERSTAND HOW IT WORKS BEFORE REWORKING IT.
+
+//----------------------------------------------------------------
+//----------------------------------------------------------------
+
+
 // ---------------------------------------------------------------------------
 // Génère la grille aplatie de vertices du tube.
 // Index d'un sommet dans le tableau : i * tubeSegments + j
@@ -263,22 +275,14 @@ int main(int argc, char** argv)
 				debugDraw.BeginFrame(imguiCore.GetCam().GetView(), imguiCore.GetCam().GetProj(),
 					io.DisplaySize.x, io.DisplaySize.y);
 
-				// Squelette de la courbe (ligne centrale)
 				for (int i = 0; i < curveN - 1; ++i)
 					debugDraw.DrawLine(curvePoints[i], curvePoints[i + 1], IM_COL32(255, 255, 255, 255));
+
 				debugDraw.DrawLine(curvePoints[curveN - 1], curvePoints[0], IM_COL32(255, 255, 255, 255));
 
-				// Frames statiques espacées le long de la courbe
-				int frameStep = curveN / 15;
-				if (frameStep < 1) frameStep = 1;
-				for (int i = 0; i < curveN; i += frameStep)
-					debugDraw.DrawFrame(curvePoints[i], curveFrames[i], axisLen, 1.0f, 60);
-
-				// Points de contrôle
 				for (auto& cp : controlPoints)
 					debugDraw.DrawPoint(cp, 5.0f, IM_COL32(255, 255, 0, 255));
 
-				// Frame animé qui se déplace le long de la courbe
 				curveTime += deltaTime * 0.09f;
 
 				float sampleIndexF = curveTime * static_cast<float>(curveN);

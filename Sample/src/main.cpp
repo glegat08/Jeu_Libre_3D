@@ -193,7 +193,6 @@ int main(int argc, char** argv)
 	{ 40.0f, 0.0f,  -50.0f },
 	{  25.0f, 0.0f,  -60.0f },
     {  20.0f, 0.0f,  -75.0f },
-	{  20.0f, 0.0f,  -75.0f },
 	{  10.0f, 0.0f,  -90.0f },
 	{  0.0f, 0.0f,  -100.0f },
 	{  -5.0f, 0.0f,  -105.0f }
@@ -272,8 +271,7 @@ int main(int argc, char** argv)
 			{
 				auto& transform = registry.GetComponent<TransformComponent>(e);
 				auto delta = inputData->GetMouseDelta();
-				transform.RotateEuler<RotData::Orientation::Pitch>(-glm::radians(delta.y * deltaTime * 200));
-				transform.RotateEuler<RotData::Orientation::Yaw>(-glm::radians(delta.x * deltaTime * 200));
+				transform.RotateCameraView(delta, deltaTime);
 			}
 		}
 		
@@ -513,8 +511,8 @@ int main(int argc, char** argv)
 				transform.SetPosition(curve.Compute(curvesTest));
 
 				int frameIndex = glm::clamp(static_cast<int>(curvesTest / rmfStep), 0, static_cast<int>(rmfFrames.size() - 1));
-			/*	if (!waveManager.isWaveActive)
-				transform.SetOrientation(glm::quatLookAt(rmfFrames[frameIndex].forward, rmfFrames[frameIndex].up));*/
+				if (!waveManager.isWaveActive)
+				transform.SetOrientation(glm::quatLookAt(rmfFrames[frameIndex].forward, rmfFrames[frameIndex].up));
 
 			}
 		}

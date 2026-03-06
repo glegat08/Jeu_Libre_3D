@@ -77,6 +77,14 @@ void TransformComponent::SetRotation(const glm::vec3& other)
 	m_rotation.isDirty = true;
 }
 
+void TransformComponent::RotateCameraView(glm::vec2 mouseDelta, float deltaTime, float speed)
+{
+	glm::quat yawQ = glm::angleAxis(-glm::radians(mouseDelta.x * deltaTime * speed), glm::vec3(0, 1, 0));
+	glm::quat pitchQ = glm::angleAxis(-glm::radians(mouseDelta.y * deltaTime * speed), GetLocalAxe<RotData::Dir::Right>());
+	m_rotation.data = glm::normalize(yawQ * pitchQ * m_rotation.data);
+	m_rotation.isDirty = true;
+}
+
 glm::mat4 TransformComponent::GetRotationMatrix()
 {
 	if (!m_rotation.isDirty)

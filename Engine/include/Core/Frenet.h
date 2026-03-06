@@ -14,77 +14,59 @@
 	If needed, you can also interpolate between frames using the InterpolateFrame function:
 	KGR::CurveFrame interpolatedFrame = KGR::RMF::InterpolateFrame(frames[i], frames[i + 1], t);
 
-	It provides a robust way to compute frames along a curve while minimizing twisting, 
+	It provides a robust way to compute frames along a curve while minimizing twisting,
 	making it suitable for applications like camera movement, object orientation along paths, and more.
 */
 
 namespace KGR
 {
-    struct CurveFrame
-    {
-        glm::vec3 forward;
-        glm::vec3 up;
-        glm::vec3 right;
-    };
+	/// @brief Orthonormal frame (tangent, normal, binormal) attached to a point on a curve.
+	struct CurveFrame
+	{
+		glm::vec3 forward; ///< Tangent direction, aligned with the curve's travel direction.
+		glm::vec3 up;      ///< Normal direction, perpendicular to forward (minimized twist).
+		glm::vec3 right;   ///< Binormal direction, perpendicular to both forward and up.
+	};
 
+	/// @brief Rotation-Minimizing Frame (RMF) utilities based on the double-reflection method (Wang et al. 2008).
+	///
+	/// RMF frames minimize the twisting of the normal and binormal axes along a curve,
+	/// making them well-suited for camera paths, tube mesh generation, and object orientation.
 	namespace RMF
 	{
-		/*
-			The MovingFrame function computes the next frame based on the previous frame and the current segment of the curve.
-			The function uses the reflection method to compute the next frame, 
-			ensuring that the forward direction is correctly aligned with the curve while minimizing twisting.
-
-			- previousFrame: The frame at the previous point on the curve.
-			- from: The starting point of the current segment.
-			- to: The ending point of the current segment.
-			- nextForward: The forward direction at the next point on the curve.
-
-			The function returns the next frame, which includes the forward, up, and right vectors that define the orientation of the curve at the next point.
-		*/
+		/// @brief Advances a frame from one curve point to the next using the double-reflection method.
+		/// @param previousFrame Frame at the previous point.
+		/// @param from          Start point of the current segment.
+		/// @param to            End point of the current segment.
+		/// @param nextForward   Pre-estimated tangent at the next point.
+		/// @return The propagated frame at the next point.
 		CurveFrame MovingFrame(const CurveFrame& previousFrame, const glm::vec3& from, const glm::vec3& to, const glm::vec3& nextForward);
 
-		/*
-			The EstimateForwardDir function estimates the forward direction at a given point on the curve based on its previous and next points.
-
-			- prev: An optional previous point on the curve. If not provided, the function will only consider the next point.
-			- current: The current point on the curve for which the forward direction is being estimated.
-			- next: An optional next point on the curve. If not provided, the function will only consider the previous point.
-
-			The function returns the estimated forward direction as a normalized vector. 
-			If both previous and next points are provided, the forward direction is computed as the average of the directions 
-			from the previous point to the current point and from the current point to the next point. 
-			If only one of the points is provided, the forward direction is simply the direction from that point to the current point.
-		*/
+		/// @brief Estimates the tangent at a single curve point using its neighbours.
+		/// @param prev    Previous point, or std::nullopt at the start of the curve.
+		/// @param current The point whose tangent is being estimated.
+		/// @param next    Next point, or std::nullopt at the end of the curve.
+		/// @return Normalized tangent vector at @p current.
 		glm::vec3 EstimateForwardDir(const std::optional<glm::vec3>& prev, const glm::vec3& current, const std::optional<glm::vec3>& next);
 
-		/*
-			The EstimateForwardDirs function estimates the forward directions for a sequence of points on a curve.
-
-			- points: A vector of points that define the curve.
-
-			The function returns a vector of estimated forward directions corresponding to each point in the input vector.
-		*/
+		/// @brief Estimates tangents for every point in a curve.
+		/// @param points Ordered list of curve points (at least 2).
+		/// @return A vector of normalized tangents, one per point.
+		/// @throws std::invalid_argument if fewer than 2 points are provided.
 		std::vector<glm::vec3> EstimateForwardDirs(const std::vector<glm::vec3>& points);
 
-		/*
-			The BuildFrames function constructs a sequence of frames along a curve defined by a set of points and their corresponding forward directions.
-			
-			- points: A vector of points that define the curve.
-			- tangents: A vector of forward directions corresponding to each point in the input vector.
-			
-			The function returns a vector of CurveFrame objects, each representing the orientation of the curve at the corresponding point.
-		*/
+		/// @brief Builds a full sequence of RMF frames along a curve.
+		/// @param points   Ordered list of curve points.
+		/// @param tangents Pre-computed tangents (same size as @p points).
+		/// @return A vector of CurveFrame objects, one per point.
+		/// @throws std::invalid_argument if sizes differ or fewer than 2 points are provided.
 		std::vector<CurveFrame> BuildFrames(const std::vector<glm::vec3>& points, const std::vector<glm::vec3>& tangents);
 
-		/*
-			The InterpolateFrame function performs linear interpolation between two frames, a and b, based on a parameter t that ranges from 0 to 1.
-			
-			- a: The first frame to interpolate from.
-			- b: The second frame to interpolate to.
-			- t: The interpolation parameter, where 0 corresponds to frame a and 1 corresponds to frame b.
-			
-			The function returns a new CurveFrame that represents the interpolated orientation between frames a and b.
-		*/
+		/// @brief Linearly interpolates between two frames and re-orthogonalizes the result.
+		/// @param a First frame (t = 0).
+		/// @param b Second frame (t = 1).
+		/// @param t Interpolation factor in [0, 1].
+		/// @return Interpolated and normalized CurveFrame.
 		CurveFrame InterpolateFrame(const CurveFrame& a, const CurveFrame& b, float t);
 	}
 }

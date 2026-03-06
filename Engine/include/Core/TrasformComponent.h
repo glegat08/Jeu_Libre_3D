@@ -100,6 +100,7 @@ public:
 	void SetRotation(const glm::vec3& other);
 	template<RotData::Orientation orientation, IsValidRep rep = Rep>
 	void RotateEuler(float angleRad);
+	void RotateCameraView(glm::vec2 mouseDelta, float deltaTime, float speed = 200.0f);
 
 	glm::mat4 GetRotationMatrix();
 
