@@ -41,18 +41,18 @@ namespace KGR
 
 			//Mesh
 			MeshComponent meshComp;
-			meshComp.mesh = &MeshLoader::Load("Models\\CUBE.obj", window.App());
+			meshComp.mesh = &MeshLoader::Load("Models\\noe_renegade.obj", window.App());
 
 			//Transform
 			TransformComponent transform;
 			transform.SetPosition(RandomRange(playerPos, 15.0f, 20.0f));
-			transform.SetScale({ 0.5f,0.5f,0.5f });
+			transform.SetScale({ 1.0f,1.0f,1.0f });
 
 			//Texture
 			TextureComponent texture;
 			texture.SetSize(meshComp.mesh->GetSubMeshesCount());
 			for (int i = 0; i < meshComp.mesh->GetSubMeshesCount(); ++i)
-				texture.AddTexture(i, &TextureLoader::Load("Textures\\rouge.jpg", window.App()));
+				texture.AddTexture(i, &TextureLoader::Load("Textures\\basecolor.png", window.App()));
 
 			CollisionComp collider;
 			collider.collider = &ColliderManager::Load("enemyCollider", meshComp.mesh);

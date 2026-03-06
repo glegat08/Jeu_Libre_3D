@@ -92,6 +92,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
 
             // base color
             float3 Kd = sampler.Sample(vertIn.fragTexCoord).rgb;
+            Kd = pow(Kd, 2.2f.xxx);
             // specular color
             float3 Ks = currentLight.specColor.xyz;
             // shiny
