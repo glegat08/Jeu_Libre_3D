@@ -117,7 +117,7 @@ namespace KGR
 			 * @return &component
 			 */
 			template<CompType Component>
-			Component& GetComponent(const type& e);
+			Component& GetComponent(const type& e) const;
 
 			/**
 			 * @brief return all the valid entities
@@ -381,7 +381,7 @@ namespace KGR
 
 		template <typename Type, size_t offset> requires (std::is_arithmetic_v<Type>)
 		template <CompType Component>
-		Component& Registry<Type, offset>::GetComponent(const type& e)
+		Component& Registry<Type, offset>::GetComponent(const type& e) const
 		{
 			if (!HasEntity(e))
 				throw std::out_of_range("entity not stored");

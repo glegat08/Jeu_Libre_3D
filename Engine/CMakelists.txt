@@ -56,6 +56,9 @@ source_group(
 # set(MYLIB_HEADER ${MYLIB}/includeFolder)
 # set(MYLIB_LIB ${MYLIB}/libFolder)
 find_package(glfw3 CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(fastgltf CONFIG REQUIRED)
+
 set(VulkanSDK_DIR $ENV{VULKAN_SDK})
 set(VukanHeader ${VulkanSDK_DIR}/Include)
 set(VulkanLib ${VulkanSDK_DIR}/Lib)
@@ -93,6 +96,8 @@ target_link_libraries(${PROJECT_NAME}
     glfw
     Vulkan
     ${VulkanLib}/vulkan-1.lib
+    nlohmann_json::nlohmann_json
+    fastgltf::fastgltf
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
     PRIVATE

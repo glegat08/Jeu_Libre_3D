@@ -3,7 +3,7 @@
 #include <vector>
 #include "ECS/Entities.h"
 
-using SceneEntity = KGR::ECS::Entity::_32;
+using SceneEntity = KGR::ECS::Entity::_64;
 
 static constexpr SceneEntity NullEntity = static_cast<SceneEntity>(-1);
 

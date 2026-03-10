@@ -85,6 +85,21 @@ Rem )
      EXIT /B 1
  )
 
+ ECHO Update de imguizmo...
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" remove imguizmo:x64-windows
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" install imguizmo:x64-windows
+IF %ERRORLEVEL% NEQ 0 ( ECHO Erreur imguizmo. & PAUSE & EXIT /B 1 )
+
+ECHO Update de nlohmann-json...
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" remove nlohmann-json:x64-windows
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" install nlohmann-json:x64-windows
+IF %ERRORLEVEL% NEQ 0 ( ECHO Erreur nlohmann-json. & PAUSE & EXIT /B 1 )
+
+ECHO Update de fastgltf...
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" remove fastgltf:x64-windows
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" install fastgltf:x64-windows
+IF %ERRORLEVEL% NEQ 0 ( ECHO Erreur fastgltf. & PAUSE & EXIT /B 1 )
+
 GOTO GLOBALCHOICE
 
 :INSTALLALL
@@ -109,13 +124,17 @@ Rem )
      EXIT /B 1
  )
 
- ECHO Installation de ImGuizmo ...
- CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" install imguizmo
- IF %ERRORLEVEL% NEQ 0 (
-     ECHO Erreur lors de l'installation de ImGuizmo .
-     PAUSE
-     EXIT /B 1
- )
+ECHO Installation de imguizmo...
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" install imguizmo:x64-windows
+IF %ERRORLEVEL% NEQ 0 ( ECHO Erreur imguizmo. & PAUSE & EXIT /B 1 )
+
+ECHO Installation de nlohmann-json...
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" install nlohmann-json:x64-windows
+IF %ERRORLEVEL% NEQ 0 ( ECHO Erreur nlohmann-json. & PAUSE & EXIT /B 1 )
+
+ECHO Installation de fastgltf...
+CALL "%LOCAL_VCPKG_DIR%\vcpkg.exe" install fastgltf:x64-windows
+IF %ERRORLEVEL% NEQ 0 ( ECHO Erreur fastgltf. & PAUSE & EXIT /B 1 )
 
 
 GOTO GLOBALCHOICE

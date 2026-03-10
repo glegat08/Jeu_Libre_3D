@@ -15,6 +15,10 @@
 #include "DebugDraw3D.h"
 #include <glm/gtc/constants.hpp>   // glm::two_pi
 #include "Core/Mesh.h"             // Vertex, Mesh, SubMeshes
+#include "Viewport.h"
+#include "HierarchyPanel.h"
+#include "InspectorPanel.h"
+#include "Toolbar.h"
 
 
 //----------------------------------------------------------------
@@ -167,6 +171,17 @@ int main(int argc, char** argv)
 
 	ObjectEditor objEditor(imguiCore, app);
 
+	// --- Editor panels ---
+	Scene editorScene;
+	editorScene.RegisterClone<NameComponent>();
+	editorScene.RegisterClone<HierarchyComponent>();
+	editorScene.RegisterClone<TransformComponent>();
+
+	KGR::Editor::Toolbar      toolbar(&editorScene);
+	KGR::Editor::HierarchyPanel hierarchyPanel(&editorScene);
+	KGR::Editor::InspectorPanel inspectorPanel(&editorScene);
+	KGR::Editor::Viewport     viewport(imguiCore, app);
+
 	std::vector<glm::vec3> controlPoints =
 	{
 		{ -3.0f, 0.0f,  4.0f},
@@ -239,6 +254,7 @@ int main(int argc, char** argv)
 				obj.rotation.y += glm::radians(90.0f) * deltaTime;
 
 		imguiCore.BeginFrame(KGR::_ImGui::ContextTarget::Engine);
+		ImGuizmo::BeginFrame();
 		{
 			KGR::_ImGui::ImGuiCore::SetWindow({ 400, 20 }, { 500, 200 }, "KGR Engine");
 			ImGui::Text("Welcome to the KGR Engine !\n\nUse right click and ZQSD to move the camera.");
@@ -306,6 +322,17 @@ int main(int argc, char** argv)
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Green = Up");
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Red   = Right");
 			ImGui::End();
+
+			// --- Editor panels ---
+			toolbar.Render();
+			Scene* activeScene = toolbar.GetActiveScene();
+			hierarchyPanel.SetScene(activeScene);
+			inspectorPanel.SetScene(activeScene);
+
+			hierarchyPanel.Render();
+			SceneEntity selected = hierarchyPanel.GetSelectedEntity();
+			inspectorPanel.Render(selected);
+			viewport.Render(selected, activeScene, &cam);
 		}
 
 		imguiCore.EndFrame();

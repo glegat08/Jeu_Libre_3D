@@ -35,6 +35,22 @@ void Scene::DestroyEntity(SceneEntity e)
 	DestroySubtree(e);
 }
 
+std::vector<SceneEntity> Scene::GetRootEntities()
+{
+	std::vector<SceneEntity> roots;
+
+	for (SceneEntity e : m_registry.GetAllEntities())
+	{
+		if (!m_registry.HasComponent<HierarchyComponent>(e))
+			continue;
+
+		if (m_registry.GetComponent<HierarchyComponent>(e).m_parent == NullEntity)
+			roots.push_back(e);
+	}
+
+	return roots;
+}
+
 SceneEntity Scene::FindByName(const std::string& name)
 {
 	for (SceneEntity e : m_registry.GetAllEntities())
@@ -58,11 +74,35 @@ const SceneRegistry& Scene::GetRegistry() const
 	return m_registry;
 }
 
+const std::vector<std::pair<std::string, InspectorFunction>>& Scene::GetInspectorRegistry() const
+{
+	return m_inspectorRegistry;
+}
+
+std::unique_ptr<Scene> Scene::Clone()
+{
+	auto clone = std::make_unique<Scene>();
+
+	clone->m_cloneRegistry	   = m_cloneRegistry;
+	clone->m_inspectorRegistry = m_inspectorRegistry;
+
+	for (const SceneEntity e : m_registry.GetAllEntities())
+	{
+		const SceneEntity clonedScene = clone->m_registry.CreateEntity();
+
+		for (const CloneFunction& fn : m_cloneRegistry)
+			fn(e, clonedScene, m_registry, clone->m_registry);
+	}
+
+	return clone;
+}
+
 void Scene::DestroySubtree(SceneEntity e)
 {
 	if (m_registry.HasComponent<HierarchyComponent>(e))
 	{
 		auto children = m_registry.GetComponent<HierarchyComponent>(e).m_children;
+
 		for (SceneEntity child : children)
 			DestroySubtree(child);
 	}
