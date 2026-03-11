@@ -8,7 +8,7 @@ namespace KGR
 {
 	namespace Editor
 	{
-		/// @brief Play / Stop toolbar, similar to Unreal's PIE controls.
+		/// @brief Play / Stop toolbar
 		///
 		/// On Play, the editor scene is cloned. The runtime uses the clone.
 		/// On Stop, the clone is discarded and the original scene is restored.
