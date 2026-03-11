@@ -266,9 +266,8 @@ private:
 template <RotData::Orientation orientation, IsValidRep rep>
 void TransformComponent::RotateQuat(float angleRad)
 {
-    m_rotation.data = glm::normalize(
-        glm::rotate(m_rotation.data, angleRad, RotData::ToAxes<orientation, rep>())
-    );
+    glm::quat deltaRotation = glm::angleAxis(angleRad, RotData::ToAxes<orientation, rep>());
+    m_rotation.data = glm::normalize( m_rotation.data * deltaRotation);
     UpdateEulerAngle();
     m_rotation.isDirty = true;
 }

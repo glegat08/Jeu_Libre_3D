@@ -39,7 +39,7 @@ int main(int argc, char** argv)
 		TransformComponent transform;
 		transform.SetPosition({ 0,0,0 });
 		//transform.RotateQuat<>()
-		transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(-90.0f));
+		transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(-45.0f));
 		auto e = registry.CreateEntity();
 		registry.AddComponents(e, std::move(mesh), std::move(text), std::move(transform));
 	}
