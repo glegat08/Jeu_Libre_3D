@@ -19,7 +19,7 @@ namespace KGR
 			Scale
 		};
 
-		/// @brief Renders the 3D scene into an ImGui window, similar to an Unreal Engine viewport.
+		/// @brief Renders the 3D scene into an ImGui window
 		///
 		/// The viewport captures the scene camera's output and displays it as an ImGui image.
 		/// It handles resizing, aspect ratio, gizmo rendering, and provides the content region
@@ -54,12 +54,12 @@ namespace KGR
 			/// @brief Returns the current gizmo mode.
 			GizmoMode GetGizmoMode() const { return m_GizmoMode; }
 
-			// Must be called with the descriptor set from OffscreenTarget::GetDescriptorSet()
+			// Must be called with the descriptor set from Offscreen::GetDescriptorSet()
 			// before the first Render(), and again after any resize.
 			void SetSceneDescriptor(VkDescriptorSet descriptor) { m_sceneDescriptor = descriptor; }
 
 			// Returns true if the viewport was resized this frame.
-			// The caller should then recreate the OffscreenTarget and call SetSceneDescriptor() again.
+			// The caller should then recreate the Offscreen and call SetSceneDescriptor() again.
 			bool WasResizedThisFrame() const { return m_WasResized; }
 
 		private:
