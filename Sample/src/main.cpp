@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "Game.h"
 #include "Core/CameraComponent.h"
 int main(int argc, char** argv)
@@ -89,10 +91,16 @@ int main(int argc, char** argv)
 		{
 			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, TextureComponent>();
 			for (auto& e : es)
+			{
 				window->RegisterRender(
 					registry.GetComponent<MeshComponent>(e),
 					registry.GetComponent<TransformComponent>(e),
 					registry.GetComponent<TextureComponent>(e));
+
+				auto& t = registry.GetComponent<TransformComponent>(e);
+				std::cout << t.GetRotation().x << " " << t.GetRotation().y << " " << t.GetRotation().z << std::endl;
+			}
+
 		}
 
 
