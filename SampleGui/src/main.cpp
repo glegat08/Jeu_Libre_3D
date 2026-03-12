@@ -186,10 +186,10 @@ int main(int argc, char** argv)
 
 	KGR::Editor::Layer::ApplyStyle();
 
-	VkDevice         vkDevice = static_cast<VkDevice>(*app.GetDevice().Get());
+	VkDevice vkDevice = static_cast<VkDevice>(*app.GetDevice().Get());
 	VkPhysicalDevice vkPhysDev = static_cast<VkPhysicalDevice>(*app.GetPhysicalDevice().Get());
 	VkDescriptorPool vkPool = static_cast<VkDescriptorPool>(*app.GetDescriptorPool().Get());
-	VkFormat         colorFormat = static_cast<VkFormat>(app.GetSwapChain().GetFormat().format);
+	VkFormat colorFormat = static_cast<VkFormat>(app.GetSwapChain().GetFormat().format);
 
 	KGR::Editor::Offscreen offscreen;
 	offscreen.Create(vkDevice, vkPhysDev, vkPool,
@@ -284,7 +284,7 @@ int main(int argc, char** argv)
 			SceneEntity selected = hierarchyPanel.GetSelectedEntity();
 			inspectorPanel.Render(selected);
 
-			// Resize handling: recreate offscreen target if viewport size changed
+			// Resize handling: recreate offscreen if viewport size changed
 			if (viewport.WasResizedThisFrame())
 			{
 				app.GetDevice().Get().waitIdle();
