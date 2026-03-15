@@ -252,7 +252,7 @@ private:
     DataDirty<glm::vec3> m_position = { true, glm::vec3{0,0,0} };
     glm::mat4 m_positionMat = glm::mat4{ 1.0f };
 
-    DataDirty<glm::vec3> m_scale = { true, glm::vec3{1,1,1} };
+    DataDirty<glm::vec3> m_scale = { true, glm::vec3{0.5f,0.5f,0.5f} };
     glm::mat4 m_scaleMat = glm::mat4{ 1.0f };
 
     glm::mat4 m_fullTransform = glm::mat4{ 1.0f };

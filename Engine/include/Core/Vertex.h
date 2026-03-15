@@ -116,9 +116,9 @@ struct UiData
     {
         return UiValidData{
             .color = color,
-            .raw1 = glm::vec4(model[0][0], model[0][1], model[0][2], 1.0f),
-        	.raw2 = glm::vec4(model[1][0], model[1][1], model[1][2], 1.0f),
-			.raw3 = glm::vec4(model[2][0], model[2][1], model[2][2], 1.0f)
+            .raw1 = glm::vec4(model[0][0], model[1][0], model[2][0], 1.0f),
+        	.raw2 = glm::vec4(model[0][1], model[1][1], model[2][1], 1.0f),
+			.raw3 = glm::vec4(model[0][2], model[1][2], model[2][2], 1.0f)
         };
     }
 };

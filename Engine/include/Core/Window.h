@@ -3,6 +3,8 @@
 #include "ManagerImple.h"
 #include "Mesh.h"
 #include "Texture.h"
+#include "Transform2dComponent.h"
+#include "UiComponent.h"
 #include "VulkanCore.h"
 #include "_GLFW.h"
 
@@ -106,8 +108,10 @@ namespace KGR
          * @param texture Texture component.
          */
         void RegisterRender(MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture);
-
-        /**
+        
+    	
+        void RegisterUi(UiComponent& component, TransformComponent2d& transform, TextureComponent& texture);
+    	/**
          * @brief Renders the current frame.
          *
          * @param clearColor Background color.
