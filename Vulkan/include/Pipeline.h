@@ -78,6 +78,11 @@ namespace KGR
 				vk::PolygonMode mode, const vk::VertexInputBindingDescription& vInput,
 				const std::vector<vk::VertexInputAttributeDescription>& attributes);
 
+			static Pipeline CreateUiPipeline(const ShaderInfo& shaderInfo, Device* device, SwapChain* swapChain, DescriptorLayouts* layouts, PhysicalDevice* phDevice,
+				const vk::VertexInputBindingDescription& vInput,
+				const std::vector<vk::VertexInputAttributeDescription>& attributes);
+
+
 			/**
 			 * @brief Returns the pipeline layout.
 			 * @return Reference to the Vulkan RAII pipeline layout.

@@ -54,6 +54,12 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 		.vertexMain = "vertMain",
 		.fragmentMain = "fragMain"
 	};
+	_Vulkan::ShaderInfo info3{
+		.ShaderPath = "Shaders/slang_ui.spv",
+		.vertexMain = "vertMain",
+		.fragmentMain = "fragMain"
+	};
+
 	// Layouts 
 	std::vector<vk::DescriptorSetLayoutBinding> bindings = {
 			vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr)
@@ -76,12 +82,13 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 					vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
 	};
 	auto layout3 = DescriptorLayout(bindings3, &device);
+	auto layout4 = DescriptorLayout(bindings3, &device);
 	descriptorSetLayout.Add(std::move(layout3));
-
+	uiLayout.Add(std::move(layout4));
 
 	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice,vk::PolygonMode::eFill,Vertex::getBindingDescription(), Vertex::getAttributeDescriptions());
 	linePipeLine = _Vulkan::Pipeline(info2, &device, &swapChain, &descriptorSetLayout, &physicalDevice, vk::PolygonMode::eFill, SegmentVertex::getBindingDescription(), SegmentVertex::getAttributeDescriptions());
-
+	uiPipeline = _Vulkan::Pipeline::CreateUiPipeline(info3, &device, &swapChain, &uiLayout, &physicalDevice, Vertex2D::getBindingDescription(), Vertex2D::getAttributeDescriptions());
 	// Command Buffer
 	commandBuffers = _Vulkan::CommandBuffers(&device);
 
@@ -183,6 +190,22 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 		stagingIndexBuffer= KGR::_Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, indexSize);
 		indexBuffer = KGR::_Vulkan::Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indexSize);
 		indexBuffer.Copy(&stagingIndexBuffer, &device, &queue, &commandBuffers);
+
+		std::vector<Vertex2D> vertices =
+		{
+			{{-0.5f, -0.5f}, {0.0f, 0.0f}}, 
+			{{ 0.5f, -0.5f}, {1.0f, 0.0f}}, 
+			{{ 0.5f,  0.5f}, {1.0f, 1.0f}}, 
+			{{-0.5f,  0.5f}, {0.0f, 1.0f}}, 
+		};
+	std::vector<std::uint32_t> indices =
+	{
+		0, 2, 1,
+		2, 0, 3
+	};
+
+		uiVertexBuffer = CreateVertexBuffer(vertices);
+		uiIndexBuffer = CreateIndexBuffer(indices);
 }
 
 // FOR IMGUI
@@ -209,8 +232,15 @@ void KGR::_Vulkan::VulkanCore::recreateSwapChain(GLFWwindow* window)
 		.vertexMain = "vertMain",
 		.fragmentMain = "fragMain"
 	};
+	_Vulkan::ShaderInfo info3{
+		.ShaderPath = "Shaders/slang_ui.spv",
+		.vertexMain = "vertMain",
+		.fragmentMain = "fragMain"
+	};
+
 	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice, vk::PolygonMode::eFill,Vertex::getBindingDescription(),Vertex::getAttributeDescriptions());
 	linePipeLine = _Vulkan::Pipeline(info2, &device, &swapChain, &descriptorSetLayout, &physicalDevice, vk::PolygonMode::eFill, SegmentVertex::getBindingDescription(), SegmentVertex::getAttributeDescriptions());
+	uiPipeline = _Vulkan::Pipeline::CreateUiPipeline(info3, &device, &swapChain, &uiLayout, &physicalDevice, Vertex2D::getBindingDescription(), Vertex2D::getAttributeDescriptions());
 
 	vk::Format depthFormat = physicalDevice.findSupportedFormat(
 		{ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
@@ -683,6 +713,7 @@ KGR::_Vulkan::DescriptorSet KGR::_Vulkan::VulkanCore::CreateSetForImage(Image* i
 }
 
 
+
 void KGR::_Vulkan::VulkanCore::RegisterLight(const LightData& light)
 {
 	m_lights.push_back(light);
@@ -702,6 +733,14 @@ void KGR::_Vulkan::VulkanCore::RegisterRender(Mesh& mesh, const  glm::mat4& mode
 	if (texture.size() != mesh.GetSubMeshesCount())
 		throw std::out_of_range("need same amount of subMeshes and texture");
 	m_toRenderObject.push_back(MeshData{ model ,&mesh,&texture });
+}
+
+void KGR::_Vulkan::VulkanCore::RegisterUi(const UiData& data, Texture* texture,const glm::vec2& screenSize)
+{
+	auto valid = data.GetValid();
+	valid.raw1[3] = screenSize.x;
+	valid.raw2[3] = screenSize.y;
+	uIRender.emplace_back( texture, valid);
 }
 
 void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color, ImDrawData* imguiDraw, KGR::Editor::Offscreen* offscreen)
@@ -738,6 +777,7 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color
 		m_ubo.reset();
 		m_toRenderObject.clear();
 		m_lights.clear();
+		uIRender.clear();
 		return;
 	}
 
@@ -761,6 +801,24 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color
 				currentBuffer->drawIndexed(it.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
 			}
 		}
+	}
+	//currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeLine.Get());
+	//currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
+	//currentBuffer->bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
+	//currentBuffer->bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
+
+	//currentBuffer->drawIndexed(36, 1, 0, 0, 0);
+
+	currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *uiPipeline.Get());
+	for (auto& ui : uIRender)
+	{
+		// bind the vertex and indexBuffer
+		currentBuffer->bindVertexBuffers(0, *uiVertexBuffer.Get(), {0});
+		currentBuffer->bindIndexBuffer(*uiIndexBuffer.Get(), 0, vk::IndexType::eUint32);
+		currentBuffer->pushConstants<UiData::UiValidData>(uiPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0,ui.second);
+		ui.first->Bind(currentBuffer, &uiPipeline.GetLayout(), 0);
+		currentBuffer->drawIndexed(static_cast<std::uint32_t>(uiIndexBuffer.GetSize() / sizeof(std::uint32_t)), 1, 0, 0, 0);
+	}
 
 		currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeLine.Get());
 		currentBuffer->bindDescriptorSets(
@@ -777,7 +835,8 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color
 
 	m_ubo.reset();
 	m_toRenderObject.clear();
-	m_lights.clear();
+	m_lights.clear(); 
+	uIRender.clear();
 }
 
 KGR::_Vulkan::Instance& KGR::_Vulkan::VulkanCore::GetInstance()

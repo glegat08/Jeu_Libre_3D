@@ -6,8 +6,6 @@
 
 namespace KGR
 {
-
-
 	/**
 	 * @brief Event bus responsible for dispatching events of a specific type.
 	 *
@@ -129,10 +127,6 @@ namespace KGR
 		std::vector<CallBack> m_callBack;
 	};
 
-
-
-
-
 	/**
 	 * @brief Static event bus used to manage listeners and event notifications.
 	 *
@@ -209,9 +203,6 @@ namespace KGR
 
 	template<typename EventType>
 	std::vector<std::unique_ptr<IEventHolder<EventType>>> EventBus<EventType>::m_listeners;
-
-
-
 
 	template <typename EventType>
 	IEventHolder<EventType>::~IEventHolder() = default;

@@ -12,10 +12,18 @@ void Texture::Bind(const vk::raii::CommandBuffer* buffer, const vk::raii::Pipeli
 
 }
 
+glm::vec2 Texture::GetSize() const
+{
+	return glm::vec2{ m_image.GetWidth(),m_image.GetHeight() };
+}
+
 std::unique_ptr<Texture> LoadTexture(const std::string& filePat, KGR::_Vulkan::VulkanCore* core)
 {
 	auto image = core->CreateImage(filePat);
 	auto set = core->CreateSetForImage(&image);
 	std::unique_ptr<Texture> result = std::make_unique<Texture>(std::move(image),std::move(set));
 	return result;
+
 }
+
+

@@ -1,15 +1,31 @@
-#pragma once
+﻿#pragma once
 #include <chrono>
 
 namespace KGR
 {
     namespace Tools
     {
-        // ratio alias for std::ratio
-        template<long long lhs, long long rhs = lhs >
+        /**
+         * @brief Alias for std::ratio to simplify ratio usage.
+         *
+         * @tparam lhs Numerator of the ratio.
+         * @tparam rhs Denominator of the ratio (defaults to lhs).
+         */
+        template<long long lhs, long long rhs = lhs>
         using ratio = std::ratio<lhs, rhs>;
 
-        // Chrono class to measure time intervals with pause and resume functionality
+        /**
+         * @brief High‑precision timer with pause/resume and time conversion utilities.
+         *
+         * @tparam type Floating‑point type used for time conversions (default: float).
+         *
+         * This class provides:
+         * - high‑resolution time measurement
+         * - pause/resume functionality
+         * - elapsed time queries
+         * - conversion to seconds, milliseconds, microseconds, nanoseconds
+         * - ratio‑based conversions (e.g., minutes, hours)
+         */
         template<typename type = float>
         class Chrono
         {
@@ -17,7 +33,12 @@ namespace KGR
             using clock = std::chrono::high_resolution_clock;
             using time_point = std::chrono::time_point<clock>;
             using duration = clock::duration;
-            // Imbricated Time struct to represent time intervals
+
+            /**
+             * @brief Represents a time interval between two time points.
+             *
+             * Supports arithmetic operations, comparisons, and unit conversions.
+             */
             struct Time
             {
                 Time();
@@ -25,56 +46,128 @@ namespace KGR
                 Time(const Time& other);
                 Time(Time&& other) noexcept;
                 ~Time() = default;
-                // Create a Time object from a specific time value and ratio (default is seconds) and convert it to nanoseconds
+
+                /**
+                 * @brief Creates a Time object from a numeric value and a ratio.
+                 *
+                 * @tparam ratio Ratio representing the unit (default: seconds).
+                 * @param fixTime The numeric time value.
+                 * @return A Time object representing the given duration.
+                 */
                 template<typename ratio = ratio<1>>
                 static Time CreateFromValue(const type& fixTime);
 
-                Time& operator= (const Time& other);
-                Time& operator= (Time&& other) noexcept;
+                Time& operator=(const Time& other);
+                Time& operator=(Time&& other) noexcept;
+
                 bool operator==(const Time& other) const;
                 bool operator!=(const Time& other) const;
                 bool operator>=(const Time& other) const;
                 bool operator<=(const Time& other) const;
                 bool operator>(const Time& other) const;
                 bool operator<(const Time& other) const;
+
                 Time operator+(const Time& other);
                 Time operator-(const Time& other);
                 Time& operator+=(const Time& other);
                 Time& operator-=(const Time& other);
+
                 Time operator*(const type& factor);
                 Time operator/(const type& divider);
                 Time& operator*=(const type& factor);
                 Time& operator/=(const type& divider);
+
+                /**
+                 * @brief Returns the raw duration (end - start).
+                 */
                 duration Duration() const;
+
+                /**
+                 * @brief Converts the duration to seconds.
+                 */
                 type AsSeconds() const;
+
+                /**
+                 * @brief Converts the duration to milliseconds.
+                 */
                 type AsMilliSeconds() const;
+
+                /**
+                 * @brief Converts the duration to nanoseconds.
+                 */
                 type AsNanoSeconds() const;
+
+                /**
+                 * @brief Converts the duration to microseconds.
+                 */
                 type AsMicroSeconds() const;
-                template< typename ratio>
+
+                /**
+                 * @brief Converts the duration using a custom ratio.
+                 *
+                 * @tparam ratio Ratio representing the desired unit.
+                 */
+                template<typename ratio>
                 type AsRatio() const;
+
             private:
-                // Private constructor to force creation through CreateFromValue
+                /**
+                 * @brief Constructs a Time object directly from a duration.
+                 *
+                 * Used internally by CreateFromValue().
+                 */
                 Time(const duration& nano);
-                time_point m_start;
-                time_point m_end;
+
+                time_point m_start; ///< Start timestamp.
+                time_point m_end;   ///< End timestamp.
             };
 
+            /**
+             * @brief Constructs a running Chrono starting at the current time.
+             */
             Chrono();
+
             Chrono(const Chrono& other);
             Chrono(Chrono&& other) noexcept;
             ~Chrono() = default;
+
             Chrono<type>& operator=(const Chrono&);
             Chrono<type>& operator=(Chrono&&) noexcept;
+
+            /**
+             * @brief Returns the elapsed time since start or last reset.
+             */
             Time GetElapsedTime() const;
+
+            /**
+             * @brief Pauses the timer and returns the elapsed time.
+             */
             Time Pause();
+
+            /**
+             * @brief Resumes the timer after a pause.
+             */
             Time Resume();
+
+            /**
+             * @brief Returns true if the timer is currently paused.
+             */
             bool IsPause() const;
+
+            /**
+             * @brief Resets the timer and returns the elapsed time before reset.
+             */
             Time Reset();
+
         private:
+            /**
+             * @brief Returns the time elapsed at the moment of pause.
+             */
             Time GetPauseTime() const;
-            time_point m_start;
-            bool m_stop;
-            Time m_stopTime;
+
+            time_point m_start; ///< Start time of the Chrono.
+            bool m_stop;        ///< Indicates whether the timer is paused.
+            Time m_stopTime;    ///< Time recorded at pause.
         };
 
         template <typename type>
