@@ -350,7 +350,7 @@ namespace KGR
                     const auto& t = reg.GetComponent<TransformComponent>(e);
                     glm::vec3 pos = t.GetPosition();
                     glm::vec3 rot = t.GetRotation();
-                    glm::vec3 scale = t.GetScale();
+                    glm::vec3 scale = t.GetScale() * 2.0f;
                     out["TransformComponent"] =
                     {
                         { "pos",   { pos.x,   pos.y,   pos.z   } },
