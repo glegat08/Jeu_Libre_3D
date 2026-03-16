@@ -3,8 +3,10 @@
 #include <fstream>
 #include <stdexcept>
 
-namespace KGR::Editor
+namespace KGR
 {
+    namespace Editor
+    {
     void Serializer::Save(Scene& scene, const std::filesystem::path& path)
     {
         const SceneRegistry& reg = scene.GetRegistry();
@@ -112,4 +114,5 @@ namespace KGR::Editor
         for (SceneEntity child : reg.GetComponent<HierarchyComponent>(e).m_children)
             CollectDFS(child, reg, out);
     }
+}
 }
