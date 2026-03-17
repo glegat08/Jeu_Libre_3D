@@ -1,44 +1,44 @@
-#include "Core/SoundComponent.h"
+#include "Audio/SoundComponent.h"
 
-WavComponent::WavComponent()
+KGR::Audio::WavComponent::WavComponent()
 {
 	
 }
 
-WavComponent::WavComponent(SoLoud::Wav& wav): m_wav(&wav)
+KGR::Audio::WavComponent::WavComponent(SoLoud::Wav& wav): m_wav(&wav)
 {
 	
 }
 
-void WavComponent::SetWav(SoLoud::Wav& wav)
+void KGR::Audio::WavComponent::SetWav(SoLoud::Wav& wav)
 {
 	m_wav = &wav;
 }
 
-void WavComponent::SetLoop(bool isLooping)
+void KGR::Audio::WavComponent::SetLoop(bool isLooping)
 {
 	ErrorValidWav();
 	m_wav->setLooping(isLooping);
 }
 
-bool WavComponent::IsOver() const
+bool KGR::Audio::WavComponent::IsOver() const
 {
 	ErrorValidWav();
 	return !IsPlaying();
 }
 
-void WavComponent::SetVolume(float volume)
+void KGR::Audio::WavComponent::SetVolume(float volume)
 {
 	ErrorValidWav();
 	m_music.setVolume(m_handle, volume);
 }
 
-float WavComponent::GetVolume() const
+float KGR::Audio::WavComponent::GetVolume() const
 {
 	return m_music.getVolume(m_handle);
 }
 
-void WavComponent::Play()
+void KGR::Audio::WavComponent::Play()
 {
 	ErrorValidWav();
 	if (IsPlaying())
@@ -47,7 +47,7 @@ void WavComponent::Play()
 	m_handle = static_cast<int>(m_music.play(*m_wav));
 }
 
-void WavComponent::Pause()
+void KGR::Audio::WavComponent::Pause()
 {
 	ErrorValidWav();
 	ErrorMusicNotPlay();
@@ -55,7 +55,7 @@ void WavComponent::Pause()
 		m_music.setPause(m_handle, true);
 }
 
-void WavComponent::Resume()
+void KGR::Audio::WavComponent::Resume()
 {
 	ErrorValidWav();
 	ErrorMusicNotPlay();
@@ -63,7 +63,7 @@ void WavComponent::Resume()
 		m_music.setPause(m_handle, false);
 }
 
-void WavComponent::Stop()
+void KGR::Audio::WavComponent::Stop()
 {
 	ErrorValidWav();
 	ErrorMusicNotPlay();
@@ -71,35 +71,35 @@ void WavComponent::Stop()
 	m_handle = -1;
 }
 
-bool WavComponent::IsPause() const
+bool KGR::Audio::WavComponent::IsPause() const
 {
 	return m_music.getPause(m_handle);
 }
 
-bool WavComponent::IsPlaying() const
+bool KGR::Audio::WavComponent::IsPlaying() const
 {
 	return m_handle != -1 && m_music.isValidVoiceHandle(m_handle);
 }
 
-void WavComponent::ErrorValidWav() const
+void KGR::Audio::WavComponent::ErrorValidWav() const
 {
 	if (!m_wav)
 		throw std::runtime_error("no wav set");
 }
 
-void WavComponent::ErrorMusicNotPlay() const
+void KGR::Audio::WavComponent::ErrorMusicNotPlay() const
 {
 	if (!IsPlaying())
 		throw std::out_of_range("music not play");
 }
 
-void WavComponent::Init(const std::filesystem::path& globFilePath)
+void KGR::Audio::WavComponent::Init(const std::filesystem::path& globFilePath)
 {
 	m_music.init();
 	WavManager::SetGlobalFIlePath(globFilePath);
 }
 
-std::unique_ptr<SoLoud::Wav> LoadWav(const std::string& path)
+std::unique_ptr<SoLoud::Wav> KGR::Audio::LoadWav(const std::string& path)
 {
 	std::unique_ptr<SoLoud::Wav> sound = std::make_unique<SoLoud::Wav>();
 	if (sound->load(path.c_str()) != SoLoud::SO_NO_ERROR)
@@ -109,45 +109,45 @@ std::unique_ptr<SoLoud::Wav> LoadWav(const std::string& path)
 	return std::move(sound);
 }
 
-WavStreamComponent::WavStreamComponent()
+KGR::Audio::WavStreamComponent::WavStreamComponent()
 {
 	
 }
 
-WavStreamComponent::WavStreamComponent(SoLoud::WavStream& wav): m_wav(&wav)
+KGR::Audio::WavStreamComponent::WavStreamComponent(SoLoud::WavStream& wav): m_wav(&wav)
 {
 	
 }
 
-void WavStreamComponent::SetWav(SoLoud::WavStream& wav)
+void KGR::Audio::WavStreamComponent::SetWav(SoLoud::WavStream& wav)
 {
 	m_wav = &wav;
 }
 
-void WavStreamComponent::SetLoop(bool isLooping)
+void KGR::Audio::WavStreamComponent::SetLoop(bool isLooping)
 {
 	ErrorValidWav();
 	m_wav->setLooping(isLooping);
 }
 
-bool WavStreamComponent::IsOver() const
+bool KGR::Audio::WavStreamComponent::IsOver() const
 {
 	ErrorValidWav();
 	return !IsPlaying();
 }
 
-void WavStreamComponent::SetVolume(float volume)
+void KGR::Audio::WavStreamComponent::SetVolume(float volume)
 {
 	ErrorValidWav();
 	m_music.setVolume(m_handle, volume);
 }
 
-float WavStreamComponent::GetVolume() const
+float KGR::Audio::WavStreamComponent::GetVolume() const
 {
 	return m_music.getVolume(m_handle);
 }
 
-void WavStreamComponent::Play()
+void KGR::Audio::WavStreamComponent::Play()
 {
 	ErrorValidWav();
 	if (IsPlaying())
@@ -156,7 +156,7 @@ void WavStreamComponent::Play()
 	m_handle = static_cast<int>(m_music.play(*m_wav));
 }
 
-void WavStreamComponent::Pause()
+void KGR::Audio::WavStreamComponent::Pause()
 {
 	ErrorValidWav();
 	ErrorMusicNotPlay();
@@ -164,7 +164,7 @@ void WavStreamComponent::Pause()
 		m_music.setPause(m_handle, true);
 }
 
-void WavStreamComponent::Resume()
+void KGR::Audio::WavStreamComponent::Resume()
 {
 	ErrorValidWav();
 	ErrorMusicNotPlay();
@@ -172,7 +172,7 @@ void WavStreamComponent::Resume()
 		m_music.setPause(m_handle, false);
 }
 
-void WavStreamComponent::Stop()
+void KGR::Audio::WavStreamComponent::Stop()
 {
 	ErrorValidWav();
 	ErrorMusicNotPlay();
@@ -180,35 +180,35 @@ void WavStreamComponent::Stop()
 	m_handle = -1;
 }
 
-bool WavStreamComponent::IsPause() const
+bool KGR::Audio::WavStreamComponent::IsPause() const
 {
 	return m_music.getPause(m_handle);
 }
 
-bool WavStreamComponent::IsPlaying() const
+bool KGR::Audio::WavStreamComponent::IsPlaying() const
 {
 	return m_handle != -1 && m_music.isValidVoiceHandle(m_handle);
 }
 
-void WavStreamComponent::ErrorValidWav() const
+void KGR::Audio::WavStreamComponent::ErrorValidWav() const
 {
 	if (!m_wav)
 		throw std::runtime_error("no wav set");
 }
 
-void WavStreamComponent::ErrorMusicNotPlay() const
+void KGR::Audio::WavStreamComponent::ErrorMusicNotPlay() const
 {
 	if (!IsPlaying())
 		throw std::out_of_range("music not play");
 }
 
-void WavStreamComponent::Init(const std::filesystem::path& globFilePath)
+void KGR::Audio::WavStreamComponent::Init(const std::filesystem::path& globFilePath)
 {
 	m_music.init();
 	WavStreamManager::SetGlobalFIlePath(globFilePath);
 }
 
-std::unique_ptr<SoLoud::WavStream> LoadWavStream(const std::string& path)
+std::unique_ptr<SoLoud::WavStream> KGR::Audio::LoadWavStream(const std::string& path)
 {
 	std::unique_ptr<SoLoud::WavStream> sound = std::make_unique<SoLoud::WavStream>();
 	if (sound->load(path.c_str()) != SoLoud::SO_NO_ERROR)
