@@ -44,14 +44,20 @@ int main(int argc, char** argv)
 	// music test do not mind
 
 	// TODO when all test ok move this into a proper place 
+	WavStreamComponent::Init(projectRoot / "Ressources");
+
+	WavStreamComponent music;
+	music.SetWav(WavStreamManager::Load("Musics/test.mp3"));
+	music.SetVolume(10.0f);
+
 	WavComponent::Init(projectRoot / "Ressources");
 
-	WavComponent c;
-	c.SetWav(WavManager::Load("Sounds/test.mp3"));
-	c.SetVolume(10.0f);
+	WavComponent sound;
+	sound.SetWav(WavManager::Load("Sounds/sound.mp3"));
+	sound.SetVolume(10.0f);
 
 	// TODO play the music for test 
-	c.Play();
+	music.Play();
 
 	// music test do not mind
 		
@@ -205,6 +211,9 @@ int main(int argc, char** argv)
 
 		}
 
+		//Test Sound
+		if(window->GetInputManager()->IsKeyPressed(KGR::Key::P))
+			sound.Play();
 
 		
 
