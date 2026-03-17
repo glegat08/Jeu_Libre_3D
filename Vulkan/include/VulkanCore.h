@@ -30,6 +30,7 @@
 #include "Core/LightComponent.h"
 #include "Core/TrasformComponent.h"
 #include "Core/Vertex.h"
+#include "../../Editor/include/Offscreen.h"
 
 struct Texture;
 struct CameraComponent;
@@ -192,7 +193,7 @@ namespace KGR
 			 * @param clearColor Color to clear the screen
 			 * @param imguiDraw Optional ImGui draw data
 			 */
-			void Render(GLFWwindow* window, const glm::vec4& clearColor = { 0,0,0,1 }, ImDrawData* imguiDraw = nullptr);
+			void Render(GLFWwindow* window, const glm::vec4& clearColor = { 0,0,0,1 }, ImDrawData* imguiDraw = nullptr, KGR::Editor::Offscreen* offscreen = nullptr);
 
 		private:
 
@@ -200,6 +201,8 @@ namespace KGR
 			int EndRendering(GLFWwindow* window, vk::raii::CommandBuffer* currentBuffer, const std::vector<vk::Semaphore>& waitS, ImDrawData* imguiDraw = nullptr);
 			void recreateSwapChain(GLFWwindow* window);
 			std::uint32_t PresentImage();
+
+			void RenderSceneToOffscreen(KGR::Editor::Offscreen& target, const glm::vec4& clearColor, vk::raii::CommandBuffer* cmd);
 
 			void LoadModel();
 

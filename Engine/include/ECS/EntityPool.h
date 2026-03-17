@@ -42,7 +42,7 @@ namespace KGR
 			 * @brief return all the valid entity by call the sparse getEntities
 			 * @return vector en entity
 			 */
-			const std::vector<type> GetEntities() const ;
+			const std::vector<type>& GetEntities() const ;
 
 			/**
 			 * @brief the size of the entity vector 
@@ -91,7 +91,7 @@ namespace KGR
 		}
 
 		template <typename Type, size_t offset> requires std::is_arithmetic_v<Type>
-		const std::vector<typename EntityPool<Type, offset>::type> EntityPool<Type, offset>::GetEntities() const 
+		const std::vector<typename EntityPool<Type, offset>::type>& EntityPool<Type, offset>::GetEntities() const 
 		{
 			return m_storage.GetEntities();
 		}

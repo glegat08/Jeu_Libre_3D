@@ -94,7 +94,8 @@ target_link_libraries(${PROJECT_NAME}
 		GLFW_
 		GameLib
 		imguizmo::imguizmo
-	Engine
+	    Engine
+        Editor
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
     PRIVATE

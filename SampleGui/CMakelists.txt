@@ -7,7 +7,6 @@ set(HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SOURCES
 ${SOURCE_DIR}/main.cpp
-${SOURCE_DIR}/ObjectEditor.cpp
 )
 
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
@@ -85,6 +84,7 @@ target_link_libraries(${PROJECT_NAME}
     glfw
     ${VulkanLib}/vulkan-1.lib
     Engine
+    Editor
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
     PRIVATE

@@ -1,0 +1,66 @@
+{
+    "entities": [
+        {
+            "CollisionComp": {
+                "generated": true
+            },
+            "HierarchyComponent": {
+                "parent": -1
+            },
+            "MeshComponent": {
+                "path": "C:\\Users\\guill\\Vulkan_Project\\Ressources\\Models\\noe_renegade.obj"
+            },
+            "NameComponent": {
+                "name": "Entity_0"
+            },
+            "TransformComponent": {
+                "pos": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rot": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    2.0,
+                    2.0
+                ]
+            },
+            "index": 0
+        },
+        {
+            "HierarchyComponent": {
+                "parent": 0
+            },
+            "MeshComponent": {
+                "path": "C:\\Users\\guill\\Vulkan_Project\\Ressources\\Models\\CUBE.obj"
+            },
+            "NameComponent": {
+                "name": "box"
+            },
+            "TransformComponent": {
+                "pos": [
+                    -0.12128028273582458,
+                    1.8364503383636475,
+                    0.0
+                ],
+                "rot": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    0.013045607134699821,
+                    1.0
+                ]
+            },
+            "index": 1
+        }
+    ],
+    "version": 1
+}

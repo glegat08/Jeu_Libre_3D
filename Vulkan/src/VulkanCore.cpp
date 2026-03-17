@@ -151,7 +151,8 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 		.buffer = m_lightCount.Get(),
 		.offset = 0,
 		.range = m_lightCount.GetSize() };
-	std::array descriptorWrites{
+	std::array descriptorWrites
+	{
 		vk::WriteDescriptorSet{
 			.dstSet = descriptorSets.Get(),
 			.dstBinding = 0,
@@ -159,36 +160,23 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 			.descriptorCount = 1,
 			.descriptorType = vk::DescriptorType::eUniformBuffer,
 			.pBufferInfo = &bufferInfo},
-		vk::WriteDescriptorSet{
+			vk::WriteDescriptorSet{
 				.dstSet = m_LightSet.Get(),
 				.dstBinding = 0,
 				.dstArrayElement = 0,
 				.descriptorCount = 1,
 				.descriptorType = vk::DescriptorType::eStorageBuffer,
 				.pBufferInfo = &bufferInfo2},
-		vk::WriteDescriptorSet{
-				.dstSet = m_LightSet.Get(),
-				.dstBinding = 1,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = vk::DescriptorType::eUniformBuffer,
-				.pBufferInfo = &bufferInfo},
-			vk::WriteDescriptorSet{
-					.dstSet = m_LightSet.Get(),
-					.dstBinding = 0,
-					.dstArrayElement = 0,
-					.descriptorCount = 1,
-					.descriptorType = vk::DescriptorType::eStorageBuffer,
-					.pBufferInfo = &bufferInfo2},
-			vk::WriteDescriptorSet{
+				vk::WriteDescriptorSet{
 					.dstSet = m_LightSet.Get(),
 					.dstBinding = 1,
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
 					.descriptorType = vk::DescriptorType::eUniformBuffer,
-					.pBufferInfo = &bufferInfo3}
-		};
-		device.Get().updateDescriptorSets(descriptorWrites, {});
+					.pBufferInfo = &bufferInfo3
+				}
+	};
+	device.Get().updateDescriptorSets(descriptorWrites, {});
 
 
 
@@ -310,6 +298,106 @@ std::uint32_t KGR::_Vulkan::VulkanCore::PresentImage()
 	VkQueue queueC = static_cast<VkQueue>(*queue.Get());
 	VkResult result = vkQueuePresentKHR(queueC, &presentInfo);
 	return result;
+}
+
+void KGR::_Vulkan::VulkanCore::RenderSceneToOffscreen(KGR::Editor::Offscreen& target, const glm::vec4& clearColor, vk::raii::CommandBuffer* cmd)
+{
+	// Transition 1: color image UNDEFINED → COLOR_ATTACHMENT_OPTIMAL
+	// (UNDEFINED is fine here; we clear on load so previous contents don't matter.)
+	transition_image_layout(
+		target.GetColorImage(),
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eColorAttachmentOptimal,
+		{},
+		vk::AccessFlagBits2::eColorAttachmentWrite,
+		vk::PipelineStageFlagBits2::eTopOfPipe,
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+		vk::ImageAspectFlagBits::eColor, *cmd);
+
+	// Transition 2: depth image UNDEFINED → DEPTH_ATTACHMENT_OPTIMAL
+	transition_image_layout(
+		target.GetDepthImage(),
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eDepthAttachmentOptimal,
+		{},
+		vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+		vk::PipelineStageFlagBits2::eTopOfPipe,
+		vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+		vk::ImageAspectFlagBits::eDepth, *cmd);
+
+	vk::ClearValue clearCol = vk::ClearColorValue(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
+	vk::ClearValue clearDep = vk::ClearDepthStencilValue(1.0f, 0);
+
+	vk::RenderingAttachmentInfo colorAtt = {
+		.imageView = static_cast<vk::ImageView>(target.GetColorView()),
+		.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+		.loadOp = vk::AttachmentLoadOp::eClear,
+		.storeOp = vk::AttachmentStoreOp::eStore,
+		.clearValue = clearCol };
+
+	vk::RenderingAttachmentInfo depthAtt = {
+		.imageView = static_cast<vk::ImageView>(target.GetDepthView()),
+		.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+		.loadOp = vk::AttachmentLoadOp::eClear,
+		.storeOp = vk::AttachmentStoreOp::eDontCare,
+		.clearValue = clearDep };
+
+	vk::RenderingInfo ri = {
+		.renderArea = {.offset = {0, 0},
+									.extent = { target.GetWidth(), target.GetHeight() } },
+		.layerCount = 1,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAtt,
+		.pDepthAttachment = &depthAtt };
+
+	cmd->beginRendering(ri);
+	cmd->setViewport(0, vk::Viewport(
+		0.0f, 0.0f,
+		static_cast<float>(target.GetWidth()),
+		static_cast<float>(target.GetHeight()),
+		0.0f, 1.0f));
+	cmd->setScissor(0, vk::Rect2D({ 0, 0 }, { target.GetWidth(), target.GetHeight() }));
+
+	// Draw scene objects (same loop as the swapchain path).
+	cmd->bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline.Get());
+	for (auto& it : m_toRenderObject)
+	{
+		for (int i = 0; i < it.mesh->GetSubMeshesCount(); ++i)
+		{
+			it.mesh->Bind(cmd, i);
+			cmd->pushConstants<glm::mat4>(
+				graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, it.matrixModel);
+			cmd->bindDescriptorSets(
+				vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
+			cmd->bindDescriptorSets(
+				vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 1, *m_LightSet.Get(), nullptr);
+			it.texture->at(i)->Bind(cmd, &graphicsPipeline.GetLayout(), 2);
+			cmd->drawIndexed(it.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
+		}
+	}
+
+	// Debug lines also go into the viewport.
+	cmd->bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeLine.Get());
+	cmd->bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
+	cmd->bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
+	cmd->bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
+	cmd->drawIndexed(36, 1, 0, 0, 0);
+
+	cmd->endRendering();
+
+	// Transition 3: color image COLOR_ATTACHMENT_OPTIMAL → SHADER_READ_ONLY_OPTIMAL.
+	// This barrier is what makes ImGui::Image() safe: it guarantees that by the time
+	// the fragment shader in the ImGui draw call samples this image, all writes are done.
+	transition_image_layout(
+		target.GetColorImage(),
+		vk::ImageLayout::eColorAttachmentOptimal,
+		vk::ImageLayout::eShaderReadOnlyOptimal,
+		vk::AccessFlagBits2::eColorAttachmentWrite,
+		vk::AccessFlagBits2::eShaderSampledRead,
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+		vk::PipelineStageFlagBits2::eFragmentShader,
+		vk::ImageAspectFlagBits::eColor, *cmd);
 }
 
 void KGR::_Vulkan::VulkanCore::transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout,
@@ -463,12 +551,6 @@ int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::Comma
 		recreateSwapChain(window);
 		return -1;
 	}
-	// On other success codes than eSuccess and eSuboptimalKHR we just throw an exception.
-	// 
-	// Only reset the fence if we are submitting work
-
-
-
 
 
 	// Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
@@ -481,6 +563,7 @@ int KGR::_Vulkan::VulkanCore::BeginRendering(GLFWwindow* window, vk::raii::Comma
 		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
 		vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // dstStage
 		vk::ImageAspectFlagBits::eColor, *currentBuffer);
+
 	// Transition depth image to depth attachment optimal layout
 	transition_image_layout(
 		*depthImage.Get(),
@@ -561,6 +644,7 @@ int KGR::_Vulkan::VulkanCore::EndRendering(GLFWwindow* window, vk::raii::Command
 	queue.Get().submit({}, *syncObject.GetCurrentFence());
 
 	auto result = PresentImage();
+
 	// Due to VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS being defined, eErrorOutOfDateKHR can be checked as a result
 	// here and does not need to be caught by an exception.
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -655,14 +739,13 @@ void KGR::_Vulkan::VulkanCore::RegisterUi(const UiData& data, Texture* texture,c
 	uIRender.emplace_back( texture, valid);
 }
 
-void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window,const glm::vec4& color, ImDrawData* imguiDraw)
+void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color, ImDrawData* imguiDraw, KGR::Editor::Offscreen* offscreen)
 {
 	if (!m_ubo.has_value())
 		throw std::runtime_error("need to register Camera");
 
-	// Update the Camera
 	uniformBuffers.Upload(&m_ubo.value(), uniformBuffers.GetSize());
-	StorageContainer<LightData, 200> lData = StorageContainer < LightData, 200> ::FromVec(m_lights);
+	StorageContainer<LightData, 200> lData = StorageContainer<LightData, 200>::FromVec(m_lights);
 	m_lightBuffer.Upload(lData.Data(), lData.UploadSize());
 	m_lightCount.Upload(lData.GetSizeData(), m_lightCount.GetSize());
 
@@ -670,8 +753,21 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window,const glm::vec4& color,
 	currentBuffer->reset();
 	currentBuffer->begin({});
 
-	int result = 0;
-	result = BeginRendering( window, currentBuffer,&graphicsPipeline,color);
+	// --- OFFSCREEN PASS ---------------------------------------------------
+	// When an OffscreenTarget is provided we render the 3D scene into it
+	// BEFORE acquiring the swapchain image.  Both passes share the same
+	// command buffer so a single submit covers everything.
+	if (offscreen && offscreen->IsValid())
+	{
+		RenderSceneToOffscreen(*offscreen, color, currentBuffer);
+	}
+
+	// --- SWAPCHAIN PASS ---------------------------------------------------
+	// If we rendered to offscreen, the swapchain only needs the ImGui layer.
+	// Pass a neutral clear colour so we don't see the scene painted twice.
+	glm::vec4 swapchainClear = offscreen ? glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) : color;
+
+	int result = BeginRendering(window, currentBuffer, &graphicsPipeline, swapchainClear);
 	if (result == -1)
 	{
 		m_ubo.reset();
@@ -680,18 +776,26 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window,const glm::vec4& color,
 		uIRender.clear();
 		return;
 	}
-	currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline.Get());
 
-	for (auto& it: m_toRenderObject)
+	// Legacy path: no offscreen target → draw the scene to the swapchain directly.
+	if (!offscreen)
 	{
-		for (int i = 0; i < it.mesh->GetSubMeshesCount(); ++i)
+		currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline.Get());
+
+		for (auto& it : m_toRenderObject)
 		{
-			it.mesh->Bind(currentBuffer, i);
-			currentBuffer->pushConstants<glm::mat4>(graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, it.matrixModel);
-			currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
-			currentBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 1, *m_LightSet.Get(), nullptr);
-			it.texture->at(i)->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 2);
-			currentBuffer->drawIndexed(it.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
+			for (int i = 0; i < it.mesh->GetSubMeshesCount(); ++i)
+			{
+				it.mesh->Bind(currentBuffer, i);
+				currentBuffer->pushConstants<glm::mat4>(
+					graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, it.matrixModel);
+				currentBuffer->bindDescriptorSets(
+					vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
+				currentBuffer->bindDescriptorSets(
+					vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 1, *m_LightSet.Get(), nullptr);
+				it.texture->at(i)->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 2);
+				currentBuffer->drawIndexed(it.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
+			}
 		}
 	}
 	//currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeLine.Get());
@@ -702,6 +806,7 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window,const glm::vec4& color,
 	//currentBuffer->drawIndexed(36, 1, 0, 0, 0);
 
 	currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *uiPipeline.Get());
+
 	for (auto& ui : uIRender)
 	{
 		// bind the vertex and indexBuffer
@@ -710,10 +815,15 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window,const glm::vec4& color,
 		currentBuffer->pushConstants<UiData::UiValidData>(uiPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0,ui.second);
 		ui.first->Bind(currentBuffer, &uiPipeline.GetLayout(), 0);
 		currentBuffer->drawIndexed(static_cast<std::uint32_t>(uiIndexBuffer.GetSize() / sizeof(std::uint32_t)), 1, 0, 0, 0);
+		currentBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeLine.Get());
+		currentBuffer->bindDescriptorSets(
+			vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
+		currentBuffer->bindVertexBuffers(0, *vertexBuffer.Get(), { 0 });
+		currentBuffer->bindIndexBuffer(*indexBuffer.Get(), 0, vk::IndexType::eUint32);
+		currentBuffer->drawIndexed(36, 1, 0, 0, 0);
 	}
 
-
-	result = EndRendering(window, currentBuffer,{syncObject.GetCurrentPresentSemaphore()}, imguiDraw);
+	EndRendering(window, currentBuffer, { syncObject.GetCurrentPresentSemaphore() }, imguiDraw);
 	commandBuffers.ReleaseCommandBuffer(*currentBuffer);
 	syncObject.IncrementFrame();
 	device.Get().waitIdle();

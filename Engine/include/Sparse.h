@@ -59,7 +59,7 @@ struct Sparse_Storage
 	 * @brief this function return all the entities
 	 * @return const vector of type& 
 	 */
-	const std::vector<type> GetEntities() const;
+	const std::vector<type>& GetEntities() const;
 
 	/**
 	 * @brief this function return the size of the entity vector
@@ -133,7 +133,7 @@ void Sparse_Storage<Type, offset>::Remove(const type& e)
 }
 
 template <typename Type, size_t offset> requires (std::is_arithmetic_v<Type>)
-const std::vector<typename Sparse_Storage<Type, offset>::type> Sparse_Storage<Type, offset>::GetEntities() const
+const std::vector<typename Sparse_Storage<Type, offset>::type>& Sparse_Storage<Type, offset>::GetEntities() const
 {
 	return m_entities;
 }

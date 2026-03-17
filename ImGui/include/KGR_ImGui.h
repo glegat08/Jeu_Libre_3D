@@ -96,28 +96,13 @@ namespace KGR
 			/// @brief Shuts down ImGui and destroys all contexts.
 			void Destroy();
 
-			/// @brief Opens a file dialog, loads the chosen OBJ into a MeshComponent, and frees the previous mesh.
-			/// @param meshComponent Target mesh component to populate.
-			/// @param path          Current model path; updated to the new path on success.
-			/// @param vkCore        Vulkan backend used to allocate mesh resources.
-			/// @return true if a mesh was successfully loaded.
-			bool LoadMesh(MeshComponent& meshComponent, std::string& path, _Vulkan::VulkanCore& vkCore);
-
-			/// @brief Renders an ImGui button matching the given type and returns whether it was clicked.
-			/// @param type The button to render.
-			/// @return true if the button was clicked this frame.
-			bool IsButton(ButtonType type);
-
-			/// @brief Configures the next ImGui window position and size, then calls ImGui::Begin.
-			/// @param position   Top-left corner of the window.
-			/// @param size       Dimensions of the window.
-			/// @param name       Window title.
-			/// @param p_open     Optional pointer to a boolean controlling the window's open state.
-			static void SetWindow(const ImVec2& position, const ImVec2& size, const char* name, bool* p_open = nullptr);
-
 			/// @brief Opens a Windows file dialog filtered to OBJ files.
 			/// @return The selected file path, or an empty string if cancelled.
-			static std::string OpenFile();
+			static std::string OpenFile(const char* filter = "OBJ Files\0*.obj\0All Files\0*.*\0");
+			
+			/// @brief Opens a Windows file-save dialog.
+			/// @return The chosen file path, or an empty string if cancelled.
+			static std::string SaveFile(const char* filter = "All Files\0*.*\0");
 
 		private:
 			/// @brief Fills m_InitInfo with Vulkan handles required by ImGui_ImplVulkan.
@@ -132,7 +117,7 @@ namespace KGR
 			KGR::_Vulkan::VulkanCore* m_VulkanCore = nullptr;
 			KGR::_GLFW::Window* m_Window = nullptr;
 			ImGuiContext* m_EngineContext;
-			ImGuiContext* m_GameContext;
+			ImGuiContext* m_GameContext = nullptr;
 			ImGui_ImplVulkan_InitInfo m_InitInfo = {};
 
 			CameraComponent* m_Camera = nullptr;
@@ -143,11 +128,6 @@ namespace KGR
 			float m_MouseSensitivity = 0.15f;
 			glm::dvec2 m_LastMousePos = { 0.0, 0.0 };
 			bool m_IsRightClickActive = false;
-
-			char m_ObjFilePath[512] = "";
-			std::string m_LoadedObjName = "";
-			bool m_LoadSuccess = false;
-			bool m_LoadError = false;
 		};
 	}
 }

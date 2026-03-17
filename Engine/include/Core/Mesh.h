@@ -139,7 +139,8 @@ private:
  */
 struct MeshComponent
 {
-    Mesh* mesh = nullptr;
+	Mesh* mesh = nullptr;
+	std::string sourcePath;
 };
 
 
