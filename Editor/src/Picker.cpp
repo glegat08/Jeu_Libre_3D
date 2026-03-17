@@ -67,7 +67,7 @@ namespace KGR
                 if (cc.collider)
                 {
                     OBB3D obb = cc.collider->ComputeGlobalOBB(
-                        transform.GetScale() * 2.0f,
+                        transform.GetScale(),
                         transform.GetPosition(),
                         transform.GetOrientation());
                     return RayOBB(ray, obb);

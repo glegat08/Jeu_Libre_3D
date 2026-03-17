@@ -161,7 +161,7 @@ namespace KGR
 
                     auto& t = reg.GetComponent<TransformComponent>(e);
                     return cc.collider->ComputeGlobalOBB(
-                        t.GetScale() * 2.0f, t.GetPosition(), t.GetOrientation());
+                        t.GetScale(), t.GetPosition(), t.GetOrientation());
                 };
 
             SceneEntity hovered = picker.GetHovered();
