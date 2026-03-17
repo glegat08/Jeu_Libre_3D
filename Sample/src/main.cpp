@@ -15,14 +15,18 @@
 #include "ECS/Registry.h"
 #include "Tools/Chrono.h"
 
+#include "Core/SoundComponent.h"
+
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
 int main(int argc, char** argv)
 {
+	
 	// this part is due to the archi of the code to retrieve the folder resources
 	std::filesystem::path exePath = argv[0];
 	std::filesystem::path projectRoot = exePath.parent_path().parent_path().parent_path().parent_path().parent_path();
+
 
 	// init the rendering system ( init glfw )
 	KGR::RenderWindow::Init();
@@ -35,6 +39,22 @@ int main(int argc, char** argv)
 	// create your ecs 
 	ecsType registry = ecsType{};
 
+
+	// TODO REVA test this please
+	// music test do not mind
+
+	// TODO when all test ok move this into a proper place 
+	WavComponent::Init(projectRoot / "Ressources");
+
+	WavComponent c;
+	c.SetWav(WavManager::Load("Sounds/test.mp3"));
+	c.SetVolume(10.0f);
+
+	// TODO play the music for test 
+	//c.Play();
+
+	// music test do not mind
+		
 
 	// camera 
 	{
