@@ -19,6 +19,44 @@
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
+class Enemy
+{
+private:
+	MeshComponent *m_Mesh;
+	TextureComponent* m_Texture;
+	TransformComponent* m_Transform;
+public:
+	Enemy(std::unique_ptr<KGR::RenderWindow>& window,ecsType& registry)
+	{
+		/*m_Mesh = std::make_unique<MeshComponent>();
+		m_Texture = std::make_unique<TextureComponent>();
+		m_Transform = std::make_unique<TransformComponent>();*/
+		auto mesh = MeshComponent();
+		auto texture = TextureComponent();
+		auto transform = TransformComponent();
+		mesh.mesh = &MeshLoader::Load("Models/monkey.obj", window->App());
+		texture.SetSize(mesh.mesh->GetSubMeshesCount());
+
+		for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
+			texture.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
+
+		//// create the transform and set all the data
+		//TransformComponent transform;
+		transform.SetPosition({ 0,0,0 });
+		transform.SetScale({ 3.0f,3.0f,3.0f });
+		// same create an entity / id
+		auto e = registry.CreateEntity();
+		// fill the component
+		registry.AddComponents<MeshComponent,TextureComponent,TransformComponent>(e, std::move(mesh), std::move(texture), std::move(transform));
+		m_Mesh = &registry.GetComponent<MeshComponent>(e);
+		m_Texture = &registry.GetComponent<TextureComponent>(e);
+		m_Transform = &registry.GetComponent<TransformComponent>(e);
+	}
+	~Enemy() = default;
+};
+
+
+
 int main(int argc, char** argv)
 {
 	
@@ -84,35 +122,37 @@ int main(int argc, char** argv)
 	
 	// mesh
 	{
-		// a mesh need a meshComponent a transform and a texture 
+		//// a mesh need a meshComponent a transform and a texture 
 
-		// create a mesh and load it with the cash loader
-		/*MeshComponent mesh1;
-		mesh1.mesh = &MeshLoader::Load("Models/cube.obj",window->App());*/
-		MeshComponent mesh2;
-		mesh2.mesh = &MeshLoader::Load("Models/cube.obj", window->App());
+		//// create a mesh and load it with the cash loader
+		///*MeshComponent mesh1;
+		//mesh1.mesh = &MeshLoader::Load("Models/cube.obj",window->App());*/
+		//MeshComponent mesh2;
+		//mesh2.mesh = &MeshLoader::Load("Models/monkey.obj", window->App());
 
-		// create a texture 
-		//TextureComponent text;
-		TextureComponent NoeText;
-		// allocate the size of the texture must be the same as the number of submeshes 
-		//text.SetSize(mesh1.mesh->GetSubMeshesCount());
-		NoeText.SetSize(mesh2.mesh->GetSubMeshesCount());
-		// then fill the texture ( this system need to be refact but for now you need to do it like that
-		/*for (int i = 0; i < mesh1.mesh->GetSubMeshesCount(); ++i)
-			text.AddTexture(i, &TextureLoader::Load("Textures/viking_room.png", window->App()));*/
+		//// create a texture 
+		////TextureComponent text;
+		//TextureComponent NoeText;
+		//// allocate the size of the texture must be the same as the number of submeshes 
+		////text.SetSize(mesh1.mesh->GetSubMeshesCount());
+		//NoeText.SetSize(mesh2.mesh->GetSubMeshesCount());
+		//// then fill the texture ( this system need to be refact but for now you need to do it like that
+		///*for (int i = 0; i < mesh1.mesh->GetSubMeshesCount(); ++i)
+		//	text.AddTexture(i, &TextureLoader::Load("Textures/viking_room.png", window->App()));*/
 
-		for (int i = 0; i < mesh2.mesh->GetSubMeshesCount(); ++i)
-			NoeText.AddTexture(i, &TextureLoader::Load("Textures/NoeGoat.png", window->App()));
+		//for (int i = 0; i < mesh2.mesh->GetSubMeshesCount(); ++i)
+		//	NoeText.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
 
-		// create the transform and set all the data
-		TransformComponent transform;
-		transform.SetPosition({ 0,0,0 });
-		transform.SetScale({ 2.0f,3.0f,4.0f });
-		// same create an entity / id
-		auto e = registry.CreateEntity();
-		// fill the component
-		registry.AddComponents(e, std::move(mesh2), std::move(NoeText), std::move(transform));
+		//// create the transform and set all the data
+		//TransformComponent transform;
+		//transform.SetPosition({ 0,0,0 });
+		//transform.SetScale({ 3.0f,3.0f,3.0f });
+		//// same create an entity / id
+		//auto e = registry.CreateEntity();
+		//// fill the component
+		//registry.AddComponents(e, std::move(mesh2), std::move(NoeText), std::move(transform));
+
+		Enemy enemy(window,registry);
 	}
 
 	// light
