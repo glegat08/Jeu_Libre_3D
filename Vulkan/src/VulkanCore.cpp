@@ -81,9 +81,25 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 	std::vector<vk::DescriptorSetLayoutBinding> bindings3 = {
 					vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
 	};
+	std::vector<vk::DescriptorSetLayoutBinding> bindings4 = {
+				vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+	};
+	std::vector<vk::DescriptorSetLayoutBinding> bindings5 = {
+				vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+	};
+	std::vector<vk::DescriptorSetLayoutBinding> bindings6 = {
+				vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+	};
 	auto layout3 = DescriptorLayout(bindings3, &device);
 	auto layout4 = DescriptorLayout(bindings3, &device);
+	auto layout5 = DescriptorLayout(bindings4, &device);
+	auto layout6 = DescriptorLayout(bindings5, &device);
+	auto layout7 = DescriptorLayout(bindings6, &device);
 	descriptorSetLayout.Add(std::move(layout3));
+	descriptorSetLayout.Add(std::move(layout5));
+	descriptorSetLayout.Add(std::move(layout6));
+	descriptorSetLayout.Add(std::move(layout7));
+
 	uiLayout.Add(std::move(layout4));
 
 	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice,vk::PolygonMode::eFill,Vertex::getBindingDescription(), Vertex::getAttributeDescriptions());
@@ -371,7 +387,10 @@ void KGR::_Vulkan::VulkanCore::RenderSceneToOffscreen(KGR::Editor::Offscreen& ta
 				vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
 			cmd->bindDescriptorSets(
 				vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 1, *m_LightSet.Get(), nullptr);
-			it.texture->at(i)->Bind(cmd, &graphicsPipeline.GetLayout(), 2);
+			it.texture.at(i).baseColor->Bind(cmd, &graphicsPipeline.GetLayout(), 2);
+			it.texture.at(i).pbrMap->Bind(cmd, &graphicsPipeline.GetLayout(), 3);
+			it.texture.at(i).emissive->Bind(cmd, &graphicsPipeline.GetLayout(), 4);
+			it.texture.at(i).normalMap->Bind(cmd, &graphicsPipeline.GetLayout(), 5);
 			cmd->drawIndexed(it.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
 		}
 	}
@@ -724,11 +743,11 @@ void KGR::_Vulkan::VulkanCore::RegisterCam(const glm::mat4& model, const glm::ma
 	m_ubo->proj[1][1] *= -1;
 }
 
-void KGR::_Vulkan::VulkanCore::RegisterRender(Mesh& mesh, const  glm::mat4& model,std::vector<Texture*>& texture)
+void KGR::_Vulkan::VulkanCore::RegisterRender(Mesh& mesh, const  glm::mat4& model, const  std::vector<Material>& texture)
 {
 	if (texture.size() != mesh.GetSubMeshesCount())
 		throw std::out_of_range("need same amount of subMeshes and texture");
-	m_toRenderObject.push_back(MeshData{ model ,&mesh,&texture });
+	m_toRenderObject.push_back(MeshData{ model ,&mesh,texture });
 }
 
 void KGR::_Vulkan::VulkanCore::RegisterUi(const UiData& data, Texture* texture,const glm::vec2& screenSize)
@@ -793,7 +812,10 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color
 					vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
 				currentBuffer->bindDescriptorSets(
 					vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 1, *m_LightSet.Get(), nullptr);
-				it.texture->at(i)->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 2);
+				it.texture.at(i).baseColor->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 2);
+				it.texture.at(i).pbrMap->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 3);
+				it.texture.at(i).emissive->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 4);
+				it.texture.at(i).normalMap->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 5);
 				currentBuffer->drawIndexed(it.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
 			}
 		}

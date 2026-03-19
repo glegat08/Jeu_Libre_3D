@@ -68,9 +68,10 @@ void KGR::RenderWindow::RegisterCam(CameraComponent& cam, TransformComponent& tr
 	m_core.RegisterCam(transform.GetFullTransform(),cam.GetView(),cam.GetProj());
 }
 
-void KGR::RenderWindow::RegisterRender(MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture)
+void KGR::RenderWindow::RegisterRender(MeshComponent& mesh, TransformComponent& transform, MaterialComponent& material)
 {
-	m_core.RegisterRender(*mesh.mesh, transform.GetFullTransform(), texture.GetAllTextures());
+	// TODO default value here
+	m_core.RegisterRender(*mesh.mesh, transform.GetFullTransform(), material.GetAllMaterials());
 }
 
 void KGR::RenderWindow::RegisterUi(UiComponent& component, TransformComponent2d& transform, TextureComponent& texture)

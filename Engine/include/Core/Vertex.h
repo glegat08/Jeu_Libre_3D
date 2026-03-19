@@ -14,6 +14,7 @@ struct Vertex
     glm::vec3 normal; ///< Vertex normal vector.
     glm::vec4 color;  ///< Vertex color (RGBA).
     glm::vec2 uv;     ///< Texture coordinates.
+    glm::vec4 tangent;
 
     /**
      * @brief Returns the Vulkan binding description for this vertex type.
@@ -44,7 +45,9 @@ struct Vertex
             vk::VertexInputAttributeDescription(
                 2, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(Vertex, color)),
             vk::VertexInputAttributeDescription(
-                3, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv))
+                3, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv)),
+                  vk::VertexInputAttributeDescription(
+                4, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(Vertex, tangent)),
         };
     }
 

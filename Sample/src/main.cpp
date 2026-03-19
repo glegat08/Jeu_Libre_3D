@@ -90,17 +90,25 @@ int main(int argc, char** argv)
 		mesh.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
 
 		// create a texture 
-		TextureComponent text;
+		MaterialComponent text;
 		// allocate the size of the texture must be the same as the number of submeshes 
 		text.SetSize(mesh.mesh->GetSubMeshesCount());
 		// then fill the texture ( this system need to be refact but for now you need to do it like that
 		for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
-			text.AddTexture(i, &TextureLoader::Load("Textures/viking_room.png", window->App()));
+		{
+			Material mat;
+			mat.baseColor = &TextureLoader::Load("Textures/test_mat_bc.png", window->App());
+			mat.pbrMap = &TextureLoader::Load("Textures/test_mat_OMR.png", window->App());
+			mat.normalMap = &TextureLoader::Load("Textures/test_mat_nm.png", window->App());
+			mat.emissive = &TextureLoader::Load("Textures/test_mat_e.png", window->App());
+
+			text.AddMaterial(i,mat);
+		}
 
 		// create the transform and set all the data
 		TransformComponent transform;
 		transform.SetPosition({ 0,0,0 });
-		transform.SetScale({ 2.0f,3.0f,4.0f });
+		transform.SetScale({ 2.0f,2.0f,2.0f });
 		// same create an entity / id
 		auto e = registry.CreateEntity();
 		// fill the component
@@ -111,7 +119,7 @@ int main(int argc, char** argv)
 	{
 		// the light need transform component and light component
 		// all lights type have their own system to create them go in the file to understand
-		LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1,0,1 }, { 1,1,1 }, 10.0f,100.0f,glm::radians(5.0f),0.15f);
+		LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1, 1,1 }, { 1,1,1 }, 10.0f, 100.0f, glm::radians(15.0f), 0.15f);
 		// set the transform but certain light need dir some position or both so just use what necessary 
 		TransformComponent transform;
 		transform.SetPosition({ 0,5,0 });
@@ -219,13 +227,13 @@ int main(int argc, char** argv)
 
 
 		{
-			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, TextureComponent>();
+			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, MaterialComponent>();
 			for (auto& e : es)
 			{
 				window->RegisterRender(
 					registry.GetComponent<MeshComponent>(e),
 					registry.GetComponent<TransformComponent>(e),
-					registry.GetComponent<TextureComponent>(e));
+					registry.GetComponent<MaterialComponent>(e));
 
 				auto& t = registry.GetComponent<TransformComponent>(e);
 			}

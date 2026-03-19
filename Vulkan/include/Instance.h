@@ -40,7 +40,7 @@ namespace KGR
 			/**
 			 * @brief Vulkan API version used.
 			 */
-			std::uint32_t version = vk::ApiVersion14;
+			std::uint32_t version = vk::ApiVersion13;
 
 		private:
 			/**

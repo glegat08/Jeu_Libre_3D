@@ -107,7 +107,7 @@ namespace KGR
          * @param transform Transform providing world position.
          * @param texture Texture component.
          */
-        void RegisterRender(MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture);
+        void RegisterRender(MeshComponent& mesh, TransformComponent& transform, MaterialComponent& material);
         
     	
         void RegisterUi(UiComponent& component, TransformComponent2d& transform, TextureComponent& texture);

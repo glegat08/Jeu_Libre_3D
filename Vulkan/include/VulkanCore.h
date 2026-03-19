@@ -31,6 +31,7 @@
 #include "Core/TrasformComponent.h"
 #include "Core/Vertex.h"
 #include "../../Editor/include/Offscreen.h"
+#include "Core/Materials.h"
 
 struct Texture;
 struct CameraComponent;
@@ -55,7 +56,7 @@ struct MeshData
 	/**
 	 * @brief Pointer to vector of textures.
 	 */
-	std::vector<Texture*>* texture;
+	std::vector<Material> texture;
 };
 
 /**
@@ -185,7 +186,7 @@ namespace KGR
 			 * @param model Model transformation
 			 * @param texture Vector of textures for the mesh
 			 */
-			void RegisterRender(Mesh& mesh, const glm::mat4& model, std::vector<Texture*>& texture);
+			void RegisterRender(Mesh& mesh, const glm::mat4& model,const  std::vector<Material>& texture);
 			void RegisterUi(const UiData& data, Texture* texture,const glm::vec2& screenSize);
 			/**
 			 * @brief Performs rendering of registered meshes, lights, and optionally ImGui data.
