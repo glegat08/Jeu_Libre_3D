@@ -87,16 +87,23 @@ int main(int argc, char** argv)
 		// a mesh need a meshComponent a transform and a texture 
 
 		// create a mesh and load it with the cash loader
-		MeshComponent mesh;
-		mesh.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
+		/*MeshComponent mesh1;
+		mesh1.mesh = &MeshLoader::Load("Models/cube.obj",window->App());*/
+		MeshComponent mesh2;
+		mesh2.mesh = &MeshLoader::Load("Models/cube.obj", window->App());
 
 		// create a texture 
-		TextureComponent text;
+		//TextureComponent text;
+		TextureComponent NoeText;
 		// allocate the size of the texture must be the same as the number of submeshes 
-		text.SetSize(mesh.mesh->GetSubMeshesCount());
+		//text.SetSize(mesh1.mesh->GetSubMeshesCount());
+		NoeText.SetSize(mesh2.mesh->GetSubMeshesCount());
 		// then fill the texture ( this system need to be refact but for now you need to do it like that
-		for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
-			text.AddTexture(i, &TextureLoader::Load("Textures/viking_room.png", window->App()));
+		/*for (int i = 0; i < mesh1.mesh->GetSubMeshesCount(); ++i)
+			text.AddTexture(i, &TextureLoader::Load("Textures/viking_room.png", window->App()));*/
+
+		for (int i = 0; i < mesh2.mesh->GetSubMeshesCount(); ++i)
+			NoeText.AddTexture(i, &TextureLoader::Load("Textures/NoeGoat.png", window->App()));
 
 		// create the transform and set all the data
 		TransformComponent transform;
@@ -105,7 +112,7 @@ int main(int argc, char** argv)
 		// same create an entity / id
 		auto e = registry.CreateEntity();
 		// fill the component
-		registry.AddComponents(e, std::move(mesh), std::move(text), std::move(transform));
+		registry.AddComponents(e, std::move(mesh2), std::move(NoeText), std::move(transform));
 	}
 
 	// light
@@ -113,14 +120,16 @@ int main(int argc, char** argv)
 		// the light need transform component and light component
 		// all lights type have their own system to create them go in the file to understand
 		LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1,0,1 }, { 1,1,1 }, 10.0f,100.0f,glm::radians(5.0f),0.15f);
+		LightComponent<LightData::Type::Directional> lightDirection = LightComponent<LightData::Type::Directional>::Create({ 1,1,1 }, { 0,0,0 }, 500.0f);
 		// set the transform but certain light need dir some position or both so just use what necessary 
 		TransformComponent transform;
 		transform.SetPosition({ 0,5,0 });
 		transform.LookAtDir({ 0,-1,0 });
+		transform.SetScale({ -3,-3,-3 });
 		// same 
 		auto e = registry.CreateEntity();
 		// same
-		registry.AddComponents(e, std::move(lc), std::move(transform));
+		registry.AddComponents(e, std::move(lightDirection), std::move(transform));
 	}
 
 	// ui ( not fully operational)
