@@ -2,6 +2,7 @@
 # do not touch
 cmake_minimum_required(VERSION 3.10.0)
 
+
 # NameOfTheProject
 project(Vulkan_Project VERSION 1.0.0)
 
