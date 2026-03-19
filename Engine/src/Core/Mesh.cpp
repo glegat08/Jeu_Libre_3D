@@ -1,7 +1,14 @@
 #include"Core/Mesh.h"
 #define TINYOBJLOADER_IMPLEMENTATION
-
 #include <tiny_obj_loader.h>
+
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <nlohmann/json.hpp>
+#define TINYGLTF_IMPLEMENTATION
+#include <tiny_gltf.h>
+
+
 
 #include "Hasher.h"
 #include "VulkanCore.h"
@@ -150,3 +157,4 @@ std::unique_ptr<Mesh> LoadMesh(const std::string& filePath, KGR::_Vulkan::Vulkan
 	return std::move(result);
 
 }
+
