@@ -22,37 +22,119 @@ using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 class Enemy
 {
 private:
-	MeshComponent *m_Mesh;
+	/*MeshComponent *m_Mesh;
 	TextureComponent* m_Texture;
-	TransformComponent* m_Transform;
+	TransformComponent* m_Transform;*/
+	ecsType* m_registry;
+	unsigned long long m_ID;
+	int m_life;
+	
+	
 public:
-	Enemy(std::unique_ptr<KGR::RenderWindow>& window,ecsType& registry)
-	{
-		/*m_Mesh = std::make_unique<MeshComponent>();
-		m_Texture = std::make_unique<TextureComponent>();
-		m_Transform = std::make_unique<TransformComponent>();*/
-		auto mesh = MeshComponent();
-		auto texture = TextureComponent();
-		auto transform = TransformComponent();
-		mesh.mesh = &MeshLoader::Load("Models/monkey.obj", window->App());
-		texture.SetSize(mesh.mesh->GetSubMeshesCount());
-
-		for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
-			texture.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
-
-		//// create the transform and set all the data
-		//TransformComponent transform;
-		transform.SetPosition({ 0,0,0 });
-		transform.SetScale({ 3.0f,3.0f,3.0f });
-		// same create an entity / id
-		auto e = registry.CreateEntity();
-		// fill the component
-		registry.AddComponents<MeshComponent,TextureComponent,TransformComponent>(e, std::move(mesh), std::move(texture), std::move(transform));
-		m_Mesh = &registry.GetComponent<MeshComponent>(e);
-		m_Texture = &registry.GetComponent<TextureComponent>(e);
-		m_Transform = &registry.GetComponent<TransformComponent>(e);
-	}
+	Enemy()
+		:m_life(0)
+		,m_registry(nullptr)
+		,m_ID(0)
+	{}
 	~Enemy() = default;
+
+	void Init(ecsType& registry, unsigned long long id)
+	{
+		m_registry = &registry;
+		m_ID = id;
+
+		//m_life = life;
+
+		//mesh.mesh = &MeshLoader::Load("Models/monkey.obj", window->App());
+		//texture.SetSize(mesh.mesh->GetSubMeshesCount());
+
+		//for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
+		//	texture.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
+
+		////// create the transform and set all the data
+		////TransformComponent transform;
+		//transform.SetPosition({ m_x,m_y,m_z });
+		//transform.SetScale({ 3.0f,3.0f,3.0f });
+
+
+		//
+
+		//m_Mesh = &registry.GetComponent<MeshComponent>(e);
+		//m_Texture = &registry.GetComponent<TextureComponent>(e);
+		//m_Transform = &registry.GetComponent<TransformComponent>(e);
+		//m_ID = e;
+
+		//m_Transform->
+	
+	}
+
+	bool isActive() const
+	{
+		return m_life > 0;
+	}
+
+	const unsigned long long& Get_ID() const
+	{
+		return m_ID;
+	}
+
+	void Update(float dt)
+	{
+
+	}
+};
+
+class EnemyPool
+{
+private:
+	std::vector < std::pair<Enemy, bool>> m_Enemys;
+public:
+	void Init(std::unique_ptr<KGR::RenderWindow>& window, ecsType& registry, int nombre)
+	{
+		for (int enemy = 0; enemy < nombre; enemy++)
+		{
+			auto mesh = MeshComponent();
+			auto texture = TextureComponent();
+			auto transform = TransformComponent();
+
+			mesh.mesh = &MeshLoader::Load("Models/monkey.obj", window->App());
+			texture.SetSize(mesh.mesh->GetSubMeshesCount());
+
+			for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
+				texture.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
+
+			transform.SetScale({ 3.0f,3.0f,3.0f });
+
+			// same create an entity / id
+			auto id = registry.CreateEntity();
+			// fill the component
+			registry.AddComponents<MeshComponent, TextureComponent, TransformComponent>(id, std::move(mesh), std::move(texture), std::move(transform));
+			std::pair<Enemy, bool> entity;
+			entity.first.Init(registry,id);
+			entity.second = false;
+			m_Enemys.push_back(std::move(entity));
+		}
+	}
+	 
+	void Spawn(const glm::vec3& position)
+	{
+
+	}
+
+	void release(unsigned long long& entity)
+	{
+
+	}
+
+	void UpdateAll(float dt)
+	{
+
+	}
+};
+
+class Ground
+{
+	
 };
 
 
@@ -75,6 +157,7 @@ int main(int argc, char** argv)
 
 	// create your ecs 
 	ecsType registry = ecsType{};
+	ecsType EnnemyPool = ecsType{};
 
 
 	// This is how to use the sounds and music system
@@ -152,7 +235,8 @@ int main(int argc, char** argv)
 		//// fill the component
 		//registry.AddComponents(e, std::move(mesh2), std::move(NoeText), std::move(transform));
 
-		Enemy enemy(window,registry);
+		Enemy enemy;
+		enemy.Init(window, registry, 0.0f, 0.0f, 0.0f, 0);
 	}
 
 	// light
