@@ -1,6 +1,6 @@
 #include "Viewport.h"
 #include "Context.h"
-#include "CollisionComponent.h"
+#include "Math/CollisionComponent.h"
 #include "Backends/imgui_impl_vulkan.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <optional>

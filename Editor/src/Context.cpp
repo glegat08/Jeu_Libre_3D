@@ -1,5 +1,5 @@
 #include "../../Editor/include/Context.h"
-#include "CollisionComponent.h"
+#include "Math/CollisionComponent.h"
 
 namespace KGR
 {

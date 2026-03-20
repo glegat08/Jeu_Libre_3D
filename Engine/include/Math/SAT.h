@@ -1,8 +1,8 @@
 #pragma once
-#include "AABB.h"
-#include "OBB.h"
-#include "Sphere.h"
-#include "Collision.h"
+#include "Math/AABB.h"
+#include "Math/OBB.h"
+#include "Math/Sphere.h"
+#include "Math/Collision.h"
 
 namespace KGR
 {

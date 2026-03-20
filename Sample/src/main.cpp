@@ -4,7 +4,7 @@
 #include "Core/UiComponent.h"
 
 
-#include "InputManager.h"
+#include "Core/InputManager.h"
 #include "Core/CameraComponent.h"
 #include "Core/Mesh.h"
 #include "Core/Texture.h"
@@ -15,6 +15,7 @@
 #include "ECS/Registry.h"
 #include "Tools/Chrono.h"
 #include "Audio/SoundComponent.h"
+#include "Math/Collision2d.h"
 
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
@@ -58,8 +59,6 @@ int main(int argc, char** argv)
 	sound.SetWav(KGR::Audio::WavManager::Load("Sounds/sound.mp3"));
 	sound.SetVolume(10.0f);
 
-	// TODO play the music for test 
-	music.Play();
 
 	// music test do not mind
 		
@@ -91,17 +90,25 @@ int main(int argc, char** argv)
 		mesh.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
 
 		// create a texture 
-		TextureComponent text;
+		MaterialComponent text;
 		// allocate the size of the texture must be the same as the number of submeshes 
 		text.SetSize(mesh.mesh->GetSubMeshesCount());
 		// then fill the texture ( this system need to be refact but for now you need to do it like that
 		for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
-			text.AddTexture(i, &TextureLoader::Load("Textures/viking_room.png", window->App()));
+		{
+			Material mat;
+			mat.baseColor = &TextureLoader::Load("Textures/test_mat_bc.png", window->App());
+			mat.pbrMap = &TextureLoader::Load("Textures/test_mat_OMR.png", window->App());
+			mat.normalMap = &TextureLoader::Load("Textures/test_mat_nm.png", window->App());
+			mat.emissive = &TextureLoader::Load("Textures/test_mat_e.png", window->App());
+
+			text.AddMaterial(i,mat);
+		}
 
 		// create the transform and set all the data
 		TransformComponent transform;
 		transform.SetPosition({ 0,0,0 });
-		transform.SetScale({ 2.0f,3.0f,4.0f });
+		transform.SetScale({ 2.0f, 1.0f,3.0f });
 		// same create an entity / id
 		auto e = registry.CreateEntity();
 		// fill the component
@@ -112,7 +119,7 @@ int main(int argc, char** argv)
 	{
 		// the light need transform component and light component
 		// all lights type have their own system to create them go in the file to understand
-		LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1,0,1 }, { 1,1,1 }, 10.0f,100.0f,glm::radians(5.0f),0.15f);
+		LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1, 1,1 }, { 1,1,1 }, 10.0f, 100.0f, glm::radians(15.0f), 0.15f);
 		// set the transform but certain light need dir some position or both so just use what necessary 
 		TransformComponent transform;
 		transform.SetPosition({ 0,5,0 });
@@ -129,7 +136,7 @@ int main(int argc, char** argv)
 		// for the transform it only use for the rotation 
 		TransformComponent2d transform;
 		// here you can set a rotation ( ROTATION FROM THE CENTER OF THE MESH )
-		transform.SetRotation(glm::radians(-45.0f));
+		//transform.SetRotation(glm::radians(-45.0f));
 		// create your ui with a virtual resolution and an anchor default center
 		UiComponent ui({1920,1080},UiComponent::Anchor::LeftTop);
 		// here set the position in the virtual resolution
@@ -138,12 +145,11 @@ int main(int argc, char** argv)
 		ui.SetScale({ 200,200 });
 		// create a texture but be aware that only the first texture in the component will be use 
 		TextureComponent texture;
-		texture.SetSize(1);
-		texture.AddTexture(0, &TextureLoader::Load("Textures/texture.jpg", window->App()));
+		texture.texture =  &TextureLoader::Load("Textures/texture.jpg", window->App());
 		
 		// same as always 
 		auto e = registry.CreateEntity();
-		registry.AddComponents(e, std::move(transform), std::move(ui),std::move(texture));
+		registry.AddComponents(e, std::move(transform), std::move(ui),std::move(texture), std::move(CollisionComp2d{}));
 
 	}
 
@@ -154,8 +160,8 @@ int main(int argc, char** argv)
 		float actual = chrono.GetElapsedTime().AsSeconds();
 		float dt = actual - current;
 		current = actual;
-		
-
+		KGR::RenderWindow::PollEvent();
+		window->Update();
 		{
 			auto es = registry.GetAllComponentsView<MeshComponent,TransformComponent>();
 			for (auto& e : es)
@@ -183,9 +189,29 @@ int main(int argc, char** argv)
 
 		}
 
-		KGR::RenderWindow::PollEvent();
-		window->Update();
+		{
 
+			auto mousePos = window.get()->GetInputManager()->GetMousePosition();
+			float aspectRatio = static_cast<float>(window->GetSize().x) / static_cast<float>(window->GetSize().y);
+			auto mouseinAR = UiComponent::VrToNdc(mousePos, window->GetSize(), aspectRatio, false);
+
+			auto es = registry.GetAllComponentsView<CollisionComp2d,UiComponent>();
+			for (auto e : es)
+			{
+				auto& t = registry.GetComponent<CollisionComp2d>(e);
+				auto& u = registry.GetComponent<UiComponent>(e);
+				t.Update(u.GetPosNdc(aspectRatio), u.GetScaleNdc(aspectRatio));
+				
+				if (t.aabb.IsColliding(mouseinAR))
+					u.SetColor({ 1,0,0,1 });
+				else
+					u.SetColor({ 0,1,0,1 });
+			}
+		}
+
+		
+
+	
 		{
 			auto es = registry.GetAllComponentsView<CameraComponent, TransformComponent>();
 			if (es.Size() != 1)
@@ -200,18 +226,19 @@ int main(int argc, char** argv)
 
 
 		{
-			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, TextureComponent>();
+			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, MaterialComponent>();
 			for (auto& e : es)
 			{
 				window->RegisterRender(
 					registry.GetComponent<MeshComponent>(e),
 					registry.GetComponent<TransformComponent>(e),
-					registry.GetComponent<TextureComponent>(e));
+					registry.GetComponent<MaterialComponent>(e));
 
 				auto& t = registry.GetComponent<TransformComponent>(e);
 			}
 
 		}
+
 
 		//Test Sound
 		if(window->GetInputManager()->IsKeyPressed(KGR::Key::P))

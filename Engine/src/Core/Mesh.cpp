@@ -1,7 +1,14 @@
 #include"Core/Mesh.h"
 #define TINYOBJLOADER_IMPLEMENTATION
-
 #include <tiny_obj_loader.h>
+
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <nlohmann/json.hpp>
+#define TINYGLTF_IMPLEMENTATION
+#include <tiny_gltf.h>
+
+
 
 #include "Hasher.h"
 #include "VulkanCore.h"
@@ -89,6 +96,78 @@ void Mesh::AddSubMesh(std::unique_ptr<SubMeshes> mesh)
 	m_subMeshes.push_back(std::move(mesh));
 }
 
+std::vector<glm::vec3> s_ComputeTangents(
+	const std::vector<glm::vec3>& positions,
+	const std::vector<glm::vec3>& normals,
+	const std::vector<glm::vec2>& texcoords,
+	const std::vector<uint32_t>& indices
+) {
+	std::vector<glm::vec3> tangents(normals.size(), glm::vec3(0.0f));
+
+	for (size_t i = 0; i < indices.size(); i += 3)
+	{
+		// index 
+		uint32_t i0 = indices[i];
+		uint32_t i1 = indices[i + 1];
+		uint32_t i2 = indices[i + 2];
+
+		const glm::vec3& p0 = positions[i0];
+		const glm::vec3& p1 = positions[i1];
+		const glm::vec3& p2 = positions[i2];
+		const glm::vec2& uv0 = texcoords[i0];
+		const glm::vec2& uv1 = texcoords[i1];
+		const glm::vec2& uv2 = texcoords[i2];
+
+		glm::vec3 edge1 = p1 - p0;
+		glm::vec3 edge2 = p2 - p0;
+		glm::vec2 deltaUV1 = uv1 - uv0;
+		glm::vec2 deltaUV2 = uv2 - uv0;
+
+		float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+		if (std::isfinite(f))
+		{
+			glm::vec3 tangent;
+			tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+			tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+			tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+			tangent = glm::normalize(tangent);
+
+			float sx = deltaUV1.x;
+			float sy = deltaUV2.x;
+			float tx = deltaUV1.y;
+			float ty = deltaUV2.y;
+
+			
+			tangents[i0] = tangent;
+			tangents[i1] = tangent;
+			tangents[i2] = tangent;
+		}
+
+		for (size_t i = 0; i < tangents.size(); ++i)
+		{
+			const glm::vec3& n = normals[i];
+			glm::vec3& t = tangents[i];
+
+			// Gram-Schmidt orthogonalization
+			t = glm::normalize(t - n * glm::dot(n, t));
+
+			if (glm::length2(t) < 0.001f)
+			{
+				if (glm::abs(n.x) < 0.9f)
+					t = glm::normalize(glm::cross(n, glm::vec3(1.0f, 0.0f, 0.0f)));
+				else
+					t = glm::normalize(glm::cross(n, glm::vec3(0.0f, 1.0f, 0.0f)));
+			}
+		}
+
+	}
+
+	return tangents;
+}
+
+
 std::unique_ptr<Mesh> LoadMesh(const std::string& filePath, KGR::_Vulkan::VulkanCore* core)
 {
 	std::unique_ptr<Mesh> result = std::make_unique<Mesh>();
@@ -107,6 +186,7 @@ std::unique_ptr<Mesh> LoadMesh(const std::string& filePath, KGR::_Vulkan::Vulkan
 		std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 		std::vector<Vertex> allVertices;
 		std::vector<uint32_t> indices;
+
 		for (const auto& index : shape.mesh.indices)
 		{
 			Vertex vertex;
@@ -145,8 +225,24 @@ std::unique_ptr<Mesh> LoadMesh(const std::string& filePath, KGR::_Vulkan::Vulkan
 
 			indices.push_back(uniqueVertices[vertex]);
 		}
+		std::vector<glm::vec3> posS;
+		std::vector<glm::vec3> normalS;
+		std::vector<glm::vec2> uvS;
+		for (auto& v :allVertices)
+		{
+			posS.push_back(v.pos);
+			normalS.push_back(v.normal);
+			uvS.push_back(v.uv);
+		}
+		auto tangent = s_ComputeTangents(posS, normalS, uvS, indices);
+
+		for (int i = 0 ; i < tangent.size(); ++i)
+		{
+			auto t = tangent[i];
+			allVertices[i].tangent = { t.x,t.y,t.z,1 };
+		}
 		result->AddSubMesh(std::make_unique<SubMeshes>(allVertices, indices,shape.name, core));
 	}
 	return std::move(result);
-
 }
+

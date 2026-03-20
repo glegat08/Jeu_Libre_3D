@@ -1,4 +1,4 @@
-#include "Collision.h"
+#include "Math/Collision.h"
 
 namespace KGR
 {

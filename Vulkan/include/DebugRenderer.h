@@ -3,9 +3,9 @@
 #include <glm/glm.hpp>
 #include "Buffer.h"
 #include "Pipeline.h"
-#include "AABB.h"
-#include "OBB.h"
-#include "Sphere.h"
+#include "Math/AABB.h"
+#include "Math/OBB.h"
+#include "Math/Sphere.h"
 #include "VertexDebug.h"
 #include "Core/Mesh.h"
 

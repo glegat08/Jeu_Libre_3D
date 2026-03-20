@@ -1,4 +1,4 @@
-#include "SAT.h"
+#include "Math/SAT.h"
 #define NOMINMAX
 #include <algorithm>
 #include <glm/geometric.hpp>

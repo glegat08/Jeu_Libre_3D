@@ -3,8 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "AABB.h"
-#include "OBB.h"
+#include "Math/AABB.h"
+#include "Math/OBB.h"
 #include "Core/Mesh.h"
 #include "Core/RessourcesManager.h"
 

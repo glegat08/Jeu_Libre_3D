@@ -154,7 +154,6 @@ struct MeshComponent
 std::unique_ptr<Mesh> LoadMesh(const std::string& filePath,
     KGR::_Vulkan::VulkanCore* core);
 
-
 /**
  * @brief Resource manager alias for loading and caching meshes.
  *
