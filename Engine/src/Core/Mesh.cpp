@@ -106,6 +106,7 @@ std::vector<glm::vec3> s_ComputeTangents(
 
 	for (size_t i = 0; i < indices.size(); i += 3)
 	{
+		// index 
 		uint32_t i0 = indices[i];
 		uint32_t i1 = indices[i + 1];
 		uint32_t i2 = indices[i + 2];
@@ -131,19 +132,36 @@ std::vector<glm::vec3> s_ComputeTangents(
 			tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 			tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
 
-			tangents[i0] += tangent;
-			tangents[i1] += tangent;
-			tangents[i2] += tangent;
+			tangent = glm::normalize(tangent);
+
+			float sx = deltaUV1.x;
+			float sy = deltaUV2.x;
+			float tx = deltaUV1.y;
+			float ty = deltaUV2.y;
+
+			
+			tangents[i0] = tangent;
+			tangents[i1] = tangent;
+			tangents[i2] = tangent;
 		}
 
 		for (size_t i = 0; i < tangents.size(); ++i)
 		{
-			const glm::vec3 n = glm::normalize(normals[i]);
-			glm::vec3 t = glm::normalize(tangents[i]);
+			const glm::vec3& n = normals[i];
+			glm::vec3& t = tangents[i];
 
-			glm::vec3 b = glm::cross(n, t);
-			tangents[i] = glm::cross(b, n);
+			// Gram-Schmidt orthogonalization
+			t = glm::normalize(t - n * glm::dot(n, t));
+
+			if (glm::length2(t) < 0.001f)
+			{
+				if (glm::abs(n.x) < 0.9f)
+					t = glm::normalize(glm::cross(n, glm::vec3(1.0f, 0.0f, 0.0f)));
+				else
+					t = glm::normalize(glm::cross(n, glm::vec3(0.0f, 1.0f, 0.0f)));
+			}
 		}
+
 	}
 
 	return tangents;

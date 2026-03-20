@@ -50,63 +50,10 @@ private:
 };
 
 
-/**
- * @brief ECS component storing one or more textures for a mesh.
- *
- * A mesh may have multiple submeshes, each requiring its own texture.
- * This component stores a list of Texture* pointers indexed by submesh ID.
- */
 struct TextureComponent
 {
-    TextureComponent() = default;
-
-    /**
-     * @brief Resizes the internal texture array.
-     *
-     * @param size Number of textures (usually number of submeshes).
-     */
-    void SetSize(uint32_t size)
-    {
-        m_textures.resize(size);
-    }
-
-    /// @brief Returns the number of textures stored.
-    size_t Size() const
-    {
-        return m_textures.size();
-    }
-
-    /**
-     * @brief Assigns a texture to a specific index.
-     *
-     * @param index Submesh index.
-     * @param texture Pointer to a Texture resource.
-     */
-    void AddTexture(uint32_t index, Texture* texture)
-    {
-        m_textures[index] = texture;
-    }
-
-    /// @brief Returns a const pointer to the texture at the given index.
-    const Texture* GetTexture(uint32_t index) const
-    {
-        return m_textures[index];
-    }
-
-    /// @brief Returns a pointer to the texture at the given index.
-    Texture* GetTexture(uint32_t index)
-    {
-        return m_textures[index];
-    }
-
-    /// @brief Returns all textures as a modifiable vector.
-    std::vector<Texture*>& GetAllTextures()
-    {
-        return m_textures;
-    }
-
-private:
-    std::vector<Texture*> m_textures; ///< Texture list indexed by submesh.
+   
+   Texture* texture; 
 };
 
 

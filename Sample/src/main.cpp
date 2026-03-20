@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 		// create the transform and set all the data
 		TransformComponent transform;
 		transform.SetPosition({ 0,0,0 });
-		transform.SetScale({ 2.0f,2.0f,2.0f });
+		transform.SetScale({ 2.0f, 1.0f,3.0f });
 		// same create an entity / id
 		auto e = registry.CreateEntity();
 		// fill the component
@@ -145,8 +145,7 @@ int main(int argc, char** argv)
 		ui.SetScale({ 200,200 });
 		// create a texture but be aware that only the first texture in the component will be use 
 		TextureComponent texture;
-		texture.SetSize(1);
-		texture.AddTexture(0, &TextureLoader::Load("Textures/texture.jpg", window->App()));
+		texture.texture =  &TextureLoader::Load("Textures/texture.jpg", window->App());
 		
 		// same as always 
 		auto e = registry.CreateEntity();

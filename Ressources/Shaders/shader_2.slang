@@ -52,10 +52,13 @@ VSOutput vertMain(VSInput input) {
     output.eyePos = mul(data.CamUbo.InverseView, float4(0.0f.xxx, 1.0f)).xyz;
     output.fragTexCoord = input.inTexCoord;
     output.fragColor = input.inColor;
-    output.normal =  mul(pushConstantData.model, float4(input.normal, 0.0f)).xyz;
+    //output.normal =  mul(pushConstantData.model, float4(input.normal, 0.0f)).xyz;
 
+    // normal to ws 
     float3 N = normalize(mul(pushConstantData.model, float4(input.normal, 0.0f)).xyz);
+    // tangeant to ws 
     float3 T = normalize(mul(pushConstantData.model, float4(input.Tangeant.xyz, 0.0f)).xyz);
+    // prosses bi tengeant * 1.0f
     float3 B = cross(N, T) * input.Tangeant.w;
 
     output.normal = N;
@@ -96,17 +99,28 @@ ConstantBuffer<Sampler2D> normalSampler;
 
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET {
-    float3 result = float(0.0f).xxx;
     // float metalness = 1.f;
     float oclusion = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).r;
 	float metalness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).b;
 	float roughness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).g;
-	float3 emessive = emissiveSampler.Sample(vertIn.fragTexCoord).rgb;
+	float3 emessive = pow(emissiveSampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
+
+    // get normal map rgb
 	float3 normalMap = normalSampler.Sample(vertIn.fragTexCoord).rgb;
+
+    // convert -1 1 to 0 1 
     normalMap.xy = normalMap.xy * 2.0f - 1.0f;
-    float3x3 TBM = float3x3(vertIn.tangent, vertIn.bitangent, vertIn.normal);
-    //float3 normal = normalize(mul(TBM, normalMap));
-    float3 normal = vertIn.normal;
+
+    // create matrix TBN and transpose it 
+    float3x3 TBM = transpose(float3x3(vertIn.tangent, vertIn.bitangent, vertIn.normal));
+
+    // compute the normal
+    float3 normal = normalize(mul(TBM,normalMap));
+
+   // float3 normal = vertIn.normal;
+    float3 result = float(0.f).xxx;
+    float3 baseColor = pow(sampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
+    result += baseColor * (1 - metalness) * oclusion * 0.02f;
 
     for (int i = 0; i < lightCount; ++i)
     {
@@ -126,7 +140,6 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
             float3 H = normalize(L + V);
 
             
-			float3 baseColor = sampler.Sample(vertIn.fragTexCoord).rgb;
 
             // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
@@ -145,8 +158,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
             float3 specular = Ks * pow(max(dot(N, H), 0.0f), Ns);
             float3 Fr = (Kd * 1.0f/3.14159265f) +  specular;
             float3 Ej = diffuse * attenuation;
-			
-	
+
              result += (Fr * Ej) * lightColor;
         }
         // Directional
@@ -159,7 +171,6 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
             float3 V = normalize(vertIn.eyePos - vertIn.worldspacePosition.xyz);
             float3 H = normalize(-lightDir + V);
 
-			float3 baseColor = sampler.Sample(vertIn.fragTexCoord).rgb;
 
             // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
@@ -189,7 +200,6 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
             float3 H = normalize(L + V);
 
           
-			float3 baseColor = sampler.Sample(vertIn.fragTexCoord).rgb;
 
             // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
@@ -223,8 +233,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
              result += (Fr * Ej) * lightColor;
         }
     }
+    result += emessive * 3.0f;
 
-    result *= oclusion;
-    result += emessive;
     return float4(result,1.0f);
 }

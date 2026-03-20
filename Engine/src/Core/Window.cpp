@@ -79,7 +79,7 @@ void KGR::RenderWindow::RegisterUi(UiComponent& component, TransformComponent2d&
 	float aspectRatio = static_cast<float>(GetSize().x) / static_cast<float>(GetSize().y);
 	transform.SetPosition(component.GetPosNdc(aspectRatio));
 	transform.SetScale(component.GetScaleNdc(aspectRatio));
-	m_core.RegisterUi(UiData{ component.GetColor(),transform.GetFullTransform() }, texture.GetTexture(0), GetSize());
+	m_core.RegisterUi(UiData{ component.GetColor(),transform.GetFullTransform() }, texture.texture, GetSize());
 }
 
 void KGR::RenderWindow::Render(const glm::vec4& clearColor, ImDrawData* imguiDraw)
