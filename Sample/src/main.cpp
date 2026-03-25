@@ -28,6 +28,7 @@ private:
 	ecsType* m_registry;
 	unsigned long long m_ID;
 	int m_life;
+	static constexpr int m_LIFEMAX = 20;
 	
 	
 public:
@@ -36,35 +37,11 @@ public:
 		,m_registry(nullptr)
 		,m_ID(0)
 	{}
-	~Enemy() = default;
 
 	void Init(ecsType& registry, unsigned long long id)
 	{
 		m_registry = &registry;
 		m_ID = id;
-
-		//m_life = life;
-
-		//mesh.mesh = &MeshLoader::Load("Models/monkey.obj", window->App());
-		//texture.SetSize(mesh.mesh->GetSubMeshesCount());
-
-		//for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
-		//	texture.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
-
-		////// create the transform and set all the data
-		////TransformComponent transform;
-		//transform.SetPosition({ m_x,m_y,m_z });
-		//transform.SetScale({ 3.0f,3.0f,3.0f });
-
-
-		//
-
-		//m_Mesh = &registry.GetComponent<MeshComponent>(e);
-		//m_Texture = &registry.GetComponent<TextureComponent>(e);
-		//m_Transform = &registry.GetComponent<TransformComponent>(e);
-		//m_ID = e;
-
-		//m_Transform->
 	
 	}
 
@@ -72,10 +49,24 @@ public:
 	{
 		return m_life > 0;
 	}
+	const void SetLife(int life)
+	{
+		m_life = life;
+	}
 
 	const unsigned long long& Get_ID() const
 	{
 		return m_ID;
+	}
+
+	const ecsType& Get_Registry() const
+	{
+		return (*m_registry);
+	}
+
+	const void Activated()
+	{
+		m_life = m_LIFEMAX;
 	}
 
 	void Update(float dt)
@@ -109,6 +100,7 @@ public:
 			auto id = registry.CreateEntity();
 			// fill the component
 			registry.AddComponents<MeshComponent, TextureComponent, TransformComponent>(id, std::move(mesh), std::move(texture), std::move(transform));
+
 			std::pair<Enemy, bool> entity;
 			entity.first.Init(registry,id);
 			entity.second = false;
@@ -116,9 +108,34 @@ public:
 		}
 	}
 	 
-	void Spawn(const glm::vec3& position)
+	std::optional<unsigned long long> Spawn(const glm::vec3& position)
 	{
+		if (
+			std::ranges::all_of
+			(
+				m_Enemys, [](const auto& enemy)
+				{
+					return enemy.second == true;
+				}
+			)
+			)
+		{
+			std::cerr << "No more enemies available \n";
+			return std::nullopt;
+		}
+		for (auto& enemy : m_Enemys)
+		{
+			if (enemy.second == false)
+			{
+				enemy.first.Activated();
+				auto &transform = enemy.first.Get_Registry().GetComponent<TransformComponent>(enemy.first.Get_ID());
+				transform.SetPosition(position);
+				enemy.second = true;
+				return enemy.first.Get_ID();
+			}
+		}
 
+		throw std::exception("Error in Spawn function, logic not planned");
 	}
 
 	void release(unsigned long long& entity)
