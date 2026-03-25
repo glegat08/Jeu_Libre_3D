@@ -15,6 +15,8 @@ struct Vertex
     glm::vec4 color;  ///< Vertex color (RGBA).
     glm::vec2 uv;     ///< Texture coordinates.
     glm::vec4 tangent;
+    glm::ivec4 joints;
+    glm::vec4 weights;
 
     /**
      * @brief Returns the Vulkan binding description for this vertex type.
@@ -39,15 +41,19 @@ struct Vertex
     {
         return {
             vk::VertexInputAttributeDescription(
-                0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)),
+                0, 0, vk::Format::eR32G32B32Sfloat,     offsetof(Vertex, pos)),
             vk::VertexInputAttributeDescription(
-                1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),
+                1, 0, vk::Format::eR32G32B32Sfloat,     offsetof(Vertex, normal)),
             vk::VertexInputAttributeDescription(
-                2, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(Vertex, color)),
+                2, 0, vk::Format::eR32G32B32A32Sfloat,  offsetof(Vertex, color)),
             vk::VertexInputAttributeDescription(
-                3, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv)),
-                  vk::VertexInputAttributeDescription(
-                4, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(Vertex, tangent)),
+                3, 0, vk::Format::eR32G32Sfloat,        offsetof(Vertex, uv)),
+            vk::VertexInputAttributeDescription(
+                4, 0, vk::Format::eR32G32B32A32Sfloat,  offsetof(Vertex, tangent)),
+            vk::VertexInputAttributeDescription(
+                5, 0, vk::Format::eR32G32B32A32Sint,    offsetof(Vertex, joints)),
+            vk::VertexInputAttributeDescription(
+                6, 0, vk::Format::eR32G32B32A32Sfloat,  offsetof(Vertex, weights))
         };
     }
 
