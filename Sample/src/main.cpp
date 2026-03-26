@@ -49,7 +49,7 @@ public:
 	{
 		return m_life > 0;
 	}
-	const void SetLife(int life)
+	void SetLife(int life)
 	{
 		m_life = life;
 	}
@@ -64,7 +64,7 @@ public:
 		return (*m_registry);
 	}
 
-	const void Activated()
+	void Activated()
 	{
 		m_life = m_LIFEMAX;
 	}
@@ -138,9 +138,21 @@ public:
 		throw std::exception("Error in Spawn function, logic not planned");
 	}
 
-	void release(unsigned long long& entity)
+	void release(unsigned long long id)
 	{
+		auto it = std::ranges::find_if
+		(
+			m_Enemys,[&id](const auto& enemy)
+			{
+				return enemy.first.Get_ID() == id;
+			}
+		);
 
+		if (it == m_Enemys.end())
+			throw std::exception("Enemy not found");
+
+		it->second = false;
+		it->first.SetLife(0);
 	}
 
 	void UpdateAll(float dt)
