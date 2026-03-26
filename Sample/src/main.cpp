@@ -154,11 +154,6 @@ public:
 		it->second = false;
 		it->first.SetLife(0);
 	}
-
-	void UpdateAll(float dt)
-	{
-
-	}
 };
 
 class Ground
