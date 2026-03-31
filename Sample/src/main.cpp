@@ -16,6 +16,9 @@
 #include "Tools/Chrono.h"
 #include "Audio/SoundComponent.h"
 
+#include"ts_ecs.h"
+
+
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
@@ -168,8 +171,10 @@ int main(int argc, char** argv)
 
 	// create your ecs 
 	ecsType registry = ecsType{};
-	EnemyPool enemies_Pool;
-	enemies_Pool.Init(window, registry, 10);
+	/*EnemyPool enemies_Pool;
+	enemies_Pool.Init(window, registry, 10);*/
+
+	ts::Scene scene;
 
 
 	// This is how to use the sounds and music system
@@ -199,19 +204,27 @@ int main(int argc, char** argv)
 
 	// camera 
 	{
-		// a calera need a cameraComponent that can be orthographic or perspective and a transform
+		//// a calera need a cameraComponent that can be orthographic or perspective and a transform
 
-		// create the camera with the fov , the size of the window (must be updated ) and the far and near rendering and the mode 
-		CameraComponent cam = CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective);
+		//// create the camera with the fov , the size of the window (must be updated ) and the far and near rendering and the mode 
+		//CameraComponent cam = CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective);
+		//TransformComponent transform;
+		//// create a transform and set pos and dir 
+		//transform.SetPosition({ 0,3,5 });
+		//transform.LookAt({ 0,0,0 });
+		//// now create an entity , an alias here std::uint64_t
+		//auto e = registry.CreateEntity();
+		//
+		//// now move the component into the ecs
+		//registry.AddComponents(e, std::move(cam), std::move(transform));
+
+
+		auto e1 = scene.Spawn();
+		scene.Add<CameraComponent>(e1, { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective) });
 		TransformComponent transform;
-		// create a transform and set pos and dir 
 		transform.SetPosition({ 0,3,5 });
 		transform.LookAt({ 0,0,0 });
-		// now create an entity , an alias here std::uint64_t
-		auto e = registry.CreateEntity();
-
-		// now move the component into the ecs
-		registry.AddComponents(e, std::move(cam), std::move(transform));
+		scene.Add<TransformComponent>(e1, transform);
 	}
 
 	
@@ -241,23 +254,27 @@ int main(int argc, char** argv)
 		//// fill the component
 		//registry.AddComponents(e, std::move(mesh1), std::move(text), std::move(transform));
 
+
+
 	}
 
 	// light
 	{
-		// the light need transform component and light component
-		// all lights type have their own system to create them go in the file to understand
-		LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1,0,1 }, { 1,1,1 }, 10.0f,100.0f,glm::radians(5.0f),0.15f);
-		LightComponent<LightData::Type::Directional> lightDirection = LightComponent<LightData::Type::Directional>::Create({ 1,1,1 }, { 0,0,0 }, 500.0f);
-		// set the transform but certain light need dir some position or both so just use what necessary 
-		TransformComponent transform;
-		transform.SetPosition({ 0,5,0 });
-		transform.LookAtDir({ 0,-1,0 });
-		transform.SetScale({ -3,-3,-3 });
-		// same 
-		auto e = registry.CreateEntity();
-		// same
-		registry.AddComponents(e, std::move(lightDirection), std::move(transform));
+		//// the light need transform component and light component
+		//// all lights type have their own system to create them go in the file to understand
+		//LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1,0,1 }, { 1,1,1 }, 10.0f,100.0f,glm::radians(5.0f),0.15f);
+		//LightComponent<LightData::Type::Directional> lightDirection = LightComponent<LightData::Type::Directional>::Create({ 1,1,1 }, { 0,0,0 }, 500.0f);
+		//// set the transform but certain light need dir some position or both so just use what necessary 
+		//TransformComponent transform;
+		//transform.SetPosition({ 0,5,0 });
+		//transform.LookAtDir({ 0,-1,0 });
+		//transform.SetScale({ -3,-3,-3 });
+		//// same 
+		//auto e = registry.CreateEntity();
+		//// same
+		//registry.AddComponents(e, std::move(lightDirection), std::move(transform));
+
+
 	}
 
 	// ui ( not fully operational)
@@ -324,7 +341,7 @@ int main(int argc, char** argv)
 		window->Update();
 
 		{
-			auto es = registry.GetAllComponentsView<CameraComponent, TransformComponent>();
+			/*auto es = registry.GetAllComponentsView<CameraComponent, TransformComponent>();
 			if (es.Size() != 1)
 				throw std::runtime_error("need one and one cam");
 			for (auto& e : es)
@@ -332,7 +349,17 @@ int main(int argc, char** argv)
 				registry.GetComponent<CameraComponent>(e).UpdateCamera(registry.GetComponent<TransformComponent>(e).GetFullTransform());
 				registry.GetComponent<CameraComponent>(e).SetAspect(window->GetSize().x, window->GetSize().y);
 				window->RegisterCam(registry.GetComponent<CameraComponent>(e), registry.GetComponent<TransformComponent>(e));
-			}
+			}*/
+
+			if (scene.Count<CameraComponent>() != 1)
+				throw std::runtime_error("need one and one cam");
+
+			scene.Query<CameraComponent, TransformComponent>().Each([&](ts::Entity e, CameraComponent& cam, TransformComponent& transform)
+			{
+					cam.UpdateCamera(transform.GetFullTransform());
+					cam.SetAspect(window->GetSize().x, window->GetSize().y);
+					window->RegisterCam(cam, transform);
+			});
 		}
 
 
@@ -348,6 +375,10 @@ int main(int argc, char** argv)
 				auto& t = registry.GetComponent<TransformComponent>(e);
 			}
 
+		}
+
+		{
+			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, TextureComponent, EnemyComponent, ActiveComponent>();
 		}
 
 		//just a test to see the mouse pos
