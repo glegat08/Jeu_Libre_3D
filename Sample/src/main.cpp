@@ -19,7 +19,8 @@
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
-struct ActiveComponent{};
+struct ActiveComponent {};
+struct EnemyComponent{};
 class Enemy
 {
 private:
@@ -96,10 +97,12 @@ public:
 
 			transform.SetScale({ 3.0f,3.0f,3.0f });
 
+			auto Enemy = EnemyComponent();
+
 			// same create an entity / id
 			auto id = registry.CreateEntity();
 			// fill the component
-			registry.AddComponents<MeshComponent, TextureComponent, TransformComponent>(id, std::move(mesh), std::move(texture), std::move(transform));
+			registry.AddComponents<MeshComponent, TextureComponent, TransformComponent,EnemyComponent>(id, std::move(mesh), std::move(texture), std::move(transform),std::move(Enemy));
 
 			m_Enemys.push_back(std::move(id));
 
@@ -124,7 +127,7 @@ public:
 			std::cerr << "No more enemies available \n";
 			return std::nullopt;
 		}
-		auto active = ActiveComponent();
+		
 		m_registry->AddComponent<ActiveComponent>(*it);
 		auto& transform = m_registry->GetComponent<TransformComponent>(*it);
 		transform.SetPosition(position);
