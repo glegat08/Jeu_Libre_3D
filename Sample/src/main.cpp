@@ -19,12 +19,10 @@
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
+struct ActiveComponent{};
 class Enemy
 {
 private:
-	/*MeshComponent *m_Mesh;
-	TextureComponent* m_Texture;
-	TransformComponent* m_Transform;*/
 	ecsType* m_registry;
 	unsigned long long m_ID;
 	int m_life;
@@ -78,8 +76,10 @@ public:
 class EnemyPool
 {
 private:
-	std::vector < std::pair<Enemy, bool>> m_Enemys;
+	std::vector <unsigned long long> m_Enemys;
+	KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>* m_registry;
 public:
+	//TODO : Peut être problème d'initialisation, les meshs ne sont pas vraiment lié à l'état de la pool pour l'instant
 	void Init(std::unique_ptr<KGR::RenderWindow>& window, ecsType& registry, int nombre)
 	{
 		for (int enemy = 0; enemy < nombre; enemy++)
@@ -101,58 +101,42 @@ public:
 			// fill the component
 			registry.AddComponents<MeshComponent, TextureComponent, TransformComponent>(id, std::move(mesh), std::move(texture), std::move(transform));
 
-			std::pair<Enemy, bool> entity;
-			entity.first.Init(registry,id);
-			entity.second = false;
-			m_Enemys.push_back(std::move(entity));
+			m_Enemys.push_back(std::move(id));
+
+			
 		}
+
+		m_registry = &registry;
 	}
 	 
 	std::optional<unsigned long long> Spawn(const glm::vec3& position)
 	{
-		if (
-			std::ranges::all_of
-			(
-				m_Enemys, [](const auto& enemy)
-				{
-					return enemy.second == true;
-				}
-			)
-			)
+
+		auto it = std::ranges::find_if
+		(
+			m_Enemys, [this](const auto& enemy)
+			{
+				return !m_registry->HasComponent<ActiveComponent>(enemy);
+			}
+		);
+		if (it == m_Enemys.end())
 		{
 			std::cerr << "No more enemies available \n";
 			return std::nullopt;
 		}
-		for (auto& enemy : m_Enemys)
-		{
-			if (enemy.second == false)
-			{
-				enemy.first.Activated();
-				auto &transform = enemy.first.Get_Registry().GetComponent<TransformComponent>(enemy.first.Get_ID());
-				transform.SetPosition(position);
-				enemy.second = true;
-				return enemy.first.Get_ID();
-			}
-		}
-
-		throw std::exception("Error in Spawn function, logic not planned");
+		auto active = ActiveComponent();
+		m_registry->AddComponent<ActiveComponent>(*it);
+		auto& transform = m_registry->GetComponent<TransformComponent>(*it);
+		transform.SetPosition(position);
+		return *it;
 	}
 
 	void release(unsigned long long id)
 	{
-		auto it = std::ranges::find_if
-		(
-			m_Enemys,[&id](const auto& enemy)
-			{
-				return enemy.first.Get_ID() == id;
-			}
-		);
+		if (!m_registry->HasComponent<ActiveComponent>(id))
+			return;
 
-		if (it == m_Enemys.end())
-			throw std::exception("Enemy not found");
-
-		it->second = false;
-		it->first.SetLife(0);
+		m_registry->RemoveComponent<ActiveComponent>(id);
 	}
 };
 
@@ -181,7 +165,8 @@ int main(int argc, char** argv)
 
 	// create your ecs 
 	ecsType registry = ecsType{};
-	ecsType EnnemyPool = ecsType{};
+	EnemyPool enemies_Pool;
+	enemies_Pool.Init(window, registry, 10);
 
 
 	// This is how to use the sounds and music system
@@ -234,21 +219,15 @@ int main(int argc, char** argv)
 		//// create a mesh and load it with the cash loader
 		///*MeshComponent mesh1;
 		//mesh1.mesh = &MeshLoader::Load("Models/cube.obj",window->App());*/
-		//MeshComponent mesh2;
-		//mesh2.mesh = &MeshLoader::Load("Models/monkey.obj", window->App());
 
 		//// create a texture 
 		////TextureComponent text;
-		//TextureComponent NoeText;
 		//// allocate the size of the texture must be the same as the number of submeshes 
 		////text.SetSize(mesh1.mesh->GetSubMeshesCount());
-		//NoeText.SetSize(mesh2.mesh->GetSubMeshesCount());
 		//// then fill the texture ( this system need to be refact but for now you need to do it like that
 		///*for (int i = 0; i < mesh1.mesh->GetSubMeshesCount(); ++i)
 		//	text.AddTexture(i, &TextureLoader::Load("Textures/viking_room.png", window->App()));*/
 
-		//for (int i = 0; i < mesh2.mesh->GetSubMeshesCount(); ++i)
-		//	NoeText.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
 
 		//// create the transform and set all the data
 		//TransformComponent transform;
@@ -257,10 +236,8 @@ int main(int argc, char** argv)
 		//// same create an entity / id
 		//auto e = registry.CreateEntity();
 		//// fill the component
-		//registry.AddComponents(e, std::move(mesh2), std::move(NoeText), std::move(transform));
+		//registry.AddComponents(e, std::move(mesh1), std::move(text), std::move(transform));
 
-		Enemy enemy;
-		enemy.Init(window, registry, 0.0f, 0.0f, 0.0f, 0);
 	}
 
 	// light
