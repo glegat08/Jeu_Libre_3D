@@ -23,7 +23,31 @@
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
 struct ActiveComponent {};
-struct EnemyComponent{};
+struct EnemyComponent {};
+struct HealtComponent { int Health; };
+struct SpawnZone
+{
+	glm::vec3 center;
+	float radius;
+};
+
+ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window,ts::Scene& scene, const std::string& meshPath, const std::string& texturePath, glm::vec3 pos)
+{
+	auto mesh = MeshComponent();
+	auto texture = TextureComponent();
+	auto transform = TransformComponent();
+	mesh.mesh = &MeshLoader::Load(meshPath, window->App());
+	texture.SetSize(mesh.mesh->GetSubMeshesCount());
+	for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
+		texture.AddTexture(i, &TextureLoader::Load(texturePath, window->App()));
+
+	transform.SetScale({ 3.0f,3.0f,3.0f });
+	transform.SetPosition(pos);
+
+	return scene.Spawn(std::move(mesh), std::move(texture), std::move(transform), EnemyComponent{}, HealtComponent{ 100 });
+}
+
+
 class Enemy
 {
 private:
@@ -83,7 +107,6 @@ private:
 	std::vector <unsigned long long> m_Enemys;
 	KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>* m_registry;
 public:
-	//TODO : Peut être problème d'initialisation, les meshs ne sont pas vraiment lié à l'état de la pool pour l'instant
 	void Init(std::unique_ptr<KGR::RenderWindow>& window, ecsType& registry, int nombre)
 	{
 		for (int enemy = 0; enemy < nombre; enemy++)
@@ -175,6 +198,7 @@ int main(int argc, char** argv)
 	enemies_Pool.Init(window, registry, 10);*/
 
 	ts::Scene scene;
+	auto enemy = SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", { 0,0,0 });
 
 
 	// This is how to use the sounds and music system
@@ -254,7 +278,7 @@ int main(int argc, char** argv)
 		//// fill the component
 		//registry.AddComponents(e, std::move(mesh1), std::move(text), std::move(transform));
 
-
+		
 
 	}
 
@@ -363,7 +387,7 @@ int main(int argc, char** argv)
 		}
 
 
-		{
+		/*{
 			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, TextureComponent>();
 			for (auto& e : es)
 			{
@@ -375,10 +399,16 @@ int main(int argc, char** argv)
 				auto& t = registry.GetComponent<TransformComponent>(e);
 			}
 
-		}
+		}*/
 
 		{
-			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, TextureComponent, EnemyComponent, ActiveComponent>();
+			scene.Query<MeshComponent, TransformComponent, TextureComponent>()
+				.Where([&](const ts::Entity e, const MeshComponent& mesh, const TransformComponent& transform, const TextureComponent& texture)
+				{
+						return scene.HasComponent<EnemyComponent>(e);
+				})
+				.Each([&](ts::Entity e, MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture) {window->RegisterRender(mesh, transform, texture); });
+			
 		}
 
 		//just a test to see the mouse pos
