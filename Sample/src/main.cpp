@@ -17,6 +17,8 @@
 #include "Audio/SoundComponent.h"
 
 #include"ts_ecs.h"
+#include <random>
+#include <numbers>
 
 
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
@@ -46,7 +48,36 @@ ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window,ts::Scene
 
 	return scene.Spawn(std::move(mesh), std::move(texture), std::move(transform), EnemyComponent{}, HealtComponent{ 100 });
 }
+void SpawnEnemies(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, const SpawnZone& Spawn)
+{
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<float> theta(0.0f, std::numbers::pi*2.0f);
+	std::uniform_real_distribution<float> r(0.0f, Spawn.radius);
+	std::uniform_int_distribution type(0, 2);
 
+	glm::vec3 pos
+	{ Spawn.center.x + r(gen) * cosf(theta(gen)),
+		Spawn.center.y,
+		Spawn.center.z + r(gen) * sinf(theta(gen)),
+	};
+
+	switch (type(gen))
+	{
+	case 1:
+		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos);
+		break;
+	case 2:
+		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos);
+		break;
+	case 0:
+		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos);
+		break;
+	default:
+		throw std::exception("Problem Spawn");
+	}
+
+}
 
 class Enemy
 {
@@ -198,7 +229,10 @@ int main(int argc, char** argv)
 	enemies_Pool.Init(window, registry, 10);*/
 
 	ts::Scene scene;
-	auto enemy = SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", { 0,0,0 });
+	//auto enemy = SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", { 0,0,0 });
+
+	
+	
 
 
 	// This is how to use the sounds and music system
@@ -326,16 +360,23 @@ int main(int argc, char** argv)
 	}
 
 	float current = 0.0f;
+	float timer = 0.0f;
 	KGR::Tools::Chrono<float> chrono;
 	while (!window->ShouldClose())
 	{
 		float actual = chrono.GetElapsedTime().AsSeconds();
 		float dt = actual - current;
 		current = actual;
-		
+
+		timer += dt;
+		if (timer >= 2.0f)
+		{
+			SpawnEnemies(window, scene, SpawnZone{ {0,0,0},5.0f });
+			timer = 0.0f;
+		}
 
 		{
-			auto es = registry.GetAllComponentsView<MeshComponent,TransformComponent>();
+			/*auto es = registry.GetAllComponentsView<MeshComponent,TransformComponent>();
 			for (auto& e : es)
 			{
 				auto input = window->GetInputManager();
@@ -357,7 +398,28 @@ int main(int argc, char** argv)
 					registry.GetComponent<TransformComponent>(e).RotateQuat<RotData::Orientation::Roll>(glm::radians(-speed * dt));
 				if (input->IsKeyDown(KGR::Key::E))
 					registry.GetComponent<TransformComponent>(e).RotateQuat<RotData::Orientation::Roll>(glm::radians(speed * dt));
-			}
+			}*/
+
+			scene.Query<MeshComponent, TransformComponent>().Each([&](ts::Entity e, MeshComponent& mesh, TransformComponent& transform)
+				{
+					auto input = window->GetInputManager();
+					static float speed = 25.0f;
+
+					if (input->IsKeyDown(KGR::Key::Q))
+						transform.RotateQuat<RotData::Orientation::Yaw>(glm::radians(speed * dt));
+					if (input->IsKeyDown(KGR::Key::D))
+						transform.RotateQuat<RotData::Orientation::Yaw>(glm::radians(-speed * dt));
+
+					if (input->IsKeyDown(KGR::Key::Z))
+						transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(-speed * dt));
+					if (input->IsKeyDown(KGR::Key::S))
+						transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(speed * dt));
+
+					if (input->IsKeyDown(KGR::Key::A))
+						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(-speed * dt));
+					if (input->IsKeyDown(KGR::Key::E))
+						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(speed * dt));
+				});
 
 		}
 
