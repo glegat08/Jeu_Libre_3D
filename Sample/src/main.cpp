@@ -50,6 +50,9 @@ ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window,ts::Scene
 }
 void SpawnEnemies(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, const SpawnZone& Spawn)
 {
+	if (scene.Query<EnemyComponent>().Count() >= 20)
+		return;
+
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_real_distribution<float> theta(0.0f, std::numbers::pi*2.0f);
@@ -65,13 +68,13 @@ void SpawnEnemies(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& s
 	switch (type(gen))
 	{
 	case 1:
-		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos);
+		SpawnEnemy(window, scene, "Models/CUBE.obj", "Textures/BaseTexture.png", pos);
 		break;
 	case 2:
 		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos);
 		break;
 	case 0:
-		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos);
+		SpawnEnemy(window, scene, "Models/stormtrooper.obj", "Textures/BaseTexture.png", pos);
 		break;
 	default:
 		throw std::exception("Problem Spawn");

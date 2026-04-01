@@ -299,6 +299,11 @@ namespace ts
             });
         }
 
+        void ConstEach(EachFn fn) const
+        {
+            const_cast<QueryView*>(this)->Each(fn);
+        }
+
         /**
          * @brief Calls @p fn for only the first matching entity.
          */
@@ -320,6 +325,12 @@ namespace ts
         {
             std::vector<Entity> result;
             Each([&](Entity e, COMPONENTS&...) { result.push_back(e); });
+            return result;
+        }
+        std::size_t Count() const
+        {
+            std::size_t result = 0;
+            ConstEach([&](Entity e, COMPONENTS&...) { ++result; });
             return result;
         }
     };
