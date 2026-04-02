@@ -403,25 +403,36 @@ int main(int argc, char** argv)
 					registry.GetComponent<TransformComponent>(e).RotateQuat<RotData::Orientation::Roll>(glm::radians(speed * dt));
 			}*/
 
-			scene.Query<MeshComponent, TransformComponent>().Each([&](ts::Entity e, MeshComponent& mesh, TransformComponent& transform)
+			scene.Query<CameraComponent, TransformComponent>().Each([&](ts::Entity e, CameraComponent& cam, TransformComponent& transform)
 				{
 					auto input = window->GetInputManager();
 					static float speed = 25.0f;
 
 					if (input->IsKeyDown(KGR::Key::Q))
-						transform.RotateQuat<RotData::Orientation::Yaw>(glm::radians(speed * dt));
+						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Left>() * speed * dt);
+					
 					if (input->IsKeyDown(KGR::Key::D))
-						transform.RotateQuat<RotData::Orientation::Yaw>(glm::radians(-speed * dt));
+						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Right>() * speed * dt);
 
 					if (input->IsKeyDown(KGR::Key::Z))
-						transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(-speed * dt));
+						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Forward>() * speed * dt);
 					if (input->IsKeyDown(KGR::Key::S))
-						transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(speed * dt));
+						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Backward>() * speed * dt);
 
 					if (input->IsKeyDown(KGR::Key::A))
 						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(-speed * dt));
 					if (input->IsKeyDown(KGR::Key::E))
 						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(speed * dt));
+
+					if (input->GetMouseDelta().x > 0)
+						transform.RotateQuat<RotData::Orientation::Yaw>(glm::radians(speed* dt));
+					if (input->GetMouseDelta().x < 0)
+						transform.RotateQuat<RotData::Orientation::Yaw>(glm::radians(-speed * dt));
+
+					if (input->GetMouseDelta().y > 0)
+						transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(speed * dt));
+					if (input->GetMouseDelta().y < 0)
+						transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(-speed * dt));
 				});
 
 		}
