@@ -406,33 +406,30 @@ int main(int argc, char** argv)
 			scene.Query<CameraComponent, TransformComponent>().Each([&](ts::Entity e, CameraComponent& cam, TransformComponent& transform)
 				{
 					auto input = window->GetInputManager();
-					static float speed = 25.0f;
+					static float SpeedMovCam = 25.0f;
 
+					//Allows you to move the camera using the Z, Q, S, and D keys
 					if (input->IsKeyDown(KGR::Key::Q))
-						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Left>() * speed * dt);
-					
+						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Left>() * SpeedMovCam * dt);
 					if (input->IsKeyDown(KGR::Key::D))
-						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Right>() * speed * dt);
+						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Right>() * SpeedMovCam * dt);
 
 					if (input->IsKeyDown(KGR::Key::Z))
-						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Forward>() * speed * dt);
+						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Forward>() * SpeedMovCam * dt);
 					if (input->IsKeyDown(KGR::Key::S))
-						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Backward>() * speed * dt);
+						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Backward>() * SpeedMovCam * dt);
 
+					static float SpeedRollCam = SpeedMovCam * 2.0f;
 					if (input->IsKeyDown(KGR::Key::A))
-						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(-speed * dt));
+						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(-SpeedRollCam * dt));
 					if (input->IsKeyDown(KGR::Key::E))
-						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(speed * dt));
+						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(SpeedRollCam * dt));
 
-					if (input->GetMouseDelta().x > 0)
-						transform.RotateQuat<RotData::Orientation::Yaw>(glm::radians(speed* dt));
-					if (input->GetMouseDelta().x < 0)
-						transform.RotateQuat<RotData::Orientation::Yaw>(glm::radians(-speed * dt));
-
-					if (input->GetMouseDelta().y > 0)
-						transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(speed * dt));
-					if (input->GetMouseDelta().y < 0)
-						transform.RotateQuat<RotData::Orientation::Pitch>(glm::radians(-speed * dt));
+					
+					//Allows you to pan the camera using the mouse 
+					static float MouseSensitivity = 1.0f;
+					transform.RotateQuat<RotData::Orientation::Yaw>(-input->GetMouseDelta().x * MouseSensitivity * dt);
+					transform.RotateQuat<RotData::Orientation::Pitch>(-input->GetMouseDelta().y * MouseSensitivity * dt);
 				});
 
 		}
