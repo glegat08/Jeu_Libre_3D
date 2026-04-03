@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 	std::unique_ptr<KGR::RenderWindow> window = std::make_unique<KGR::RenderWindow>(glm::vec2{ 1920,800 }, "test", projectRoot / "Ressources");
 
 	// getInputManager retrieve our input system where you can have the mouse pos mouse delta key pressed ... and set the cursor mode 
-	window->GetInputManager()->SetMode(GLFW_CURSOR_NORMAL);
+	window->GetInputManager()->SetMode(GLFW_CURSOR_DISABLED);
 
 	// create your ecs 
 	ecsType registry = ecsType{};
@@ -163,8 +163,8 @@ int main(int argc, char** argv)
 		auto cam = scene.Spawn();
 		scene.Add<CameraComponent>(std::move(cam), { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective) });
 		TransformComponent transform;
-		transform.SetPosition({ 0,1,-4 });
-		transform.LookAt({ 0,0,0 });
+		transform.SetPosition({ 0.0f,1.0f,15.0f });
+		transform.LookAt({ 0.0f,0.0f,-1.0f });
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
 
@@ -188,7 +188,7 @@ int main(int argc, char** argv)
 
 		// create the transform and set all the data
 		TransformComponent transform;
-		transform.SetPosition({ 0,0,0 });
+		transform.SetPosition({ 0.0f,0.0f,0.0f });
 		transform.SetScale({ 100.0f,0.5f,10.0f });
 		// same create an entity / id
 		auto map = scene.Spawn();
@@ -237,9 +237,9 @@ int main(int argc, char** argv)
 		// create your ui with a virtual resolution and an anchor default center
 		UiComponent ui({1920,1080},UiComponent::Anchor::LeftTop);
 		// here set the position in the virtual resolution
-		ui.SetPos({ 0, 0 });
+		ui.SetPos({ 0.0f, 0.0f });
 		// here the scale
-		ui.SetScale({ 200,200 });
+		ui.SetScale({ 200.0f,200.0f });
 		// create a texture but be aware that only the first texture in the component will be use 
 		TextureComponent texture;
 		texture.SetSize(1);
@@ -253,6 +253,7 @@ int main(int argc, char** argv)
 
 	float current = 0.0f;
 	float timer = 0.0f;
+	bool HasSecondFrame = false;
 	KGR::Tools::Chrono<float> chrono;
 	while (!window->ShouldClose())
 	{
@@ -266,7 +267,8 @@ int main(int argc, char** argv)
 			SpawnEnemies(window, scene, SpawnZone{ {0.0f,0.0f,1.0f},5.0f });
 			timer = 0.0f;
 		}
-
+		//TODO:Probleme Orientation Camera
+		if (HasSecondFrame)
 		{
 			/*auto es = registry.GetAllComponentsView<MeshComponent,TransformComponent>();
 			for (auto& e : es)
@@ -291,7 +293,7 @@ int main(int argc, char** argv)
 				if (input->IsKeyDown(KGR::Key::E))
 					registry.GetComponent<TransformComponent>(e).RotateQuat<RotData::Orientation::Roll>(glm::radians(speed * dt));
 			}*/
-
+			
 			scene.Query<CameraComponent, TransformComponent>().Each([&](ts::Entity e, CameraComponent& cam, TransformComponent& transform)
 				{
 					auto input = window->GetInputManager();
@@ -314,7 +316,7 @@ int main(int argc, char** argv)
 					if (input->IsKeyDown(KGR::Key::E))
 						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(SpeedRollCam * dt));
 
-					
+
 					//Allows you to pan the camera using the mouse 
 					static float MouseSensitivity = 1.0f;
 					transform.RotateQuat<RotData::Orientation::Yaw>(-input->GetMouseDelta().x * MouseSensitivity * dt);
@@ -422,6 +424,7 @@ int main(int argc, char** argv)
 				}
 		}
 		window->Render({ 0.53f, 0.81f, 0.92f, 1.0f });
+		HasSecondFrame = true;
 	}
 
 	window->Destroy();
