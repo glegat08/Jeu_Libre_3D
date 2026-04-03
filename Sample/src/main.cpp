@@ -165,6 +165,7 @@ int main(int argc, char** argv)
 		TransformComponent transform;
 		transform.SetPosition({ 0.0f,1.0f,15.0f });
 		transform.LookAt({ 0.0f,0.0f,-1.0f });
+
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
 
@@ -189,7 +190,7 @@ int main(int argc, char** argv)
 		// create the transform and set all the data
 		TransformComponent transform;
 		transform.SetPosition({ 0.0f,0.0f,0.0f });
-		transform.SetScale({ 100.0f,0.5f,10.0f });
+		transform.SetScale({ 100.0f,0.5f,100.0f });
 		// same create an entity / id
 		auto map = scene.Spawn();
 		// fill the component
@@ -253,7 +254,8 @@ int main(int argc, char** argv)
 
 	float current = 0.0f;
 	float timer = 0.0f;
-	bool HasSecondFrame = false;
+	bool HasValidFrame = false;
+	char Count = 0;
 	KGR::Tools::Chrono<float> chrono;
 	while (!window->ShouldClose())
 	{
@@ -267,8 +269,10 @@ int main(int argc, char** argv)
 			SpawnEnemies(window, scene, SpawnZone{ {0.0f,0.0f,1.0f},5.0f });
 			timer = 0.0f;
 		}
-		//TODO:Probleme Orientation Camera
-		if (HasSecondFrame)
+
+		Count += 1;
+		//TODO:Problem Orientation Camera 
+		if (HasValidFrame)
 		{
 			/*auto es = registry.GetAllComponentsView<MeshComponent,TransformComponent>();
 			for (auto& e : es)
@@ -424,7 +428,8 @@ int main(int argc, char** argv)
 				}
 		}
 		window->Render({ 0.53f, 0.81f, 0.92f, 1.0f });
-		HasSecondFrame = true;
+		if (Count > 5)
+			HasValidFrame = true;
 	}
 
 	window->Destroy();
