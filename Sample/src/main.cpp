@@ -82,133 +82,6 @@ void SpawnEnemies(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& s
 
 }
 
-class Enemy
-{
-private:
-	ecsType* m_registry;
-	unsigned long long m_ID;
-	int m_life;
-	static constexpr int m_LIFEMAX = 20;
-	
-	
-public:
-	Enemy()
-		:m_life(0)
-		,m_registry(nullptr)
-		,m_ID(0)
-	{}
-
-	void Init(ecsType& registry, unsigned long long id)
-	{
-		m_registry = &registry;
-		m_ID = id;
-	
-	}
-
-	bool isActive() const
-	{
-		return m_life > 0;
-	}
-	void SetLife(int life)
-	{
-		m_life = life;
-	}
-
-	const unsigned long long& Get_ID() const
-	{
-		return m_ID;
-	}
-
-	const ecsType& Get_Registry() const
-	{
-		return (*m_registry);
-	}
-
-	void Activated()
-	{
-		m_life = m_LIFEMAX;
-	}
-
-	void Update(float dt)
-	{
-
-	}
-};
-
-class EnemyPool
-{
-private:
-	std::vector <unsigned long long> m_Enemys;
-	KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>* m_registry;
-public:
-	void Init(std::unique_ptr<KGR::RenderWindow>& window, ecsType& registry, int nombre)
-	{
-		for (int enemy = 0; enemy < nombre; enemy++)
-		{
-			auto mesh = MeshComponent();
-			auto texture = TextureComponent();
-			auto transform = TransformComponent();
-
-			mesh.mesh = &MeshLoader::Load("Models/monkey.obj", window->App());
-			texture.SetSize(mesh.mesh->GetSubMeshesCount());
-
-			for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
-				texture.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
-
-			transform.SetScale({ 3.0f,3.0f,3.0f });
-
-			auto Enemy = EnemyComponent();
-
-			// same create an entity / id
-			auto id = registry.CreateEntity();
-			// fill the component
-			registry.AddComponents<MeshComponent, TextureComponent, TransformComponent,EnemyComponent>(id, std::move(mesh), std::move(texture), std::move(transform),std::move(Enemy));
-
-			m_Enemys.push_back(std::move(id));
-
-			
-		}
-
-		m_registry = &registry;
-	}
-	 
-	std::optional<unsigned long long> Spawn(const glm::vec3& position)
-	{
-
-		auto it = std::ranges::find_if
-		(
-			m_Enemys, [this](const auto& enemy)
-			{
-				return !m_registry->HasComponent<ActiveComponent>(enemy);
-			}
-		);
-		if (it == m_Enemys.end())
-		{
-			std::cerr << "No more enemies available \n";
-			return std::nullopt;
-		}
-		
-		m_registry->AddComponent<ActiveComponent>(*it);
-		auto& transform = m_registry->GetComponent<TransformComponent>(*it);
-		transform.SetPosition(position);
-		return *it;
-	}
-
-	void release(unsigned long long id)
-	{
-		if (!m_registry->HasComponent<ActiveComponent>(id))
-			return;
-
-		m_registry->RemoveComponent<ActiveComponent>(id);
-	}
-};
-
-class Ground
-{
-	
-};
-
-
 
 int main(int argc, char** argv)
 {
@@ -280,43 +153,40 @@ int main(int argc, char** argv)
 		//registry.AddComponents(e, std::move(cam), std::move(transform));
 
 
-		auto e1 = scene.Spawn();
-		scene.Add<CameraComponent>(e1, { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective) });
+		auto cam = scene.Spawn();
+		scene.Add<CameraComponent>(cam, { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective) });
 		TransformComponent transform;
 		transform.SetPosition({ 0,3,5 });
 		transform.LookAt({ 0,0,0 });
-		scene.Add<TransformComponent>(e1, transform);
+		scene.Add<TransformComponent>(cam, transform);
 	}
 
 	
 	// mesh
 	{
-		//// a mesh need a meshComponent a transform and a texture 
+		// a mesh need a meshComponent a transform and a texture 
 
-		//// create a mesh and load it with the cash loader
-		///*MeshComponent mesh1;
-		//mesh1.mesh = &MeshLoader::Load("Models/cube.obj",window->App());*/
+		// create a mesh and load it with the cash loader
+		MeshComponent tempo_map;
+		tempo_map.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
 
-		//// create a texture 
-		////TextureComponent text;
-		//// allocate the size of the texture must be the same as the number of submeshes 
-		////text.SetSize(mesh1.mesh->GetSubMeshesCount());
-		//// then fill the texture ( this system need to be refact but for now you need to do it like that
-		///*for (int i = 0; i < mesh1.mesh->GetSubMeshesCount(); ++i)
-		//	text.AddTexture(i, &TextureLoader::Load("Textures/viking_room.png", window->App()));*/
+		// create a texture 
+		TextureComponent text;
+		// allocate the size of the texture must be the same as the number of submeshes 
+		text.SetSize(tempo_map.mesh->GetSubMeshesCount());
+		// then fill the texture ( this system need to be refact but for now you need to do it like that
+		for (int i = 0; i < tempo_map.mesh->GetSubMeshesCount(); ++i)
+			text.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
 
 
-		//// create the transform and set all the data
-		//TransformComponent transform;
-		//transform.SetPosition({ 0,0,0 });
-		//transform.SetScale({ 3.0f,3.0f,3.0f });
-		//// same create an entity / id
-		//auto e = registry.CreateEntity();
-		//// fill the component
-		//registry.AddComponents(e, std::move(mesh1), std::move(text), std::move(transform));
-
-		
-
+		// create the transform and set all the data
+		TransformComponent transform;
+		transform.SetPosition({ 0,0,0 });
+		transform.SetScale({ 10.0f,10.0f,1.0f });
+		// same create an entity / id
+		scene.Spawn(std::move(tempo_map), std::move(text), std::move(transform));
+		// fill the component
+		//registry.AddComponents(e, std::move(tempo_map), std::move(text), std::move(transform));
 	}
 
 	// light
