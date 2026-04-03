@@ -24,7 +24,7 @@
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
-struct ActiveComponent {};
+struct MapComponent {};
 struct EnemyComponent {};
 struct HealtComponent { int Health; };
 struct SpawnZone
@@ -32,6 +32,13 @@ struct SpawnZone
 	glm::vec3 center;
 	float radius;
 };
+
+template<LightData::Type LightType>
+void UpdateLightComponent(const std::unique_ptr<KGR::RenderWindow> &window,ts::Scene &scene)
+{
+	scene.Query<LightComponent<LightType>, TransformComponent>()
+		.Each([&](ts::Entity e, LightComponent<LightType>& light, TransformComponent& transform) {window->RegisterLight(light, transform); });
+}
 
 ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window,ts::Scene& scene, const std::string& meshPath, const std::string& texturePath, glm::vec3 pos)
 {
@@ -154,11 +161,11 @@ int main(int argc, char** argv)
 
 
 		auto cam = scene.Spawn();
-		scene.Add<CameraComponent>(cam, { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective) });
+		scene.Add<CameraComponent>(std::move(cam), { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective) });
 		TransformComponent transform;
-		transform.SetPosition({ 0,3,5 });
+		transform.SetPosition({ 0,1,-4 });
 		transform.LookAt({ 0,0,0 });
-		scene.Add<TransformComponent>(cam, transform);
+		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
 
 	
@@ -182,11 +189,15 @@ int main(int argc, char** argv)
 		// create the transform and set all the data
 		TransformComponent transform;
 		transform.SetPosition({ 0,0,0 });
-		transform.SetScale({ 10.0f,10.0f,1.0f });
+		transform.SetScale({ 100.0f,0.5f,10.0f });
 		// same create an entity / id
-		scene.Spawn(std::move(tempo_map), std::move(text), std::move(transform));
+		auto map = scene.Spawn();
 		// fill the component
 		//registry.AddComponents(e, std::move(tempo_map), std::move(text), std::move(transform));
+		scene.Add<MeshComponent>(std::move(map), std::move(tempo_map));
+		scene.Add<TextureComponent>(std::move(map), std::move(text));
+		scene.Add<TransformComponent>(std::move(map), std::move(transform));
+		scene.Add<MapComponent>(std::move(map), MapComponent());
 	}
 
 	// light
@@ -204,6 +215,14 @@ int main(int argc, char** argv)
 		//auto e = registry.CreateEntity();
 		//// same
 		//registry.AddComponents(e, std::move(lightDirection), std::move(transform));
+
+		LightComponent<LightData::Type::Directional> Sun = LightComponent<LightData::Type::Directional>::Create({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, 500.0f);
+		TransformComponent transform;
+		transform.SetPosition({ 0.0f,10.0f,0.0f });
+		transform.LookAtDir({ 0.0f,-1.0f,0.0f });
+		auto Sun_Entity = scene.Spawn();
+		scene.Add(std::move(Sun_Entity), std::move(Sun));
+		scene.Add(std::move(Sun_Entity), std::move(transform));
 
 
 	}
@@ -244,7 +263,7 @@ int main(int argc, char** argv)
 		timer += dt;
 		if (timer >= 2.0f)
 		{
-			SpawnEnemies(window, scene, SpawnZone{ {0,0,0},5.0f });
+			SpawnEnemies(window, scene, SpawnZone{ {0.0f,0.0f,1.0f},5.0f });
 			timer = 0.0f;
 		}
 
@@ -326,6 +345,7 @@ int main(int argc, char** argv)
 					cam.UpdateCamera(transform.GetFullTransform());
 					cam.SetAspect(window->GetSize().x, window->GetSize().y);
 					window->RegisterCam(cam, transform);
+					//std::println(transform.)
 			});
 		}
 
@@ -353,17 +373,25 @@ int main(int argc, char** argv)
 				.Each([&](ts::Entity e, MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture) {window->RegisterRender(mesh, transform, texture); });
 			
 		}
+		{
+			scene.Query<MeshComponent, TransformComponent, TextureComponent>()
+				.Where([&](const ts::Entity e, const MeshComponent& mesh, const TransformComponent& transform, const TextureComponent& texture)
+					{
+						return scene.HasComponent<MapComponent>(e);
+					})
+				.Each([&](ts::Entity e, MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture) {window->RegisterRender(mesh, transform, texture); });
+		}
 
 		//just a test to see the mouse pos
-		std::cout << window.get()->GetInputManager()->GetMousePosition().x << " " << window->GetInputManager()->GetMousePosition().y << std::endl;
-
+		//std::cout << window.get()->GetInputManager()->GetMousePosition().x << " " << window->GetInputManager()->GetMousePosition().y << std::endl;
+		
 		//Test Sound
 		if(window->GetInputManager()->IsKeyPressed(KGR::Key::P))
 			sound.Play();
 
 		
 
-		{
+		/*{
 			auto es = registry.GetAllComponentsView<LightComponent<LightData::Type::Point>, TransformComponent>();
 			for (auto& e : es)
 				window->RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Point>>(e), registry.GetComponent<TransformComponent>(e));
@@ -377,6 +405,11 @@ int main(int argc, char** argv)
 			auto es = registry.GetAllComponentsView<LightComponent<LightData::Type::Directional>, TransformComponent>();
 			for (auto& e : es)
 				window->RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Directional>>(e), registry.GetComponent<TransformComponent>(e));
+		}*/
+		{
+			UpdateLightComponent<LightData::Type::Directional>(window, scene);
+			UpdateLightComponent<LightData::Type::Spot>(window, scene);
+			UpdateLightComponent<LightData::Type::Point>(window, scene);
 		}
 		{
 			auto es = registry.GetAllComponentsView < TextureComponent, TransformComponent2d,UiComponent > ();
