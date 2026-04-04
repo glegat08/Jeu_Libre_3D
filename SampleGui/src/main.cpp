@@ -13,6 +13,7 @@
 #include <glm/gtc/constants.hpp>
 #include "Core/Mesh.h"
 #include "Context.h"
+#include "Core/Materials.h"
 
 //----------------------------------------------------------------
 // WORK IN PROGRESS
@@ -63,9 +64,9 @@ int main(int argc, char** argv)
     lTransform3.SetPosition({ -5,1,0 });
     lTransform3.LookAtDir({ 1,-1,0 });
 
-    TextureComponent baseTexture;
-    baseTexture.SetSize(1);
-    baseTexture.AddTexture(0, &TextureLoader::Load("Textures\\BaseTexture.png", &app));
+    MaterialComponent baseMaterial;
+    baseMaterial.SetSize(1);
+    baseMaterial.AddMaterial(0, Material{ &TextureLoader::Load("Textures\\BaseTexture.png", &app) });
 
     auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -106,23 +107,23 @@ int main(int argc, char** argv)
 
 
         // --- Render scene entities ---
-        std::vector<std::vector<Texture*>> entityTextures;
         {
             Scene* activeScene = editor.GetActiveScene();
             if (activeScene)
             {
                 auto view = activeScene->GetRegistry().GetAllComponentsView<MeshComponent, TransformComponent>();
-                entityTextures.reserve(view.Size());
                 for (auto e : view)
                 {
                     auto& meshComp = activeScene->GetComponent<MeshComponent>(e);
                     auto& transformComp = activeScene->GetComponent<TransformComponent>(e);
                     if (meshComp.mesh)
                     {
-                        entityTextures.emplace_back(
-                            meshComp.mesh->GetSubMeshesCount(),
-                            baseTexture.GetTexture(0));
-                        app.RegisterRender(*meshComp.mesh, transformComp.GetFullTransform(), entityTextures.back());
+                        std::vector<Material> entityMaterials(meshComp.mesh->GetSubMeshesCount());
+                        for (size_t i = 0; i < entityMaterials.size(); ++i)
+                        {
+                            entityMaterials[i] = Material{ baseMaterial.GetMaterial(0).baseColor };
+                        }
+                        app.RegisterRender(*meshComp.mesh, transformComp.GetFullTransform(), entityMaterials);
                     }
                 }
             }

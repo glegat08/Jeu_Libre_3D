@@ -70,6 +70,7 @@ source_group(
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC 
+    ${VukanHeader}
     ${HEADER_DIR}
   # ${MYLIB_HEADER}
     PRIVATE
@@ -83,6 +84,7 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
     Vulkan
     GLFW_
+    Engine
   # YourLib
   # ${MYLIB_LIB}/YourLib.lib
     PRIVATE

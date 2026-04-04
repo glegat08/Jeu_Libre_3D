@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <chrono>
+#include <stdexcept>
 
 namespace KGR
 {
@@ -140,6 +141,12 @@ namespace KGR
             Time GetElapsedTime() const;
 
             /**
+             * @brief Calculates and returns the time in seconds since the last call to GetDeltaTime.
+             * Essential for frame-independent game loops.
+             */
+            type GetDeltaTime();
+
+            /**
              * @brief Pauses the timer and returns the elapsed time.
              */
             Time Pause();
@@ -165,9 +172,10 @@ namespace KGR
              */
             Time GetPauseTime() const;
 
-            time_point m_start; ///< Start time of the Chrono.
-            bool m_stop;        ///< Indicates whether the timer is paused.
-            Time m_stopTime;    ///< Time recorded at pause.
+            time_point m_start;    ///< Start time of the Chrono.
+            time_point m_lastTick; ///< Time of the last GetDeltaTime call.
+            bool m_stop;           ///< Indicates whether the timer is paused.
+            Time m_stopTime;       ///< Time recorded at pause.
         };
 
         template <typename type>
@@ -356,18 +364,18 @@ namespace KGR
         }
 
         template <typename type>
-        Chrono<type>::Chrono() : m_start(clock::now()), m_stop(false), m_stopTime(Time())
+        Chrono<type>::Chrono() : m_start(clock::now()), m_lastTick(m_start), m_stop(false), m_stopTime(Time())
         {
 
         }
 
         template <typename type>
-        Chrono<type>::Chrono(const Chrono& other) : m_start(other.m_start), m_stop(other.m_stop), m_stopTime(other.m_stopTime)
+        Chrono<type>::Chrono(const Chrono& other) : m_start(other.m_start), m_lastTick(other.m_lastTick), m_stop(other.m_stop), m_stopTime(other.m_stopTime)
         {
         }
 
         template <typename type>
-        Chrono<type>::Chrono(Chrono&& other) noexcept : m_start(std::move(other.m_start)), m_stop(other.m_stop), m_stopTime(std::move(other.m_stopTime))
+        Chrono<type>::Chrono(Chrono&& other) noexcept : m_start(std::move(other.m_start)), m_lastTick(std::move(other.m_lastTick)), m_stop(other.m_stop), m_stopTime(std::move(other.m_stopTime))
         {
         }
 
@@ -375,6 +383,7 @@ namespace KGR
         Chrono<type>& Chrono<type>::operator=(const Chrono& other)
         {
             m_start = other.m_start;
+            m_lastTick = other.m_lastTick;
             m_stop = other.m_stop;
             m_stopTime = other.m_stopTime;
             return *this;
@@ -384,6 +393,7 @@ namespace KGR
         Chrono<type>& Chrono<type>::operator=(Chrono&& other) noexcept
         {
             m_start = std::move(other.m_start);
+            m_lastTick = std::move(other.m_lastTick);
             m_stop = other.m_stop;
             m_stopTime = std::move(other.m_stopTime);
             return *this;
@@ -395,6 +405,22 @@ namespace KGR
             if (IsPause())
                 return GetPauseTime();
             return Time(m_start, clock::now());
+        }
+
+        template <typename type>
+        type Chrono<type>::GetDeltaTime()
+        {
+            auto now = clock::now();
+
+            if (IsPause())
+            {
+                m_lastTick = now;
+                return 0;
+            }
+
+            duration delta = now - m_lastTick;
+            m_lastTick = now;
+            return std::chrono::duration<type>(delta).count();
         }
 
         template <typename type>
@@ -413,6 +439,9 @@ namespace KGR
             if (IsPause())
             {
                 m_stop = false;
+
+                m_start = clock::now() - m_stopTime.Duration();
+                m_lastTick = clock::now();
                 m_stopTime = Time();
                 return GetElapsedTime();
             }
@@ -440,6 +469,7 @@ namespace KGR
             if (IsPause())
                 m_stop = false;
             m_start = clock::now();
+            m_lastTick = m_start;
             m_stopTime = Time();
             return result;
         }

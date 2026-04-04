@@ -87,7 +87,8 @@ target_include_directories(${PROJECT_NAME}
       ${VukanHeader}
       ${SoLoudHeader}
      ${CMAKE_CURRENT_SOURCE_DIR}/../External/STB/Includes
-    ${CMAKE_CURRENT_SOURCE_DIR}/../External/TOL/Includes
+     ${CMAKE_CURRENT_SOURCE_DIR}/../External/TOL/Includes
+     ${CMAKE_CURRENT_SOURCE_DIR}/../External/GLTF/Includes
 
   # ${MYLIB_HEADER}
     PRIVATE

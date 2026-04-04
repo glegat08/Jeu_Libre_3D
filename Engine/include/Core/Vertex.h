@@ -4,16 +4,19 @@
 /**
  * @brief Standard mesh vertex used for 3D rendering.
  *
- * Contains position, normal, color, and UV coordinates.
+ * Contains position, normal, color, UV coordinates, tangent for normal mapping, and joint data for skeletal animation.
  * Also provides Vulkan binding and attribute descriptions
  * for pipeline vertex input configuration.
  */
 struct Vertex
 {
-    glm::vec3 pos;    ///< Vertex position in object space.
-    glm::vec3 normal; ///< Vertex normal vector.
-    glm::vec4 color;  ///< Vertex color (RGBA).
-    glm::vec2 uv;     ///< Texture coordinates.
+    glm::vec3 pos;      ///< Vertex position in object space.
+    glm::vec3 normal;   ///< Vertex normal vector.
+    glm::vec4 color;    ///< Vertex color (RGBA).
+    glm::vec2 uv;       ///< Texture coordinates.
+	glm::vec4 tangent;  ///< Vertex tangent vector (for normal mapping).
+	glm::ivec4 joints;  ///< Joint indices for skeletal animation (up to 4 joints).
+	glm::vec4 weights;  ///< Joint weights for skeletal animation (corresponding to joints).
 
     /**
      * @brief Returns the Vulkan binding description for this vertex type.
@@ -33,18 +36,28 @@ struct Vertex
      * - location 1 → normal   (vec3)
      * - location 2 → color    (vec4)
      * - location 3 → uv       (vec2)
+	 * - location 4 → tangent  (vec4)
+	 * - location 5 → joints   (ivec4)
+	 * - location 6 → weights  (vec4)
      */
     static std::vector<vk::VertexInputAttributeDescription> getAttributeDescriptions()
     {
-        return {
+        return 
+        {
             vk::VertexInputAttributeDescription(
-                0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)),
+                0, 0, vk::Format::eR32G32B32Sfloat,     offsetof(Vertex, pos)),
             vk::VertexInputAttributeDescription(
-                1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),
+                1, 0, vk::Format::eR32G32B32Sfloat,     offsetof(Vertex, normal)),
             vk::VertexInputAttributeDescription(
-                2, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(Vertex, color)),
+                2, 0, vk::Format::eR32G32B32A32Sfloat,  offsetof(Vertex, color)),
             vk::VertexInputAttributeDescription(
-                3, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv))
+                3, 0, vk::Format::eR32G32Sfloat,        offsetof(Vertex, uv)),
+            vk::VertexInputAttributeDescription(
+                4, 0, vk::Format::eR32G32B32A32Sfloat,  offsetof(Vertex, tangent)),
+            vk::VertexInputAttributeDescription(
+                5, 0, vk::Format::eR32G32B32A32Sint,    offsetof(Vertex, joints)),
+            vk::VertexInputAttributeDescription(
+                6, 0, vk::Format::eR32G32B32A32Sfloat,  offsetof(Vertex, weights))
         };
     }
 

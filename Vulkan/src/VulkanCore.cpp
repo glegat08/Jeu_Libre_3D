@@ -62,7 +62,8 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 
 	// Layouts 
 	std::vector<vk::DescriptorSetLayoutBinding> bindings = {
-			vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr)
+			vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr),
+			vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr)
 	};
 
 
@@ -81,9 +82,25 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 	std::vector<vk::DescriptorSetLayoutBinding> bindings3 = {
 					vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
 	};
+	std::vector<vk::DescriptorSetLayoutBinding> bindings4 = {
+				vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+	};
+	std::vector<vk::DescriptorSetLayoutBinding> bindings5 = {
+				vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+	};
+	std::vector<vk::DescriptorSetLayoutBinding> bindings6 = {
+				vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+	};
 	auto layout3 = DescriptorLayout(bindings3, &device);
 	auto layout4 = DescriptorLayout(bindings3, &device);
+	auto layout5 = DescriptorLayout(bindings4, &device);
+	auto layout6 = DescriptorLayout(bindings5, &device);
+	auto layout7 = DescriptorLayout(bindings6, &device);
 	descriptorSetLayout.Add(std::move(layout3));
+	descriptorSetLayout.Add(std::move(layout5));
+	descriptorSetLayout.Add(std::move(layout6));
+	descriptorSetLayout.Add(std::move(layout7));
+
 	uiLayout.Add(std::move(layout4));
 
 	graphicsPipeline = _Vulkan::Pipeline(info, &device, &swapChain,&descriptorSetLayout,&physicalDevice,vk::PolygonMode::eFill,Vertex::getBindingDescription(), Vertex::getAttributeDescriptions());
@@ -116,6 +133,16 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 	uniformBuffers = std::move(bufferD);
 
 
+	// BOne buffer
+	m_frameBones.reserve(10000);
+	vk::DeviceSize boneBufferSize = sizeof(glm::mat4) * 10000;
+	auto boneBufferTmp = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, boneBufferSize);
+	boneBufferTmp.MapMemory(boneBufferSize);
+	m_boneBuffer = std::move(boneBufferTmp);
+
+	std::vector<glm::mat4> identityBones(10000, glm::mat4(1.0f));
+	m_boneBuffer.Upload(identityBones.data(), identityBones.size() * sizeof(glm::mat4));
+
 	// light Buffer 
 	vk::DeviceSize bufferSize2 = (StorageContainer < LightData, 200 >::Capacity());
 	auto bufferD2 = Buffer(&device, &physicalDevice, vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, bufferSize2);
@@ -129,9 +156,9 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 
 	// descriptorPool
 	std::vector<vk::DescriptorPoolSize> poolSize{
-				vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 2),
+				vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 3),
 				vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 497),
-				vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer,1)
+				vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 2)
 	};
 	descriptorPool = DescriptorPool(poolSize, 500, &device);
 
@@ -151,6 +178,10 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 		.buffer = m_lightCount.Get(),
 		.offset = 0,
 		.range = m_lightCount.GetSize() };
+	vk::DescriptorBufferInfo boneBufferInfo{
+	.buffer = m_boneBuffer.Get(),
+	.offset = 0,
+	.range = m_boneBuffer.GetSize()};
 	std::array descriptorWrites
 	{
 		vk::WriteDescriptorSet{
@@ -160,6 +191,13 @@ void KGR::_Vulkan::VulkanCore::initVulkan(GLFWwindow* window)
 			.descriptorCount = 1,
 			.descriptorType = vk::DescriptorType::eUniformBuffer,
 			.pBufferInfo = &bufferInfo},
+			vk::WriteDescriptorSet{
+				.dstSet = descriptorSets.Get(), 
+				.dstBinding = 1, 
+				.dstArrayElement = 0,
+				.descriptorCount = 1, 
+				.descriptorType = vk::DescriptorType::eStorageBuffer,
+				.pBufferInfo = &boneBufferInfo},
 			vk::WriteDescriptorSet{
 				.dstSet = m_LightSet.Get(),
 				.dstBinding = 0,
@@ -371,7 +409,10 @@ void KGR::_Vulkan::VulkanCore::RenderSceneToOffscreen(KGR::Editor::Offscreen& ta
 				vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
 			cmd->bindDescriptorSets(
 				vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 1, *m_LightSet.Get(), nullptr);
-			it.texture->at(i)->Bind(cmd, &graphicsPipeline.GetLayout(), 2);
+			it.texture.at(i).baseColor->Bind(cmd, &graphicsPipeline.GetLayout(), 2);
+			it.texture.at(i).pbrMap->Bind(cmd, &graphicsPipeline.GetLayout(), 3);
+			it.texture.at(i).emissive->Bind(cmd, &graphicsPipeline.GetLayout(), 4);
+			it.texture.at(i).normalMap->Bind(cmd, &graphicsPipeline.GetLayout(), 5);
 			cmd->drawIndexed(it.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
 		}
 	}
@@ -677,14 +718,102 @@ KGR::_Vulkan::Image KGR::_Vulkan::VulkanCore::CreateImage(const std::string& fil
 	buffer.Upload(image.pixels, imageSize);
 	buffer.UnMapMemory();
 	uint32_t mipLevel = static_cast<uint32_t>(std::floor(std::log2(std::max(image.width, image.height)))) + 1;
-	KGR::_Vulkan::Image textureImage = KGR::_Vulkan::Image(image.width, image.height, mipLevel, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, &device, &physicalDevice);
+	KGR::_Vulkan::Image textureImage = KGR::_Vulkan::Image(image.width, image.height, mipLevel, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, &device, &physicalDevice);
 	transitionImageLayout(textureImage.Get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, textureImage.GetMimMap());
 	buffer.CopyImage(&textureImage, &device, &queue, &commandBuffers);
-	textureImage.CreateView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, &device);
-	generateMipmaps(textureImage.Get(), vk::Format::eR8G8B8A8Srgb, textureImage.GetWidth(), textureImage.GetHeight(), textureImage.GetMimMap());
+	textureImage.CreateView(vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor, &device);
+	generateMipmaps(textureImage.Get(), vk::Format::eR8G8B8A8Unorm, textureImage.GetWidth(), textureImage.GetHeight(), textureImage.GetMimMap());
 
 	return textureImage;
 }
+
+KGR::_Vulkan::Image KGR::_Vulkan::VulkanCore::CreateImageFromMemory(const unsigned char* data, size_t size)
+{
+	int texWidth, texHeight, texChannels;
+
+	std::unique_ptr<stbi_uc, StbiCleaner> pixels(
+		stbi_load_from_memory(data, static_cast<int>(size), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha)
+	);
+
+	if (!pixels) 
+	{
+		throw std::runtime_error(std::string("[VulkanCore] CreateImageFromMemory : stbi decode failed - ") + stbi_failure_reason());
+	}
+
+	vk::DeviceSize imageSize = texWidth * texHeight * 4;
+
+	KGR::_Vulkan::Buffer stagingBuffer(
+		&device, &physicalDevice,
+		vk::BufferUsageFlagBits::eTransferSrc,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+		imageSize
+	);
+
+	stagingBuffer.MapMemory(imageSize);
+	stagingBuffer.Upload(pixels.get(), imageSize);
+	stagingBuffer.UnMapMemory();
+
+	uint32_t mipLevel = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
+	KGR::_Vulkan::Image textureImage(
+		texWidth, texHeight, mipLevel,
+		vk::Format::eR8G8B8A8Unorm,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+		vk::MemoryPropertyFlagBits::eDeviceLocal,
+		&device, &physicalDevice
+	);
+
+	transitionImageLayout(textureImage.Get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, textureImage.GetMimMap());
+	stagingBuffer.CopyImage(&textureImage, &device, &queue, &commandBuffers);
+	textureImage.CreateView(vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor, &device);
+	generateMipmaps(textureImage.Get(), vk::Format::eR8G8B8A8Unorm, textureImage.GetWidth(), textureImage.GetHeight(), textureImage.GetMimMap());
+
+	return textureImage;
+}
+
+KGR::_Vulkan::Image KGR::_Vulkan::VulkanCore::CreateImageRaw(const uint8_t* rgbaPixels, uint32_t width, uint32_t height)
+{
+	vk::DeviceSize imageSize = width * height * 4;
+
+	KGR::_Vulkan::Buffer stagingBuffer(
+		&device, &physicalDevice,
+		vk::BufferUsageFlagBits::eTransferSrc,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+		imageSize);
+
+	stagingBuffer.MapMemory(imageSize);
+	stagingBuffer.Upload(rgbaPixels, imageSize);
+	stagingBuffer.UnMapMemory();
+
+	uint32_t mipLevel = static_cast<uint32_t>(
+		std::floor(std::log2(std::max(width, height)))) + 1;
+
+	KGR::_Vulkan::Image textureImage(
+		width, height, mipLevel,
+		vk::Format::eR8G8B8A8Unorm,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eTransferSrc |
+		vk::ImageUsageFlagBits::eTransferDst |
+		vk::ImageUsageFlagBits::eSampled,
+		vk::MemoryPropertyFlagBits::eDeviceLocal,
+		&device, &physicalDevice);
+
+	transitionImageLayout(textureImage.Get(),
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eTransferDstOptimal, mipLevel);
+
+	stagingBuffer.CopyImage(&textureImage, &device, &queue, &commandBuffers);
+
+	textureImage.CreateView(vk::Format::eR8G8B8A8Unorm,
+		vk::ImageAspectFlagBits::eColor, &device);
+
+	generateMipmaps(textureImage.Get(), vk::Format::eR8G8B8A8Unorm,
+		textureImage.GetWidth(), textureImage.GetHeight(), mipLevel);
+
+	return textureImage;
+}
+
 
 KGR::_Vulkan::DescriptorSet KGR::_Vulkan::VulkanCore::CreateSetForImage(Image* image)
 {
@@ -724,12 +853,31 @@ void KGR::_Vulkan::VulkanCore::RegisterCam(const glm::mat4& model, const glm::ma
 	m_ubo->proj[1][1] *= -1;
 }
 
-void KGR::_Vulkan::VulkanCore::RegisterRender(Mesh& mesh, const  glm::mat4& model,std::vector<Texture*>& texture)
+int KGR::_Vulkan::VulkanCore::RegisterBoneMatrices(const std::vector<glm::mat4>& boneMatrices)
+{
+	if (boneMatrices.empty())
+		return -1;
+
+	if (m_frameBones.size() + boneMatrices.size() > 10000)
+	{
+		std::cerr << "[VulkanCore] WARNING : Maximum bones capacity is reached for this frame !" << std::endl;
+		return -1;
+	}
+
+	int currentOffset = static_cast<int>(m_frameBones.size());
+	m_frameBones.insert(m_frameBones.end(), boneMatrices.begin(), boneMatrices.end());
+
+	return currentOffset;
+}
+
+void KGR::_Vulkan::VulkanCore::RegisterRender(Mesh& mesh, const glm::mat4& model, const std::vector<Material>& texture, int boneOffset)
 {
 	if (texture.size() != mesh.GetSubMeshesCount())
 		throw std::out_of_range("need same amount of subMeshes and texture");
-	m_toRenderObject.push_back(MeshData{ model ,&mesh,&texture });
+
+	m_toRenderObject.push_back(MeshData{ model, &mesh, texture, boneOffset });
 }
+
 
 void KGR::_Vulkan::VulkanCore::RegisterUi(const UiData& data, Texture* texture,const glm::vec2& screenSize)
 {
@@ -748,6 +896,12 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color
 	StorageContainer<LightData, 200> lData = StorageContainer<LightData, 200>::FromVec(m_lights);
 	m_lightBuffer.Upload(lData.Data(), lData.UploadSize());
 	m_lightCount.Upload(lData.GetSizeData(), m_lightCount.GetSize());
+
+	if (!m_frameBones.empty())
+	{
+		size_t dataSize = m_frameBones.size() * sizeof(glm::mat4);
+		m_boneBuffer.Upload(m_frameBones.data(), dataSize);
+	}
 
 	auto currentBuffer = &commandBuffers.Acquire(&device);
 	currentBuffer->reset();
@@ -787,13 +941,21 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color
 			for (int i = 0; i < it.mesh->GetSubMeshesCount(); ++i)
 			{
 				it.mesh->Bind(currentBuffer, i);
-				currentBuffer->pushConstants<glm::mat4>(
-					graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, it.matrixModel);
+
+				PushConstantData pcData;
+				pcData.model = it.matrixModel;
+				pcData.boneOffset = it.boneOffset;
+
+				currentBuffer->pushConstants<PushConstantData>(
+					graphicsPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, pcData);
 				currentBuffer->bindDescriptorSets(
 					vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 0, *descriptorSets.Get(), nullptr);
 				currentBuffer->bindDescriptorSets(
 					vk::PipelineBindPoint::eGraphics, graphicsPipeline.GetLayout(), 1, *m_LightSet.Get(), nullptr);
-				it.texture->at(i)->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 2);
+				it.texture.at(i).baseColor->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 2);
+				it.texture.at(i).pbrMap->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 3);
+				it.texture.at(i).emissive->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 4);
+				it.texture.at(i).normalMap->Bind(currentBuffer, &graphicsPipeline.GetLayout(), 5);
 				currentBuffer->drawIndexed(it.mesh->GetSubMesh(i).IndexCount(), 1, 0, 0, 0);
 			}
 		}
@@ -832,6 +994,7 @@ void KGR::_Vulkan::VulkanCore::Render(GLFWwindow* window, const glm::vec4& color
 	m_toRenderObject.clear();
 	m_lights.clear(); 
 	uIRender.clear();
+	m_frameBones.clear();
 }
 
 KGR::_Vulkan::Instance& KGR::_Vulkan::VulkanCore::GetInstance()
