@@ -1,4 +1,8 @@
 #include <iostream>
+#include <random>
+#include <numbers>
+#include <functional>
+#include <any>
 
 #include "Core/Transform2dComponent.h"
 #include "Core/UiComponent.h"
@@ -17,8 +21,7 @@
 #include "Audio/SoundComponent.h"
 
 #include"ts_ecs.h"
-#include <random>
-#include <numbers>
+
 
 
 // make you ecs type with entity 8 / 16 / 32 / 64 and the size of allocation between 1 and infinity
@@ -27,6 +30,36 @@ using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 struct MapComponent {};
 struct EnemyComponent {};
 struct HealtComponent { int Health; };
+struct Action
+{
+	std::function<bool(const ts::Entity &e, const ts::Scene &scene)> condition;
+	std::function<void(ts::Entity& e, ts::Scene& scene)> execution;
+	std::any information;
+};
+struct AIComponent
+{
+	std::vector<Action> m_ActionLists;
+};
+
+void AIEnemiesSystem(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene)
+{
+	scene.Query<AIComponent, TransformComponent>()
+	.Where([&](ts::Entity e, const AIComponent &aiComponent, const TransformComponent &transform)
+	{
+			return scene.HasComponent<EnemyComponent>(e);
+	})
+	.Each([&](ts::Entity e, AIComponent &aiComponent, TransformComponent &transform)
+	{
+			for (auto& action : aiComponent.m_ActionLists)
+			{
+				if (action.condition(e,scene))
+				{
+					action.execution(e,scene);
+					break;
+				}
+			}
+	});
+}
 struct SpawnZone
 {
 	glm::vec3 center;
