@@ -271,7 +271,6 @@ int main(int argc, char** argv)
 		}
 
 		Count += 1;
-		//TODO:Problem Orientation Camera 
 		if (HasValidFrame)
 		{
 			/*auto es = registry.GetAllComponentsView<MeshComponent,TransformComponent>();
