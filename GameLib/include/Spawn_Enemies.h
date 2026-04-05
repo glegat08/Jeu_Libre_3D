@@ -1,7 +1,10 @@
 #include <random>
 #include <numbers>
+#include <glm/vec3.hpp>
 
 #include "ts_ecs.h"
+#include "Core/Window.h"
+
 struct SpawnZone
 {
 	glm::vec3 center;
