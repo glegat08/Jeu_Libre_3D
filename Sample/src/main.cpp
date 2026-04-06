@@ -126,7 +126,7 @@ int main(int argc, char** argv)
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle bois/Parcelle_bois.glb",
 		"GLB_Text_1by1/Parcelle bois/Pacerelle Bois.png",
-		glm::vec3{ -15.0f,0.0f,0.0f });
+		glm::vec3{ -60.0f,0.0f,0.0f });
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle liane/Parcelle_liane.glb",
 		"GLB_Text_1by1/Parcelle liane/Pacerelle Liane.png",
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle pierre/Parcelle_pierre.glb",
 		"GLB_Text_1by1/Parcelle pierre/Pacerelle Pierre.png",
-		glm::vec3{ 15.0f,0.0f,0.0f });
+		glm::vec3{ 60.0f,0.0f,0.0f });
 
 	//// mesh
 	//{
