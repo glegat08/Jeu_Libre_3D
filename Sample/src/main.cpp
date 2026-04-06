@@ -30,7 +30,7 @@
 
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
-struct MapComponent {};
+
 
 int main(int argc, char** argv)
 {
@@ -92,12 +92,15 @@ int main(int argc, char** argv)
 
 	// GLB entities
 	{
-		const KGR::GLB::GLBAsset* mapAsset = glbCache.Get("Models/Map.glb", window->App());
-		Texture& textureMap = TextureLoader::Load("Textures/Map.png", window->App());
-		if (mapAsset)
-			KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *mapAsset,
+		//scale map : glm::vec3{ 5.f, 5.f, 0.04f }
+		const KGR::GLB::GLBAsset* MapAsset = glbCache.Get("GLB_Text_1by1/Map/Map.glb", window->App());
+		Texture& textureMap = TextureLoader::Load("GLB_Text_1by1/Map/Map.png", window->App());
+		if (MapAsset)
+			KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *MapAsset,
 				glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3{ 5.f, 5.f, 0.04f },
 				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureMap });
+
+		
 
 		/*const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
 		if (mobAsset)
@@ -120,39 +123,39 @@ int main(int argc, char** argv)
 		}*/
 	}
 
-	// mesh
-	{
-		// a mesh need a meshComponent a transform and a texture 
+	//// mesh
+	//{
+	//	// a mesh need a meshComponent a transform and a texture 
 
-		// create a mesh and load it with the cash loader
-		MeshComponent tempo_map;
-		tempo_map.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
+	//	// create a mesh and load it with the cash loader
+	//	MeshComponent tempo_map;
+	//	tempo_map.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
 
-		//// create a texture 
-		//TextureComponent text;
-		//// allocate the size of the texture must be the same as the number of submeshes 
-		//text.(tempo_map.mesh->GetSubMeshesCount());
-		//// then fill the texture ( this system need to be refact but for now you need to do it like that
-		//for (int i = 0; i < tempo_map.mesh->GetSubMeshesCount(); ++i)
-		//	text.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
-		TextureComponent text;
-		text.texture = &TextureLoader::Load("Textures/BaseTexture.png", window->App());
+	//	//// create a texture 
+	//	//TextureComponent text;
+	//	//// allocate the size of the texture must be the same as the number of submeshes 
+	//	//text.(tempo_map.mesh->GetSubMeshesCount());
+	//	//// then fill the texture ( this system need to be refact but for now you need to do it like that
+	//	//for (int i = 0; i < tempo_map.mesh->GetSubMeshesCount(); ++i)
+	//	//	text.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
+	//	TextureComponent text;
+	//	text.texture = &TextureLoader::Load("Textures/BaseTexture.png", window->App());
 
 
-		// create the transform and set all the data
-		TransformComponent transform;
-		transform.SetPosition({ 0.0f,0.0f,0.0f });
-		transform.SetScale({ 100.0f,0.5f,100.0f });
-		// same create an entity / id
-		auto map = scene.Spawn();
-		// fill the component
-		//registry.AddComponents(e, std::move(tempo_map), std::move(text), std::move(transform));
-		scene.Add<MeshComponent>(map, std::move(tempo_map));
-		scene.Add<TextureComponent>(map, std::move(text));
-		scene.Add<TransformComponent>(map, std::move(transform));
-		scene.Add<MapComponent>(map, MapComponent());
-		
-	}
+	//	// create the transform and set all the data
+	//	TransformComponent transform;
+	//	transform.SetPosition({ 0.0f,0.0f,0.0f });
+	//	transform.SetScale({ 100.0f,0.5f,100.0f });
+	//	// same create an entity / id
+	//	auto map = scene.Spawn();
+	//	// fill the component
+	//	//registry.AddComponents(e, std::move(tempo_map), std::move(text), std::move(transform));
+	//	scene.Add<MeshComponent>(map, std::move(tempo_map));
+	//	scene.Add<TextureComponent>(map, std::move(text));
+	//	scene.Add<TransformComponent>(map, std::move(transform));
+	//	scene.Add<MapComponent>(map, MapComponent());
+	//	
+	//}
 
 	// light
 	{
