@@ -1,9 +1,13 @@
+#ifndef SPAWN_ENEMIES_H
+#define SPAWN_ENEMIES_H
+
 #include <random>
 #include <numbers>
 #include <glm/vec3.hpp>
 
 #include "ts_ecs.h"
 #include "Core/Window.h"
+#include "EnemiesBehaviour.h"
 
 struct SpawnZone
 {
@@ -14,7 +18,7 @@ struct SpawnZone
 struct EnemyComponent {};
 struct HealtComponent { int Health; };
 
-ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, const std::string& meshPath, const std::string& texturePath, glm::vec3 pos)
+ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, const std::string& meshPath, const std::string& texturePath, glm::vec3 pos, float radius)
 {
 	auto mesh = MeshComponent();
 	auto texture = TextureComponent();
@@ -27,9 +31,10 @@ ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scen
 	transform.SetScale({ 3.0f,3.0f,3.0f });
 	transform.SetPosition(pos);
 
+	AIComponent ai;
+	ai.m_ActionLists.push_back(Patrol(pos, radius));
 
-
-	return scene.Spawn(std::move(mesh), std::move(texture), std::move(transform), EnemyComponent{}, HealtComponent{ 100 });
+	return scene.Spawn(std::move(mesh), std::move(texture), std::move(transform),std::move(ai), EnemyComponent{}, HealtComponent{ 20 });
 }
 void SpawnEnemies(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, const SpawnZone& Spawn)
 {
@@ -51,16 +56,18 @@ void SpawnEnemies(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& s
 	switch (type(gen))
 	{
 	case 1:
-		SpawnEnemy(window, scene, "Models/CUBE.obj", "Textures/BaseTexture.png", pos);
+		SpawnEnemy(window, scene, "Models/CUBE.obj", "Textures/BaseTexture.png", pos,Spawn.radius);
 		break;
 	case 2:
-		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos);
+		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos, Spawn.radius);
 		break;
 	case 0:
-		SpawnEnemy(window, scene, "Models/stormtrooper.obj", "Textures/BaseTexture.png", pos);
+		SpawnEnemy(window, scene, "Models/stormtrooper.obj", "Textures/BaseTexture.png", pos, Spawn.radius);
 		break;
 	default:
 		throw std::exception("Problem Spawn");
 	}
 
 }
+
+#endif
