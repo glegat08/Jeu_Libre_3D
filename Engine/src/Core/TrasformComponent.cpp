@@ -9,12 +9,14 @@ void TransformComponent::SetPosition(const glm::vec3& other)
 {
 	m_position.data = other;
 	m_position.isDirty = true;
+	m_fullTransformDirty = true;
 }
 
 void TransformComponent::Translate(const glm::vec3& other)
 {
 	m_position.data += other;
 	m_position.isDirty = true;
+	m_fullTransformDirty = true;
 }
 
 glm::mat4 TransformComponent::GetTranslationMatrix()
@@ -37,6 +39,7 @@ void TransformComponent::SetScale(const glm::vec3& other)
 {
 	m_scale.data = other / 2.0f;
 	m_scale.isDirty = true;
+	m_fullTransformDirty = true;
 }
 
 
@@ -61,6 +64,7 @@ void TransformComponent::SetOrientation(const glm::quat& other)
 	m_rotation.data = glm::normalize(other);
 	UpdateEulerAngle();
 	m_rotation.isDirty = true;
+	m_fullTransformDirty = true;
 }
 
 
@@ -75,6 +79,7 @@ void TransformComponent::SetRotation(const glm::vec3& other)
 	m_eulerAngle = other;
 	UpdateQuaternion();
 	m_rotation.isDirty = true;
+	m_fullTransformDirty = true;
 }
 
 
@@ -96,6 +101,8 @@ glm::mat4 TransformComponent::GetFullTransform()
 		return m_fullTransform;
 
 	m_fullTransform = GetTranslationMatrix() * GetRotationMatrix() * GetScaleMatrix();	
+	m_fullTransformDirty = true;
+	
 	return m_fullTransform;
 }
 

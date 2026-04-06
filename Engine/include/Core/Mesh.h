@@ -6,6 +6,7 @@
 #include "Buffer.h"
 #include "RessourcesManager.h"
 #include "Vertex.h"
+#include "GLBLoader.h"
 
 namespace KGR::_Vulkan
 {
@@ -154,6 +155,9 @@ struct MeshComponent
 std::unique_ptr<Mesh> LoadMesh(const std::string& filePath,
     KGR::_Vulkan::VulkanCore* core);
 
+std::unique_ptr<Mesh> LoadMeshFromGLB(
+    KGR::GLB::GLB_Loader& loader,
+    KGR::_Vulkan::VulkanCore* vkCore);
 
 /**
  * @brief Resource manager alias for loading and caching meshes.

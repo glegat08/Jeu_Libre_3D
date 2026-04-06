@@ -9,6 +9,7 @@ KGR::RenderWindow::RenderWindow(glm::ivec2 size, const char* name, const std::fi
 	MeshLoader::SetGlobalFIlePath(GlobResourcesPath);
 	TextureLoader::SetGlobalFIlePath(GlobResourcesPath);
 	FileManager::SetGlobalFIlePath(GlobResourcesPath);
+	GLB::GLB_Loader::SetGlobalFilePath(GlobResourcesPath);
 
 
 	m_window.CreateMyWindow(size, name, nullptr, nullptr);
@@ -68,9 +69,10 @@ void KGR::RenderWindow::RegisterCam(CameraComponent& cam, TransformComponent& tr
 	m_core.RegisterCam(transform.GetFullTransform(),cam.GetView(),cam.GetProj());
 }
 
-void KGR::RenderWindow::RegisterRender(MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture)
+void KGR::RenderWindow::RegisterRender(MeshComponent& mesh, TransformComponent& transform, MaterialComponent& material, int boneOffset = -1)
 {
-	m_core.RegisterRender(*mesh.mesh, transform.GetFullTransform(), texture.GetAllTextures());
+	// TODO default value here
+	m_core.RegisterRender(*mesh.mesh, transform.GetFullTransform(), material.GetAllMaterials(), boneOffset);
 }
 
 void KGR::RenderWindow::RegisterUi(UiComponent& component, TransformComponent2d& transform, TextureComponent& texture)
@@ -78,7 +80,7 @@ void KGR::RenderWindow::RegisterUi(UiComponent& component, TransformComponent2d&
 	float aspectRatio = static_cast<float>(GetSize().x) / static_cast<float>(GetSize().y);
 	transform.SetPosition(component.GetPosNdc(aspectRatio));
 	transform.SetScale(component.GetScaleNdc(aspectRatio));
-	m_core.RegisterUi(UiData{ component.GetColor(),transform.GetFullTransform() }, texture.GetTexture(0), GetSize());
+	m_core.RegisterUi(UiData{ component.GetColor(),transform.GetFullTransform() }, texture.texture, GetSize());
 }
 
 void KGR::RenderWindow::Render(const glm::vec4& clearColor, ImDrawData* imguiDraw)

@@ -1,0 +1,37 @@
+{
+    "entities": [
+        {
+            "CollisionComp": {
+                "generated": true
+            },
+            "HierarchyComponent": {
+                "parent": -1
+            },
+            "MeshComponent": {
+                "path": "C:\\Users\\guill\\Vulkan_Project\\Ressources\\Models\\CUBE.obj"
+            },
+            "NameComponent": {
+                "name": "Entity_0"
+            },
+            "TransformComponent": {
+                "pos": [
+                    7.450580596923828e-09,
+                    0.0,
+                    0.0
+                ],
+                "rot": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    0.38726088404655457,
+                    0.6451648473739624,
+                    0.25
+                ]
+            },
+            "index": 0
+        }
+    ],
+    "version": 1
+}
