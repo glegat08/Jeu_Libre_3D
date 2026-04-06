@@ -44,7 +44,8 @@ int main(int argc, char** argv)
 	// getInputManager retrieve our input system where you can have the mouse pos mouse delta key pressed ... and set the cursor mode 
 	window->GetInputManager()->SetMode(GLFW_CURSOR_DISABLED);
 
-	ecsType registry = ecsType{};
+	//ecsType registry = ecsType{};
+	ts::Scene scene;
 
 	// init the cache and upload the four shared neutral textures to GPU
 	KGR::GLB::GLBCache glbCache;
@@ -93,8 +94,8 @@ int main(int argc, char** argv)
 	{
 		const KGR::GLB::GLBAsset* foxAsset = glbCache.Get("Models/Fox.glb", window->App());
 		if (foxAsset)
-			KGR::GLB::CreateGLBEntity(registry, *foxAsset,
-				glm::vec3{0.0f, 0.0f, 2.0f}, glm::vec3(0.0f), glm::vec3(0.02f), neutrals);
+			KGR::GLB::CreateGLBEntity(scene, *foxAsset,
+				glm::vec3{ 0.0f, 0.0f, 2.0f }, glm::vec3(0.0f), glm::vec3(0.02f), neutrals);
 
 		const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
 		if (mobAsset)
@@ -103,49 +104,52 @@ int main(int argc, char** argv)
 			Texture& skinPurple = TextureLoader::Load("Textures/Mob2.png", window->App());
 			Texture& skinOrange = TextureLoader::Load("Textures/Mob3.png", window->App());
 
-			KGR::GLB::CreateGLBEntity(registry, *mobAsset,
-				glm::vec3{ -2.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f}, glm::vec3(1.0f),
+			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
+				glm::vec3{ -2.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
 				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinRed });
 
-			KGR::GLB::CreateGLBEntity(registry, *mobAsset,
+			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
 				glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
 				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinPurple });
 
-			KGR::GLB::CreateGLBEntity(registry, *mobAsset,
+			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
 				glm::vec3{ 2.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
 				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinOrange });
 		}
-	
-	// mesh
-	{
-		// a mesh need a meshComponent a transform and a texture 
-
-		// create a mesh and load it with the cash loader
-		MeshComponent tempo_map;
-		tempo_map.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
-
-		// create a texture 
-		TextureComponent text;
-		// allocate the size of the texture must be the same as the number of submeshes 
-		text.SetSize(tempo_map.mesh->GetSubMeshesCount());
-		// then fill the texture ( this system need to be refact but for now you need to do it like that
-		for (int i = 0; i < tempo_map.mesh->GetSubMeshesCount(); ++i)
-			text.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
-
-
-		// create the transform and set all the data
-		TransformComponent transform;
-		transform.SetPosition({ 0.0f,0.0f,0.0f });
-		transform.SetScale({ 100.0f,0.5f,100.0f });
-		// same create an entity / id
-		auto map = scene.Spawn();
-		// fill the component
-		//registry.AddComponents(e, std::move(tempo_map), std::move(text), std::move(transform));
-		scene.Add<MeshComponent>(std::move(map), std::move(tempo_map));
-		scene.Add<TextureComponent>(std::move(map), std::move(text));
-		scene.Add<TransformComponent>(std::move(map), std::move(transform));
-		scene.Add<MapComponent>(std::move(map), MapComponent());
 	}
+
+	//// mesh
+	//{
+	//	// a mesh need a meshComponent a transform and a texture 
+
+	//	// create a mesh and load it with the cash loader
+	//	MeshComponent tempo_map;
+	//	tempo_map.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
+
+	//	//// create a texture 
+	//	//TextureComponent text;
+	//	//// allocate the size of the texture must be the same as the number of submeshes 
+	//	//text.(tempo_map.mesh->GetSubMeshesCount());
+	//	//// then fill the texture ( this system need to be refact but for now you need to do it like that
+	//	//for (int i = 0; i < tempo_map.mesh->GetSubMeshesCount(); ++i)
+	//	//	text.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
+	//	TextureComponent text;
+	//	text.texture = &TextureLoader::Load("Textures/BaseTexture.png", window->App());
+
+
+	//	// create the transform and set all the data
+	//	TransformComponent transform;
+	//	transform.SetPosition({ 0.0f,0.0f,0.0f });
+	//	transform.SetScale({ 100.0f,0.5f,100.0f });
+	//	// same create an entity / id
+	//	auto map = scene.Spawn();
+	//	// fill the component
+	//	//registry.AddComponents(e, std::move(tempo_map), std::move(text), std::move(transform));
+	//	scene.Add<MeshComponent>(std::move(map), std::move(tempo_map));
+	//	scene.Add<TextureComponent>(std::move(map), std::move(text));
+	//	scene.Add<TransformComponent>(std::move(map), std::move(transform));
+	//	scene.Add<MapComponent>(std::move(map), MapComponent());
+	//}
 
 	// light
 	{
@@ -183,8 +187,12 @@ int main(int argc, char** argv)
 		TextureComponent texture;
 		texture.texture = &TextureLoader::Load("Textures/texture.jpg", window->App());
 
-		auto e = registry.CreateEntity();
-		registry.AddComponents(e, std::move(transform), std::move(ui), std::move(texture), std::move(CollisionComp2d{}));
+		auto e = scene.Spawn();
+		//registry.AddComponents(e, std::move(transform), std::move(ui), std::move(texture), std::move(CollisionComp2d{}));
+		scene.Add(std::move(e), std::move(transform));
+		scene.Add(std::move(e), std::move(ui));
+		scene.Add(std::move(e), std::move(texture));
+		scene.Add(std::move(e), CollisionComp2d{});
 	}
 
 	float current = 0.0f;
@@ -208,7 +216,8 @@ int main(int argc, char** argv)
 			};
 
 			auto input = window->GetInputManager();
-			auto es = registry.GetAllComponentsView<KGR::Animation::AnimationComponent>();
+
+			/*auto es = registry.GetAllComponentsView<KGR::Animation::AnimationComponent>();
 			for (auto& e : es)
 			{
 				auto& anim = registry.GetComponent<KGR::Animation::AnimationComponent>(e);
@@ -217,19 +226,30 @@ int main(int argc, char** argv)
 					if (input->IsKeyPressed(animKeys[i]))
 						anim.SetClip(i);
 				}
-			}
+			}*/
+			scene.Query<KGR::Animation::AnimationComponent>()
+				.Each([&](ts::Entity e, KGR::Animation::AnimationComponent& animation)
+					{
+						for (size_t i = 0; i < animKeys.size(); ++i)
+						{
+							if (input->IsKeyPressed(animKeys[i]))
+								animation.SetClip(i);
+						}
+					});
+
+
 		}
 
-		float actual = chrono.GetElapsedTime().AsSeconds();
+		/*float actual = chrono.GetElapsedTime().AsSeconds();
 		float dt = actual - current;
-		current = actual;
+		current = actual;*/
 
-		timer += dt;
+		/*timer += dt;
 		if (timer >= 2.0f)
 		{
 			SpawnEnemies(window, scene, SpawnZone{ {0.0f,0.0f,1.0f},5.0f });
 			timer = 0.0f;
-		}
+		}*/
 
 		Count += 1;
 		if (HasValidFrame)
@@ -252,62 +272,73 @@ int main(int argc, char** argv)
 				if (input->IsKeyDown(KGR::Key::E))
 					registry.GetComponent<TransformComponent>(e).RotateQuat<RotData::Orientation::Roll>(glm::radians(speed * dt));
 			}*/
+
+
+			//{
+			//	auto mousePos = window.get()->GetInputManager()->GetMousePosition();
+			//	float aspectRatio = static_cast<float>(window->GetSize().x) / static_cast<float>(window->GetSize().y);
+			//	auto mouseinAR = UiComponent::VrToNdc(mousePos, window->GetSize(), aspectRatio, false);
+
+			//	/*auto es = registry.GetAllComponentsView<CollisionComp2d, UiComponent>();
+			//	for (auto e : es)
+			//	{
+			//		auto& t = registry.GetComponent<CollisionComp2d>(e);
+			//		auto& u = registry.GetComponent<UiComponent>(e);
+			//		t.Update(u.GetPosNdc(aspectRatio), u.GetScaleNdc(aspectRatio));
+
+			//		if (t.aabb.IsColliding(mouseinAR))
+			//			u.SetColor({ 1, 0, 0, 1 });
+			//		else
+			//			u.SetColor({ 0, 1, 0, 1 });
+			//	}*/
+			//	scene.Query<CollisionComp2d, UiComponent>()
+			//		.Each([&](ts::Entity e, CollisionComp2d& boxColl, UiComponent& ui)
+			//			{
+			//				boxColl.Update(ui.GetPosNdc(aspectRatio), ui.GetScaleNdc(aspectRatio));
+			//				if (boxColl.aabb.IsColliding(mouseinAR))
+			//					ui.SetColor({ 1, 0, 0, 1 });
+			//				else
+			//					ui.SetColor({ 0, 1, 0, 1 });
+			//			});
+			//}
+
+
+			scene.Query<CameraComponent, TransformComponent>()
+				.Each([&](ts::Entity e, CameraComponent& cam, TransformComponent& transform)
+					{
+						auto input = window->GetInputManager();
+						static float SpeedMovCam = 25.0f;
+
+						//Allows you to move the camera using the Z, Q, S, and D keys
+						if (input->IsKeyDown(KGR::Key::Q))
+							transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Left>() * SpeedMovCam * dt);
+						if (input->IsKeyDown(KGR::Key::D))
+							transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Right>() * SpeedMovCam * dt);
+
+						if (input->IsKeyDown(KGR::Key::Z))
+							transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Forward>() * SpeedMovCam * dt);
+						if (input->IsKeyDown(KGR::Key::S))
+							transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Backward>() * SpeedMovCam * dt);
+
+						static float SpeedRollCam = SpeedMovCam * 2.0f;
+						if (input->IsKeyDown(KGR::Key::A))
+							transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(-SpeedRollCam * dt));
+						if (input->IsKeyDown(KGR::Key::E))
+							transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(SpeedRollCam * dt));
+
+
+						//Allows you to pan the camera using the mouse 
+						static float MouseSensitivity = 1.0f;
+						transform.RotateQuat<RotData::Orientation::Yaw>(-input->GetMouseDelta().x * MouseSensitivity * dt);
+						transform.RotateQuat<RotData::Orientation::Pitch>(-input->GetMouseDelta().y * MouseSensitivity * dt);
+					});
 		}
 
-		{
-			auto mousePos = window.get()->GetInputManager()->GetMousePosition();
-			float aspectRatio = static_cast<float>(window->GetSize().x) / static_cast<float>(window->GetSize().y);
-			auto mouseinAR = UiComponent::VrToNdc(mousePos, window->GetSize(), aspectRatio, false);
 
-			auto es = registry.GetAllComponentsView<CollisionComp2d, UiComponent>();
-			for (auto e : es)
-			{
-				auto& t = registry.GetComponent<CollisionComp2d>(e);
-				auto& u = registry.GetComponent<UiComponent>(e);
-				t.Update(u.GetPosNdc(aspectRatio), u.GetScaleNdc(aspectRatio));
-
-				if (t.aabb.IsColliding(mouseinAR))
-					u.SetColor({ 1, 0, 0, 1 });
-				else
-					u.SetColor({ 0, 1, 0, 1 });
-			}
-		}
-			}*/
-			
-			scene.Query<CameraComponent, TransformComponent>().Each([&](ts::Entity e, CameraComponent& cam, TransformComponent& transform)
-				{
-					auto input = window->GetInputManager();
-					static float SpeedMovCam = 25.0f;
-
-					//Allows you to move the camera using the Z, Q, S, and D keys
-					if (input->IsKeyDown(KGR::Key::Q))
-						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Left>() * SpeedMovCam * dt);
-					if (input->IsKeyDown(KGR::Key::D))
-						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Right>() * SpeedMovCam * dt);
-
-					if (input->IsKeyDown(KGR::Key::Z))
-						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Forward>() * SpeedMovCam * dt);
-					if (input->IsKeyDown(KGR::Key::S))
-						transform.SetPosition(transform.GetPosition() + transform.GetLocalAxe<RotData::Dir::Backward>() * SpeedMovCam * dt);
-
-					static float SpeedRollCam = SpeedMovCam * 2.0f;
-					if (input->IsKeyDown(KGR::Key::A))
-						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(-SpeedRollCam * dt));
-					if (input->IsKeyDown(KGR::Key::E))
-						transform.RotateQuat<RotData::Orientation::Roll>(glm::radians(SpeedRollCam * dt));
-
-
-					//Allows you to pan the camera using the mouse 
-					static float MouseSensitivity = 1.0f;
-					transform.RotateQuat<RotData::Orientation::Yaw>(-input->GetMouseDelta().x * MouseSensitivity * dt);
-					transform.RotateQuat<RotData::Orientation::Pitch>(-input->GetMouseDelta().y * MouseSensitivity * dt);
-				});
-
-		}
 		AIEnemiesSystem(window, scene, dt);
 
-		KGR::RenderWindow::PollEvent();
-		window->Update();
+		/*KGR::RenderWindow::PollEvent();
+		window->Update();*/
 
 		{
 			/*auto es = registry.GetAllComponentsView<CameraComponent, TransformComponent>();
@@ -323,17 +354,18 @@ int main(int argc, char** argv)
 			if (scene.Count<CameraComponent>() != 1)
 				throw std::runtime_error("need one and one cam");
 
-			scene.Query<CameraComponent, TransformComponent>().Each([&](ts::Entity e, CameraComponent& cam, TransformComponent& transform)
-			{
-					cam.UpdateCamera(transform.GetFullTransform());
-					cam.SetAspect(window->GetSize().x, window->GetSize().y);
-					window->RegisterCam(cam, transform);
-					//std::println(transform.)
-			});
+			scene.Query<CameraComponent, TransformComponent>()
+				.Each([&](ts::Entity e, CameraComponent& cam, TransformComponent& transform)
+					{
+						cam.UpdateCamera(transform.GetFullTransform());
+						cam.SetAspect(window->GetSize().x, window->GetSize().y);
+						window->RegisterCam(cam, transform);
+						//std::println(transform.)
+					});
 		}
 
 		{
-			auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, MaterialComponent>();
+			/*auto es = registry.GetAllComponentsView<MeshComponent, TransformComponent, MaterialComponent>();
 			for (auto& e : es)
 			{
 				int boneOffset = -1;
@@ -351,7 +383,18 @@ int main(int argc, char** argv)
 					registry.GetComponent<MaterialComponent>(e).GetAllMaterials(),
 					boneOffset
 				);
-			}
+			}*/
+			scene.Query<MeshComponent, TransformComponent, MaterialComponent>()
+				.Each([&](ts::Entity e, MeshComponent& mesh, TransformComponent& transform, MaterialComponent& material)
+					{
+						int boneOffset = -1;
+						if (auto anim = scene.GetComponent<KGR::Animation::AnimationComponent>(e))
+						{
+							anim->Update(dt);
+							boneOffset = window->App()->RegisterBoneMatrices(anim->GetLastBoneMatrices());
+						}
+						window->App()->RegisterRender((*mesh.mesh), transform.GetFullTransform(), material.GetAllMaterials(), boneOffset);
+					});
 		}
 
 		if (window->GetInputManager()->IsKeyPressed(KGR::Key::P))
@@ -378,21 +421,23 @@ int main(int argc, char** argv)
 			UpdateLightComponents<LightData::Type::Point>(window, scene);
 		}
 		{
-			auto es = registry.GetAllComponentsView<TextureComponent, TransformComponent2d, UiComponent>();
+			/*auto es = registry.GetAllComponentsView<TextureComponent, TransformComponent2d, UiComponent>();
 			for (auto& e : es)
 			{
 				auto transform = registry.GetComponent<TransformComponent2d>(e);
 				auto ui = registry.GetComponent<UiComponent>(e);
 				auto texture = registry.GetComponent<TextureComponent>(e);
 				window->RegisterUi(ui, transform, texture);
-			}
+			}*/
+
+			scene.Query<TextureComponent, TransformComponent2d, UiComponent>()
+				.Each([&](ts::Entity e, TextureComponent& texture, TransformComponent2d& transform, UiComponent& ui) {window->RegisterUi(ui, transform, texture); });
 		}
 
 		window->Render({ 0.53f, 0.81f, 0.92f, 1.0f });
 		if (Count > 5)
 			HasValidFrame = true;
-	
-
+	}
 	window->Destroy();
 	KGR::RenderWindow::End();
 }
