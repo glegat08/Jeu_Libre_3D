@@ -5,4 +5,5 @@
 struct EnemyComponent {};
 struct HealtComponent { int Health; };
 struct MapComponent {};
+struct ParcelleComponent {};
 #endif

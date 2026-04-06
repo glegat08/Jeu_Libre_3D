@@ -14,19 +14,20 @@
 #include "ECS/Registry.h"
 #include "Tools/Chrono.h"
 #include "Audio/SoundComponent.h"
+#include "Math/Collision2d.h"
+#include "Core/GLBLoader.h"
+#include "Core/GLBEntityFactory.h"
+#include "Core/AnimationComponent.h"
+#include "VulkanCore.h"
 
 #include"ts_ecs.h"
 #include "Spawn_Enemies.h"
 #include "UpdateLightComponents.h"
 #include "EnemiesBehaviour.h"
+#include "Create_Parcelles.h"
 
 
-#include "Math/Collision2d.h"
 
-#include "Core/GLBLoader.h"
-#include "Core/GLBEntityFactory.h"
-#include "Core/AnimationComponent.h"
-#include "VulkanCore.h"
 
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
@@ -122,6 +123,18 @@ int main(int argc, char** argv)
 				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinOrange });
 		}*/
 	}
+	Create_Parcelles(window, scene, glbCache, neutrals,
+		"GLB_Text_1by1/Parcelle bois/Parcelle_bois.glb",
+		"GLB_Text_1by1/Parcelle bois/Pacerelle Bois.png",
+		glm::vec3{ -15.0f,0.0f,0.0f });
+	Create_Parcelles(window, scene, glbCache, neutrals,
+		"GLB_Text_1by1/Parcelle liane/Parcelle_liane.glb",
+		"GLB_Text_1by1/Parcelle liane/Pacerelle Liane.png",
+		glm::vec3{ 0.0f,0.0f,0.0f });
+	Create_Parcelles(window, scene, glbCache, neutrals,
+		"GLB_Text_1by1/Parcelle pierre/Parcelle_pierre.glb",
+		"GLB_Text_1by1/Parcelle pierre/Pacerelle Pierre.png",
+		glm::vec3{ 15.0f,0.0f,0.0f });
 
 	//// mesh
 	//{
