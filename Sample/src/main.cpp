@@ -92,12 +92,14 @@ int main(int argc, char** argv)
 
 	// GLB entities
 	{
-		const KGR::GLB::GLBAsset* foxAsset = glbCache.Get("Models/Fox.glb", window->App());
-		if (foxAsset)
-			KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *foxAsset,
-				glm::vec3{ 0.0f, 0.0f, 2.0f }, glm::vec3(0.0f), glm::vec3(0.02f), neutrals);
+		const KGR::GLB::GLBAsset* mapAsset = glbCache.Get("Models/Map.glb", window->App());
+		Texture& textureMap = TextureLoader::Load("Textures/Map.png", window->App());
+		if (mapAsset)
+			KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *mapAsset,
+				glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3{ 5.f, 5.f, 0.04f },
+				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureMap });
 
-		const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
+		/*const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
 		if (mobAsset)
 		{
 			Texture& skinRed = TextureLoader::Load("Textures/Mob1.png", window->App());
@@ -115,7 +117,7 @@ int main(int argc, char** argv)
 			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
 				glm::vec3{ 2.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
 				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinOrange });
-		}
+		}*/
 	}
 
 	// mesh
@@ -145,10 +147,11 @@ int main(int argc, char** argv)
 		auto map = scene.Spawn();
 		// fill the component
 		//registry.AddComponents(e, std::move(tempo_map), std::move(text), std::move(transform));
-		scene.Add<MeshComponent>(std::move(map), std::move(tempo_map));
-		scene.Add<TextureComponent>(std::move(map), std::move(text));
-		scene.Add<TransformComponent>(std::move(map), std::move(transform));
-		scene.Add<MapComponent>(std::move(map), MapComponent());
+		scene.Add<MeshComponent>(map, std::move(tempo_map));
+		scene.Add<TextureComponent>(map, std::move(text));
+		scene.Add<TransformComponent>(map, std::move(transform));
+		scene.Add<MapComponent>(map, MapComponent());
+		
 	}
 
 	// light
@@ -247,7 +250,7 @@ int main(int argc, char** argv)
 		/*timer += dt;
 		if (timer >= 2.0f)
 		{
-			SpawnEnemies(window, scene, SpawnZone{ {0.0f,0.0f,1.0f},5.0f });
+			SpawnEnemies(window, scene, glbCache, neutrals, SpawnZone{ {0.0f,0.0f,1.0f},5.0f });
 			timer = 0.0f;
 		}*/
 
@@ -335,7 +338,7 @@ int main(int argc, char** argv)
 		}
 
 
-		AIEnemiesSystem(window, scene, dt);
+		AIEnemiesSystem(scene, dt);
 
 		/*KGR::RenderWindow::PollEvent();
 		window->Update();*/
@@ -395,6 +398,13 @@ int main(int argc, char** argv)
 						}
 						window->App()->RegisterRender((*mesh.mesh), transform.GetFullTransform(), material.GetAllMaterials(), boneOffset);
 					});
+
+			/*scene.Query<MeshComponent, TransformComponent, TextureComponent>()
+				.Where([&](const ts::Entity e, const MeshComponent& mesh, const TransformComponent& transform, const TextureComponent& texture)
+					{
+						return scene.HasComponent<EnemyComponent>(e);
+					})
+				.Each([&](ts::Entity e, MeshComponent& mesh, TransformComponent& transform, TextureComponent& texture) {window->RegisterRender(mesh, transform, texture); });*/
 		}
 
 		if (window->GetInputManager()->IsKeyPressed(KGR::Key::P))

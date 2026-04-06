@@ -31,7 +31,7 @@ void SpawnEnemy(
 	const KGR::GLB::GLBAsset* enemyAsset = glbCache.Get(meshPath, window->App());
 	Texture& texture = TextureLoader::Load(texturePath, window->App());
 	if (enemyAsset)
-		enemy = KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *enemyAsset, pos, glm::vec3{ 0.0f,0.0f,0.0f }, glm::vec3{ 3.0f,3.0f,3.0f }, neutral, KGR::GLB::GLBSkinOverride{ .baseColor = &texture }).entity;
+		enemy = KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *enemyAsset, pos, glm::vec3{ 90.0f,0.0f,0.0f }, glm::vec3{ 3.0f,3.0f,3.0f }, neutral, KGR::GLB::GLBSkinOverride{ .baseColor = &texture }).entity;
 
 	AIComponent ai;
 	ai.m_ActionLists.push_back(Patrol(pos, radius));
