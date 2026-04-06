@@ -78,7 +78,7 @@ Action Patrol(glm::vec3& pos, float radius)
 			auto* transform = scene.GetComponent<TransformComponent>(e);
 
 			data.timer += dt;
-			if (data.timer >= 2.0f)
+			if (data.timer >= 5.0f)
 			{
 				data.targetpos =
 				{
