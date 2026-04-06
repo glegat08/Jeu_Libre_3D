@@ -24,9 +24,8 @@ ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scen
 	auto texture = TextureComponent();
 	auto transform = TransformComponent();
 	mesh.mesh = &MeshLoader::Load(meshPath, window->App());
-	texture.SetSize(mesh.mesh->GetSubMeshesCount());
-	for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
-		texture.AddTexture(i, &TextureLoader::Load(texturePath, window->App()));
+	
+	texture.texture = &TextureLoader::Load(texturePath, window->App());
 
 	transform.SetScale({ 3.0f,3.0f,3.0f });
 	transform.SetPosition(pos);
