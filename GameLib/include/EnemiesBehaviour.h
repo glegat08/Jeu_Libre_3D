@@ -24,7 +24,7 @@ struct AIComponent
 	std::vector<Action> m_ActionLists;
 };
 
-void AIEnemiesSystem(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, float dt)
+void AIEnemiesSystem(ts::Scene& scene, float dt)
 {
 	scene.Query<AIComponent, TransformComponent>()
 		.Where([&](ts::Entity e, const AIComponent& aiComponent, const TransformComponent& transform)
