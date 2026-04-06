@@ -12,15 +12,29 @@ namespace KGR
 	namespace GLB
 	{
 		template<typename RegistryT>
-		struct EntityTypeOf
+		struct RegistryTraits
 		{
 			using type = RegistryT::type;
+			static type CreateEntity(RegistryT& registry) { return registry.CreateEntity(); }
+
+			template<typename... Components>
+			static void AddComponents(RegistryT& registry, type entity, Components&&... components)
+			{
+				registry.AddComponents(entity, std::forward<Components>(components)...);
+			}
 		};
 
 		template<>
-		struct EntityTypeOf<ts::Scene>
+		struct RegistryTraits<ts::Scene>
 		{
 			using type = ts::Entity;
+			static type CreateEntity(ts::Scene& scene) { return scene.Spawn(); }
+
+			template<typename... Components>
+			static void AddComponents(ts::Scene& scene, type entity, Components&&... components)
+			{
+				(scene.Add<Components>(entity, std::forward<Components>(components)), ...);
+			}
 		};
 
 		/**
@@ -29,7 +43,7 @@ namespace KGR
 		template<typename RegistryT>
 		struct GLBEntityResult
 		{
-			typename  EntityTypeOf<RegistryT>::type entity{};
+			typename  RegistryTraits<RegistryT>::type entity{};
 			bool valid = false;
 		};
 
@@ -134,7 +148,7 @@ namespace KGR
 			 * @brief Registers all ECS components, adding an AnimationComponent when the asset has skeleton data.
 			 */
 			template<typename RegistryT>
-			void RegisterComponents(RegistryT& registry, typename RegistryT::type entity,
+			void RegisterComponents(RegistryT& registry, typename  RegistryTraits<RegistryT>::type entity,
 				const GLBAsset& asset, MeshComponent meshComp,
 				MaterialComponent matComp, TransformComponent transform)
 			{
@@ -146,13 +160,13 @@ namespace KGR
 					KGR::Animation::AnimationComponent animComp;
 					animComp.Init(&skeletons[0], &animations);
 
-					registry.AddComponents(entity,
-						std::move(meshComp), std::move(matComp),
+					RegistryTraits<RegistryT>::AddComponents(
+						registry, entity, std::move(meshComp), std::move(matComp),
 						std::move(transform), std::move(animComp));
 					return;
 				}
 
-				registry.AddComponents(entity,
+				RegistryTraits<RegistryT>::AddComponents(registry,entity,
 					std::move(meshComp), std::move(matComp), std::move(transform));
 			}
 		}
@@ -197,7 +211,7 @@ namespace KGR
 			transform.SetRotation(rotation);
 			transform.SetScale(scale);
 
-			result.entity = registry.CreateEntity();
+			result.entity = RegistryTraits<RegistryT>::CreateEntity(registry);
 			result.valid = true;
 
 			auto matComp = Detail::BuildMaterialComponent(asset, 
