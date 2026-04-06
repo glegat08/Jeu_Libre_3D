@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ts_ecs.h"
 #include "Core/GLBLoader.h"
 #include "Core/AnimationComponent.h"
 #include "Core/TrasformComponent.h"
