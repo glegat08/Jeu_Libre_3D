@@ -26,32 +26,19 @@ void SpawnEnemy(
 	const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, KGR::GLB::GLBCache& glbCache, KGR::GLB::GLBNeutralTextures& neutral,
 	const std::string& meshPath, const std::string& texturePath, glm::vec3 pos, float radius)
 {
-	/*auto mesh = MeshComponent();
-	auto texture = TextureComponent();
-	auto transform = TransformComponent();
-	mesh.mesh = &MeshLoader::Load(meshPath, window->App());
-	
-	texture.texture = &TextureLoader::Load(texturePath, window->App());
-
-	transform.SetScale({ 3.0f,3.0f,3.0f });
-	transform.SetPosition(pos);*/
 	ts::Entity enemy;
 
 	const KGR::GLB::GLBAsset* enemyAsset = glbCache.Get(meshPath, window->App());
 	Texture& texture = TextureLoader::Load(texturePath, window->App());
 	if (enemyAsset)
-	{
 		enemy = KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *enemyAsset, pos, glm::vec3{ 0.0f,0.0f,0.0f }, glm::vec3{ 3.0f,3.0f,3.0f }, neutral, KGR::GLB::GLBSkinOverride{ .baseColor = &texture }).entity;
-	}
-	
-	
+
 	AIComponent ai;
 	ai.m_ActionLists.push_back(Patrol(pos, radius));
 
 	scene.Add<AIComponent>(enemy, std::move(ai));
 	scene.Add<EnemyComponent>(enemy, EnemyComponent{});
 	scene.Add<HealtComponent>(enemy, HealtComponent{ 20 });
-	//return scene.Spawn(std::move(mesh), std::move(texture), std::move(transform),std::move(ai), EnemyComponent{}, HealtComponent{ 20 });
 }
 void SpawnEnemies(
 	const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, KGR::GLB::GLBCache& glbCache, KGR::GLB::GLBNeutralTextures& neutral,
