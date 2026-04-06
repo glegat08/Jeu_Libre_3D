@@ -11,6 +11,7 @@
 #include "ts_ecs.h"
 #include "Core/Window.h"
 #include "EnemiesBehaviour.h"
+#include "Components.h"
 
 
 struct SpawnZone
@@ -19,8 +20,7 @@ struct SpawnZone
 	float radius;
 };
 
-struct EnemyComponent {};
-struct HealtComponent { int Health; };
+
 
 void SpawnEnemy(
 	const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, KGR::GLB::GLBCache& glbCache, KGR::GLB::GLBNeutralTextures& neutral,
@@ -40,6 +40,7 @@ void SpawnEnemy(
 	scene.Add<EnemyComponent>(enemy, EnemyComponent{});
 	scene.Add<HealtComponent>(enemy, HealtComponent{ 20 });
 }
+
 void SpawnEnemies(
 	const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, KGR::GLB::GLBCache& glbCache, KGR::GLB::GLBNeutralTextures& neutral,
 	const SpawnZone& Spawn)
