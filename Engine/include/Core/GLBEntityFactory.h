@@ -11,13 +11,25 @@ namespace KGR
 {
 	namespace GLB
 	{
+		template<typename RegistryT>
+		struct EntityTypeOf
+		{
+			using type = RegistryT::type;
+		};
+
+		template<>
+		struct EntityTypeOf<ts::Scene>
+		{
+			using type = ts::Entity;
+		};
+
 		/**
 		 * @brief Result of a single entity creation — entity handle and a validity flag.
 		 */
 		template<typename RegistryT>
 		struct GLBEntityResult
 		{
-			typename RegistryT::type entity{};
+			typename  EntityTypeOf<RegistryT>::type entity{};
 			bool valid = false;
 		};
 
