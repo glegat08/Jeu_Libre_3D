@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 
 
 		auto cam = scene.Spawn();
-		scene.Add<CameraComponent>(std::move(cam), { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,100.0f,CameraComponent::Type::Perspective) });
+		scene.Add<CameraComponent>(std::move(cam), { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,1000.0f,CameraComponent::Type::Perspective) });
 		TransformComponent transform;
 		transform.SetPosition({ 0.0f,1.0f,15.0f });
 		transform.LookAt({ 0.0f,0.0f,-1.0f });
