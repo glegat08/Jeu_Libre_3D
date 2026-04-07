@@ -3,7 +3,7 @@ struct VSInput {
     float3 normal;
     float4 inColor;
     float2 inTexCoord;
-	float4 Tangeant;
+    float4 Tangeant;
     int4   inJoints;
     float4 inWeights;
 };
@@ -44,37 +44,53 @@ struct VSOutput
     float3 bitangent;
 };
 
-
 [shader("vertex")]
-VSOutput vertMain(VSInput input) 
+VSOutput vertMain(VSInput input)
 {
-VSOutput output;
+    VSOutput output;
 
-    float weightSum = dot(input.inWeights, float4(1.0));
-    float4 w = (weightSum > 0.0) ? (input.inWeights / weightSum) : float4(1.0, 0.0, 0.0, 0.0);
+    float4 localPos;
+    float3 localNormal;
+    float3 localTangent;
 
-    int4 j = clamp(input.inJoints + int4(pushConstantData.boneOffset), int4(0), int4(9999));
+    if (pushConstantData.boneOffset >= 0)
+    {
+        float weightSum = dot(input.inWeights, float4(1.0));
+        float4 w = (weightSum > 0.0) ? (input.inWeights / weightSum) : float4(1.0, 0.0, 0.0, 0.0);
 
-    float4x4 skinMat = 
-        boneData[j.x] * w.x +
-        boneData[j.y] * w.y +
-        boneData[j.z] * w.z +
-        boneData[j.w] * w.w;
+        int4 j = input.inJoints + int4(pushConstantData.boneOffset);
 
-    float4 localPos = mul(skinMat, float4(input.inPosition, 1.0f));
-    float3 localNormal = mul((float3x3)skinMat, input.normal);
-    float3 localTangent = mul((float3x3)skinMat, input.Tangeant.xyz);
+        float4x4 skinMat =
+            boneData[j.x] * w.x +
+            boneData[j.y] * w.y +
+            boneData[j.z] * w.z +
+            boneData[j.w] * w.w;
+
+        localPos = mul(skinMat, float4(input.inPosition, 1.0));
+        localNormal = mul((float3x3)skinMat, input.normal);
+        localTangent = mul((float3x3)skinMat, input.Tangeant.xyz);
+    }
+    else
+    {
+        localPos = float4(input.inPosition, 1.0);
+        localNormal = input.normal;
+        localTangent = input.Tangeant.xyz;
+    }
 
     float4 wsPos = mul(pushConstantData.model, localPos);
     output.pos = mul(CamUbo.proj, mul(CamUbo.view, wsPos));
     output.worldspacePosition = wsPos.xyz;
     output.eyePos = mul(CamUbo.InverseView, float4(0, 0, 0, 1)).xyz;
-    
+
     output.fragTexCoord = input.inTexCoord;
     output.fragColor = input.inColor;
 
     float3 N = normalize(mul((float3x3)pushConstantData.model, localNormal));
-    float3 T = normalize(mul((float3x3)pushConstantData.model, localTangent));
+
+    float3 worldTangent = mul((float3x3)pushConstantData.model, localTangent);
+    float tangentLen = length(worldTangent);
+    float3 T = (tangentLen > 1e-6) ? normalize(worldTangent) : float3(1.0, 0.0, 0.0);
+
     T = normalize(T - N * dot(N, T));
     float3 B = normalize(cross(N, T) * input.Tangeant.w);
 
@@ -104,7 +120,7 @@ StructuredBuffer<LightData> Alllights;
 ConstantBuffer<uint> lightCount;
 
 [[vk::binding(0, 2)]]
-ConstantBuffer<Sampler2D> sampler; //baseColor
+ConstantBuffer<Sampler2D> sampler;
 [[vk::binding(0, 3)]]
 ConstantBuffer<Sampler2D> metallicRoughnessSampler;
 [[vk::binding(0, 4)]]
@@ -112,40 +128,30 @@ ConstantBuffer<Sampler2D> emissiveSampler;
 [[vk::binding(0, 5)]]
 ConstantBuffer<Sampler2D> normalSampler;
 
-
-
 [shader("fragment")]
-float4 fragMain(VSOutput vertIn) : SV_TARGET {
+float4 fragMain(VSOutput vertIn) : SV_TARGET
+{
     // float metalness = 1.f;
-    float oclusion = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).r;
-	float metalness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).b;
-	float roughness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).g;
-	float3 emessive = pow(emissiveSampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
+    float occlusion = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).r;
+    float metalness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).b;
+    float roughness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).g;
+    float3 emissive  = pow(emissiveSampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
 
     // get normal map rgb
-	float3 normalMap = normalSampler.Sample(vertIn.fragTexCoord).rgb;
+    float3 normalMap = normalSampler.Sample(vertIn.fragTexCoord).rgb * 2.0f - 1.0f;
 
-    // convert -1 1 to 0 1 
-    normalMap.xy = normalMap.xy * 2.0f - 1.0f;
+    // Build TBN and transform the tangent-space normal to world space.
+    float3x3 TBN = transpose(float3x3(vertIn.tangent, vertIn.bitangent, vertIn.normal));
+    float3 normal = normalize(mul(TBN, normalMap));
 
-    // create matrix TBN and transpose it 
-    float3x3 TBM = transpose(float3x3(vertIn.tangent, vertIn.bitangent, vertIn.normal));
-
-    // compute the normal
-    float3 normal = normalize(mul(TBM,normalMap));
-
-   // float3 normal = vertIn.normal;
-    float3 result = float(0.f).xxx;
     float3 baseColor = pow(sampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
-    result += baseColor * (1 - metalness) * oclusion * 0.02f;
+    float3 result = baseColor * (1.0 - metalness) * occlusion * 0.02f;
 
     for (int i = 0; i < lightCount; ++i)
     {
         LightData currentLight = Alllights[i];
-		
-		
-		
-        // point Light
+
+        // Point light
         if (currentLight.type[0] == 0)
         {
             float3 lightPos = currentLight.pos.xyz;
@@ -156,29 +162,24 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
             float3 V = normalize(vertIn.eyePos - vertIn.worldspacePosition.xyz);
             float3 H = normalize(L + V);
 
-            
-
             // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
             // specular
-            float3 Ks = lerp(1.0f.xxx, baseColor, metalness);
+            float3 Ks = lerp(1.0f.xxx,  baseColor, metalness);
             // shiny
-            float Ns = 1.0f/pow(roughness,2.0f);
-            // Intensity
-            float Intensity = currentLight.intensity;
-            // distance betwen light and wsPos
+            float Ns = 1.0f / pow(roughness, 2.0f);
+
             float r = length(lightPos - vertIn.worldspacePosition.xyz);
-            // beause its a shpere
-            float attenuation = (Intensity / (4.0f * 3.14159265f * pow(r, 2.0f)));
-			
+            float attenuation = currentLight.intensity / (4.0f * 3.14159265f * pow(r, 2.0f));
+
             float3 diffuse = max(dot(N, L), 0.0);
             float3 specular = Ks * pow(max(dot(N, H), 0.0f), Ns);
-            float3 Fr = (Kd * 1.0f/3.14159265f) +  specular;
+            float3 Fr = (Kd / 3.14159265f) + specular;
             float3 Ej = diffuse * attenuation;
 
-             result += (Fr * Ej) * lightColor;
+            result += (Fr * Ej) * lightColor;
         }
-        // Directional
+        // Directional light
         else if (currentLight.type[0] == 1)
         {
             float3 lightDir = normalize(currentLight.dir.xyz);
@@ -188,69 +189,60 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
             float3 V = normalize(vertIn.eyePos - vertIn.worldspacePosition.xyz);
             float3 H = normalize(-lightDir + V);
 
-
             // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
             // specular
-            float3 Ks = lerp(1.0f.xxx, baseColor, metalness);
+            float3 Ks = lerp(1.0f.xxx,  baseColor, metalness);
             // shiny
-            float Ns = 1.0f/pow(roughness,2.0f);
-			
+            float  Ns = 1.0f / pow(roughness, 2.0f);
+
             float3 diffuse = max(dot(N, -lightDir), 0.0);
             float3 specular = Ks * pow(max(dot(N, H), 0.0f), Ns);
-            float3 Fr = (Kd * 1.0f/3.14159265f) +  specular;
-            float3 Ej = diffuse;
-			
-			
-             result += (Fr * Ej) * lightColor ;
+            float3 Fr = (Kd / 3.14159265f) + specular;
+
+            // intensity was missing here previously, making directional lights appear too dark.
+            float3 Ej = diffuse * currentLight.intensity;
+
+            result += (Fr * Ej) * lightColor;
         }
-        // spot Light
+        // Spot light
         else
         {
-            // light postition temporar
-            float3 lightPos =  currentLight.pos.xyz;
-            // light color
+            float3 lightPos = currentLight.pos.xyz;
             float3 lightColor = currentLight.color.rgb;
             float3 L = normalize(lightPos - vertIn.worldspacePosition.xyz);
             float3 N = normalize(normal);
             float3 V = normalize(vertIn.eyePos - vertIn.worldspacePosition.xyz);
             float3 H = normalize(L + V);
 
-          
-
-            // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
-            // specular
-            float3 Ks = lerp(1.0f.xxx, baseColor, metalness);
-            // shiny
-            float Ns = 1.0f/pow(roughness,2.0f);
-            // Intensity
-            float Intensity = currentLight.intensity;
+            float3 Ks = lerp(1.0f.xxx,  baseColor, metalness);
+            float  Ns = 1.0f / pow(roughness, 2.0f);
+
             // distance betwen light and wsPos
             float r = length(lightPos - vertIn.worldspacePosition.xyz);
-
             float3 lightDir = normalize(currentLight.dir.xyz);
+
             float spotAngle = dot(normalize(-lightDir), L);
             float openAngle = currentLight.openAngle;
             float cosInner = cos(openAngle);
-            float cosOuter = cos(openAngle +currentLight.AdditionalSmooth);
+            float cosOuter = cos(openAngle + currentLight.AdditionalSmooth);
             float spotAttenuation = smoothstep(cosOuter, cosInner, spotAngle);
 
             // beause its a shpere
             float spotNormalization = 1.0f / (2.0f * 3.14159265f * (1.0f - cosOuter));
-            float attenuation = ((Intensity * spotNormalization) / pow(r, 2.0f));
-			 
+            float attenuation = (currentLight.intensity * spotNormalization) / pow(r, 2.0f);
+
             float3 diffuse = max(dot(N, L), 0.0);
             float3 specular = Ks * pow(max(dot(N, H), 0.0f), Ns);
-            float3 Fr = (Kd * 1.0f/3.14159265f) +  specular;
+            float3 Fr = (Kd / 3.14159265f) + specular;
             float3 Ej = diffuse * attenuation * spotAttenuation;
-			
-		
 
-             result += (Fr * Ej) * lightColor;
+            result += (Fr * Ej) * lightColor;
         }
     }
-    result += emessive * 3.0f;
 
-    return float4(result,1.0f);
+    result += emissive * 3.0f;
+
+    return float4(result, 1.0f);
 }

@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
-
+	//TODO : régler le problèmes des Updates des animations 
 	// GLB entities
 	{
 		//scale map : glm::vec3{ 5.f, 5.f, 0.04f }
@@ -100,6 +100,7 @@ int main(int argc, char** argv)
 		Texture& textureTest = TextureLoader::Load("Textures/BaseTexture.png", window->App());
 		Texture& textureRepere = TextureLoader::Load("Textures/BaseTexture.png", window->App());
 		Texture& textureRed = TextureLoader::Load("Textures/rouge.jpg", window->App());
+
 		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
 			glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(500.0f, 1.0f, 500.0f),
 			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });
@@ -112,9 +113,9 @@ int main(int argc, char** argv)
 			glm::vec3{ 100.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(50.0f),
 			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureRed });
 
-		/*KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *TestLight,
-			glm::vec3{ 1.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(5.0f),
-			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });*/
+		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *TestLight,
+			glm::vec3{ 3.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(2.0f),
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });
 
 		
 
@@ -137,6 +138,36 @@ int main(int argc, char** argv)
 				glm::vec3{ 2.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
 				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinOrange });
 		}*/
+	}
+
+	// GLB entities
+	{
+		const KGR::GLB::GLBAsset* foxAsset = glbCache.Get("Models/Fox.glb", window->App());
+		
+
+		const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
+		if (mobAsset)
+		{
+			Texture& skinRed = TextureLoader::Load("Textures/Mob1.png", window->App());
+			Texture& skinPurple = TextureLoader::Load("Textures/Mob2.png", window->App());
+			Texture& skinOrange = TextureLoader::Load("Textures/Mob3.png", window->App());
+
+			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
+				glm::vec3{ -2.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
+				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinRed });
+
+			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
+				glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
+				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinPurple });
+
+			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
+				glm::vec3{ 2.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
+				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinOrange });
+		}
+
+		if (foxAsset)
+			KGR::GLB::CreateGLBEntity(scene, *foxAsset,
+				glm::vec3{ 0.0f, 1.0f, 2.0f }, glm::vec3(0.0f), glm::vec3(0.02f), neutrals);
 	}
 	/*Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle bois/Parcelle_bois.glb",
@@ -185,6 +216,7 @@ int main(int argc, char** argv)
 	//	
 	//}
 
+	//TODO: régler le bug des lights
 	// light
 	{
 		//// the light need transform component and light component
