@@ -85,8 +85,9 @@ int main(int argc, char** argv)
 		auto cam = scene.Spawn();
 		scene.Add<CameraComponent>(std::move(cam), { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,1000.0f,CameraComponent::Type::Perspective) });
 		TransformComponent transform;
-		transform.SetPosition({ 0.0f,1.0f,15.0f });
-		transform.LookAt({ 0.0f,0.0f,-1.0f });
+		transform.SetPosition({ 0.0f,1.0f,0.0f });
+		transform.LookAt({ 0.0f,0.0f,0.0f });
+		transform.SetRotation(glm::vec3(0.0f));
 
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
@@ -94,12 +95,12 @@ int main(int argc, char** argv)
 	// GLB entities
 	{
 		//scale map : glm::vec3{ 5.f, 5.f, 0.04f }
-		const KGR::GLB::GLBAsset* MapAsset = glbCache.Get("GLB_Text_1by1/Map/Map.glb", window->App());
-		Texture& textureMap = TextureLoader::Load("GLB_Text_1by1/Map/Map.png", window->App());
-		if (MapAsset)
-			KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *MapAsset,
-				glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3{ 5.f, 5.f, 0.04f },
-				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureMap });
+		const KGR::GLB::GLBAsset* Test = glbCache.Get("Models/Cube.glb", window->App());
+		Texture& textureTest = TextureLoader::Load("Textures/BaseTexture.png", window->App());
+		if (Test)
+			KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
+				glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(500.0f,1.0f,500.0f),
+				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });
 
 		
 
@@ -126,15 +127,15 @@ int main(int argc, char** argv)
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle bois/Parcelle_bois.glb",
 		"GLB_Text_1by1/Parcelle bois/Pacerelle Bois.png",
-		glm::vec3{ -60.0f,0.0f,0.0f });
+		glm::vec3{ -60.0f,0.0f,10.0f });
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle liane/Parcelle_liane.glb",
 		"GLB_Text_1by1/Parcelle liane/Pacerelle Liane.png",
-		glm::vec3{ 0.0f,0.0f,0.0f });
+		glm::vec3{ 0.0f,0.0f,10.0f });
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle pierre/Parcelle_pierre.glb",
 		"GLB_Text_1by1/Parcelle pierre/Pacerelle Pierre.png",
-		glm::vec3{ 60.0f,0.0f,0.0f });
+		glm::vec3{ 60.0f,0.0f,10.0f });
 
 	//// mesh
 	//{
@@ -188,11 +189,11 @@ int main(int argc, char** argv)
 
 		LightComponent<LightData::Type::Directional> Sun = LightComponent<LightData::Type::Directional>::Create({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, 500.0f);
 		TransformComponent transform;
-		transform.SetPosition({ 0.0f,10.0f,0.0f });
+		transform.SetPosition({ 0.0f,50.0f,0.0f });
 		transform.LookAtDir({ 0.0f,-1.0f,0.0f });
 		auto Sun_Entity = scene.Spawn();
-		scene.Add(std::move(Sun_Entity), std::move(Sun));
-		scene.Add(std::move(Sun_Entity), std::move(transform));
+		scene.Add(Sun_Entity, std::move(Sun));
+		scene.Add(Sun_Entity, std::move(transform));
 
 
 	}
@@ -228,6 +229,13 @@ int main(int argc, char** argv)
 		KGR::RenderWindow::PollEvent();
 		window->Update();
 
+		/*timer += dt;
+		if (timer >= 2.0f)
+		{
+			SpawnEnemies(window, scene, glbCache, neutrals, SpawnZone{ {0.0f,0.0f,10.0f},5.0f });
+			timer = 0.0f;
+		}*/
+
 		{
 			static constexpr std::array<KGR::Key, 10> animKeys =
 			{
@@ -259,16 +267,6 @@ int main(int argc, char** argv)
 
 		}
 
-		/*float actual = chrono.GetElapsedTime().AsSeconds();
-		float dt = actual - current;
-		current = actual;*/
-
-		/*timer += dt;
-		if (timer >= 2.0f)
-		{
-			SpawnEnemies(window, scene, glbCache, neutrals, SpawnZone{ {0.0f,0.0f,1.0f},5.0f });
-			timer = 0.0f;
-		}*/
 
 		Count += 1;
 		if (HasValidFrame)
