@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
-	//TODO : régler le problèmes des Updates des animations 
+
 	// GLB entities
 	{
 		//scale map : glm::vec3{ 5.f, 5.f, 0.04f }
@@ -116,28 +116,6 @@ int main(int argc, char** argv)
 		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *TestLight,
 			glm::vec3{ 3.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(2.0f),
 			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });
-
-		
-
-		/*const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
-		if (mobAsset)
-		{
-			Texture& skinRed = TextureLoader::Load("Textures/Mob1.png", window->App());
-			Texture& skinPurple = TextureLoader::Load("Textures/Mob2.png", window->App());
-			Texture& skinOrange = TextureLoader::Load("Textures/Mob3.png", window->App());
-
-			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
-				glm::vec3{ -2.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
-				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinRed });
-
-			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
-				glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
-				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinPurple });
-
-			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
-				glm::vec3{ 2.0f, 0.0f, 0.0f }, glm::vec3{ 90.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
-				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinOrange });
-		}*/
 	}
 
 	// GLB entities
@@ -169,18 +147,18 @@ int main(int argc, char** argv)
 			KGR::GLB::CreateGLBEntity(scene, *foxAsset,
 				glm::vec3{ 0.0f, 1.0f, 2.0f }, glm::vec3(0.0f), glm::vec3(0.02f), neutrals);
 	}
-	/*Create_Parcelles(window, scene, glbCache, neutrals,
+	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle bois/Parcelle_bois.glb",
 		"GLB_Text_1by1/Parcelle bois/Pacerelle Bois.png",
-		glm::vec3{ -60.0f,0.0f,10.0f });
+		glm::vec3{ -10.0f,1.0f,10.0f });
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle liane/Parcelle_liane.glb",
 		"GLB_Text_1by1/Parcelle liane/Pacerelle Liane.png",
-		glm::vec3{ 0.0f,0.0f,10.0f });
+		glm::vec3{ 0.0f,1.0f,10.0f });
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle pierre/Parcelle_pierre.glb",
 		"GLB_Text_1by1/Parcelle pierre/Pacerelle Pierre.png",
-		glm::vec3{ 60.0f,0.0f,10.0f });*/
+		glm::vec3{ 10.0f,1.0f,10.0f });
 
 	//// mesh
 	//{
