@@ -7,8 +7,11 @@
 
 #include "ts_ecs.h"
 #include "Core/Window.h"
+#include "Core/GLBLoader.h"
+#include "Core/GLBEntityFactory.h"
 #include "EnemiesBehaviour.h"
 
+/** @brief Defines a circular area where enemies can be spawned. */
 struct SpawnZone
 {
 	glm::vec3 center;
@@ -18,56 +21,60 @@ struct SpawnZone
 struct EnemyComponent {};
 struct HealtComponent { int Health; };
 
-ts::Entity SpawnEnemy(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, const std::string& meshPath, const std::string& texturePath, glm::vec3 pos, float radius)
+/**
+ * @brief Spawns a single enemy from a pre-loaded GLB asset at the given position.
+ * Uses MaterialComponent to stay compatible with the GLB render pipeline.
+ * @param scene ts::Scene to spawn into.
+ * @param asset Pre-loaded GLB asset from GLBCache::Get().
+ * @param neutrals Shared 1x1 fallback textures for absent PBR channels.
+ * @param pos World-space spawn position.
+ * @param radius Patrol radius passed to the Patrol action.
+ */
+inline ts::Entity SpawnEnemy(ts::Scene& scene, const KGR::GLB::GLBAsset& asset, const KGR::GLB::GLBNeutralTextures& neutrals, glm::vec3 pos, float radius, const KGR::GLB::GLBSkinOverride* skin = nullptr)
 {
-	auto mesh = MeshComponent();
-	auto texture = TextureComponent();
-	auto transform = TransformComponent();
-	mesh.mesh = &MeshLoader::Load(meshPath, window->App());
-	texture.SetSize(mesh.mesh->GetSubMeshesCount());
-	for (int i = 0; i < mesh.mesh->GetSubMeshesCount(); ++i)
-		texture.AddTexture(i, &TextureLoader::Load(texturePath, window->App()));
+    MeshComponent mesh;
+    mesh.mesh = asset.mesh.get();
 
-	transform.SetScale({ 3.0f,3.0f,3.0f });
-	transform.SetPosition(pos);
+    MaterialComponent mat = KGR::GLB::Detail::BuildMaterialComponent(
+        asset, static_cast<int>(mesh.mesh->GetSubMeshesCount()), neutrals);
 
-	AIComponent ai;
-	ai.m_ActionLists.push_back(Patrol(pos, radius));
+    if (skin)
+        KGR::GLB::Detail::ApplySkinOverride(mat, *skin);
 
-	return scene.Spawn(std::move(mesh), std::move(texture), std::move(transform),std::move(ai), EnemyComponent{}, HealtComponent{ 20 });
+    TransformComponent transform;
+    transform.SetPosition(pos);
+    transform.SetScale({ 1.0f, 1.0f, 1.0f });
+
+    AIComponent ai;
+    ai.m_ActionLists.push_back(Patrol(pos, radius));
+
+    return scene.Spawn(std::move(mesh), std::move(mat), std::move(transform), std::move(ai), EnemyComponent{}, HealtComponent{ 20 });
 }
-void SpawnEnemies(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, const SpawnZone& Spawn)
+
+/**
+ * @brief Tries to spawn one enemy inside the given zone, up to a max of 20 enemies in the scene.
+ * @param scene ts::Scene to spawn into.
+ * @param asset Shared GLB asset — all enemies share the same mesh and textures.
+ * @param neutrals Shared fallback textures from GLBCache::GetNeutrals().
+ * @param zone Center and radius of the spawn area.
+ */
+inline void SpawnEnemies(ts::Scene& scene, const KGR::GLB::GLBAsset& asset, const KGR::GLB::GLBNeutralTextures& neutrals, const SpawnZone& zone, const KGR::GLB::GLBSkinOverride* skin = nullptr)
 {
-	if (scene.Query<EnemyComponent>().Count() >= 20)
-		return;
+    if (scene.Count<EnemyComponent>() >= 20)
+        return;
 
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> theta(0.0f, std::numbers::pi * 2.0f);
-	std::uniform_real_distribution<float> r(0.0f, Spawn.radius);
-	std::uniform_int_distribution type(0, 2);
+    std::mt19937 gen{ std::random_device{}() };
+    std::uniform_real_distribution<float> theta(0.0f, std::numbers::pi_v<float> *2.0f);
+    std::uniform_real_distribution<float> r(0.0f, zone.radius);
 
-	glm::vec3 pos
-	{ Spawn.center.x + r(gen) * cosf(theta(gen)),
-		Spawn.center.y,
-		Spawn.center.z + r(gen) * sinf(theta(gen)),
-	};
+    const glm::vec3 pos
+    {
+        zone.center.x + r(gen) * cosf(theta(gen)),
+        zone.center.y,
+        zone.center.z + r(gen) * sinf(theta(gen)),
+    };
 
-	switch (type(gen))
-	{
-	case 1:
-		SpawnEnemy(window, scene, "Models/CUBE.obj", "Textures/BaseTexture.png", pos,Spawn.radius);
-		break;
-	case 2:
-		SpawnEnemy(window, scene, "Models/monkey.obj", "Textures/BaseTexture.png", pos, Spawn.radius);
-		break;
-	case 0:
-		SpawnEnemy(window, scene, "Models/stormtrooper.obj", "Textures/BaseTexture.png", pos, Spawn.radius);
-		break;
-	default:
-		throw std::exception("Problem Spawn");
-	}
-
+    SpawnEnemy(scene, asset, neutrals, pos, zone.radius, skin);
 }
 
 #endif

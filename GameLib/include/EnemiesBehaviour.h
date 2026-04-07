@@ -24,7 +24,7 @@ struct AIComponent
 	std::vector<Action> m_ActionLists;
 };
 
-void AIEnemiesSystem(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, float dt)
+inline void AIEnemiesSystem(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, float dt)
 {
 	scene.Query<AIComponent, TransformComponent>()
 		.Where([&](ts::Entity e, const AIComponent& aiComponent, const TransformComponent& transform)
@@ -57,7 +57,7 @@ struct PatrolData
 	std::uniform_real_distribution<float> r;
 };
 
-Action Patrol(glm::vec3& pos, float radius)
+inline Action Patrol(glm::vec3& pos, float radius)
 {
 	float travelVelocity = 2.0f;
 	Action patrol;
