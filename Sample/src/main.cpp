@@ -65,6 +65,7 @@ int main(int argc, char** argv)
 	sound.SetWav(KGR::Audio::WavManager::Load("Sounds/sound.mp3"));
 	sound.SetVolume(10.0f);
 
+	float floor = 6.0f;
 	// camera
 	{
 		//// a calera need a cameraComponent that can be orthographic or perspective and a transform
@@ -85,14 +86,14 @@ int main(int argc, char** argv)
 		auto cam = scene.Spawn();
 		scene.Add<CameraComponent>(std::move(cam), { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,1000.0f,CameraComponent::Type::Perspective) });
 		TransformComponent transform;
-		transform.SetPosition({ 0.0f,1.0f,0.0f });
+		transform.SetPosition({ 0.0f,floor,0.0f });
 		transform.LookAt({ 0.0f,0.0f,0.0f });
 		transform.SetRotation(glm::vec3(0.0f));
 
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
 
-	float floor = 6.0f;
+	
 	SpawnZone spawn = 
 	{
 		.center = glm::vec3{0.0f, floor, 0.0f},
