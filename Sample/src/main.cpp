@@ -92,107 +92,61 @@ int main(int argc, char** argv)
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
 
+	float floor = 6.0f;
+	SpawnZone spawn = 
+	{
+		.center = glm::vec3{0.0f, floor, 0.0f},
+		.radius = 5.0f
+	};
+
 	// GLB entities
 	{
-		//scale map : glm::vec3{ 5.f, 5.f, 0.04f }
-		const KGR::GLB::GLBAsset* Test = glbCache.Get("Models/Cube.glb", window->App());
-		const KGR::GLB::GLBAsset* TestLight = glbCache.Get("Models/CesiumMan.glb", window->App());
-		Texture& textureTest = TextureLoader::Load("Textures/BaseTexture.png", window->App());
-		Texture& textureRepere = TextureLoader::Load("Textures/BaseTexture.png", window->App());
-		Texture& textureRed = TextureLoader::Load("Textures/rouge.jpg", window->App());
+		const KGR::GLB::GLBAsset* AssetMap = glbCache.Get("GLB_Text_1by1/Map/Map.glb", window->App());
 
-		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
-			glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(500.0f, 1.0f, 500.0f),
-			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });
+		const KGR::GLB::GLBAsset* AssetFox = glbCache.Get("Models/Fox.glb", window->App());
+		const KGR::GLB::GLBAsset* AssetCesiumMan = glbCache.Get("Models/CesiumMan.glb", window->App());
+		const KGR::GLB::GLBAsset* AssetCube = glbCache.Get("Models/Cube.glb", window->App());
 
-		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
-			glm::vec3{ 0.0f, 0.0f, 100.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(50.0f),
-			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureRepere });
+		Texture& TextureMap = TextureLoader::Load("GLB_Text_1by1/Map/Map.png", window->App());
 
-		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
+		Texture& TextureGray = TextureLoader::Load("Textures/BaseTexture.png", window->App());
+		Texture& TextureRed = TextureLoader::Load("Textures/rouge.jpg", window->App());
+
+		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *AssetMap,
+			glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &TextureMap });
+
+		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *AssetCube,
+			glm::vec3{ 0.0f, floor, 100.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(50.0f),
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &TextureGray });
+
+		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *AssetCube,
 			glm::vec3{ 100.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(50.0f),
-			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureRed });
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &TextureRed });
 
-		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *TestLight,
-			glm::vec3{ 3.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(2.0f),
-			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });
-	}
+		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *AssetCesiumMan,
+			glm::vec3{ 3.0f, floor, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(2.0f),
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &TextureGray });
 
-	// GLB entities
-	{
-		const KGR::GLB::GLBAsset* foxAsset = glbCache.Get("Models/Fox.glb", window->App());
+		KGR::GLB::CreateGLBEntity(scene, *AssetFox,
+			glm::vec3{ 0.0f, floor, 2.0f }, glm::vec3(0.0f), glm::vec3(0.02f),
+			neutrals);
+
 		
-
-		const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
-		if (mobAsset)
-		{
-			Texture& skinRed = TextureLoader::Load("Textures/Mob1.png", window->App());
-			Texture& skinPurple = TextureLoader::Load("Textures/Mob2.png", window->App());
-			Texture& skinOrange = TextureLoader::Load("Textures/Mob3.png", window->App());
-
-			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
-				glm::vec3{ -2.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
-				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinRed });
-
-			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
-				glm::vec3{ 0.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
-				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinPurple });
-
-			KGR::GLB::CreateGLBEntity(scene, *mobAsset,
-				glm::vec3{ 2.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(1.0f),
-				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinOrange });
-		}
-
-		if (foxAsset)
-			KGR::GLB::CreateGLBEntity(scene, *foxAsset,
-				glm::vec3{ 0.0f, 1.0f, 2.0f }, glm::vec3(0.0f), glm::vec3(0.02f), neutrals);
+		Create_Parcelles(window, scene, glbCache, neutrals,
+			"GLB_Text_1by1/Parcelle bois/Parcelle_bois.glb",
+			"GLB_Text_1by1/Parcelle bois/Pacerelle Bois.png",
+			glm::vec3{ -10.0f,floor,10.0f });
+		Create_Parcelles(window, scene, glbCache, neutrals,
+			"GLB_Text_1by1/Parcelle liane/Parcelle_liane.glb",
+			"GLB_Text_1by1/Parcelle liane/Pacerelle Liane.png",
+			glm::vec3{ 0.0f,floor,10.0f });
+		Create_Parcelles(window, scene, glbCache, neutrals,
+			"GLB_Text_1by1/Parcelle pierre/Parcelle_pierre.glb",
+			"GLB_Text_1by1/Parcelle pierre/Pacerelle Pierre.png",
+			glm::vec3{ 10.0f,floor,10.0f });
 	}
-	Create_Parcelles(window, scene, glbCache, neutrals,
-		"GLB_Text_1by1/Parcelle bois/Parcelle_bois.glb",
-		"GLB_Text_1by1/Parcelle bois/Pacerelle Bois.png",
-		glm::vec3{ -10.0f,1.0f,10.0f });
-	Create_Parcelles(window, scene, glbCache, neutrals,
-		"GLB_Text_1by1/Parcelle liane/Parcelle_liane.glb",
-		"GLB_Text_1by1/Parcelle liane/Pacerelle Liane.png",
-		glm::vec3{ 0.0f,1.0f,10.0f });
-	Create_Parcelles(window, scene, glbCache, neutrals,
-		"GLB_Text_1by1/Parcelle pierre/Parcelle_pierre.glb",
-		"GLB_Text_1by1/Parcelle pierre/Pacerelle Pierre.png",
-		glm::vec3{ 10.0f,1.0f,10.0f });
 
-	//// mesh
-	//{
-	//	// a mesh need a meshComponent a transform and a texture 
-
-	//	// create a mesh and load it with the cash loader
-	//	MeshComponent tempo_map;
-	//	tempo_map.mesh = &MeshLoader::Load("Models/cube.obj",window->App());
-
-	//	//// create a texture 
-	//	//TextureComponent text;
-	//	//// allocate the size of the texture must be the same as the number of submeshes 
-	//	//text.(tempo_map.mesh->GetSubMeshesCount());
-	//	//// then fill the texture ( this system need to be refact but for now you need to do it like that
-	//	//for (int i = 0; i < tempo_map.mesh->GetSubMeshesCount(); ++i)
-	//	//	text.AddTexture(i, &TextureLoader::Load("Textures/BaseTexture.png", window->App()));
-	//	TextureComponent text;
-	//	text.texture = &TextureLoader::Load("Textures/BaseTexture.png", window->App());
-
-
-	//	// create the transform and set all the data
-	//	TransformComponent transform;
-	//	transform.SetPosition({ 0.0f,0.0f,0.0f });
-	//	transform.SetScale({ 100.0f,0.5f,100.0f });
-	//	// same create an entity / id
-	//	auto map = scene.Spawn();
-	//	// fill the component
-	//	//registry.AddComponents(e, std::move(tempo_map), std::move(text), std::move(transform));
-	//	scene.Add<MeshComponent>(map, std::move(tempo_map));
-	//	scene.Add<TextureComponent>(map, std::move(text));
-	//	scene.Add<TransformComponent>(map, std::move(transform));
-	//	scene.Add<MapComponent>(map, MapComponent());
-	//	
-	//}
 
 	//TODO: régler le bug des lights
 	// light
@@ -253,12 +207,12 @@ int main(int argc, char** argv)
 		KGR::RenderWindow::PollEvent();
 		window->Update();
 
-		/*timer += dt;
+		timer += dt;
 		if (timer >= 2.0f)
 		{
-			SpawnEnemies(window, scene, glbCache, neutrals, SpawnZone{ {0.0f,0.0f,10.0f},5.0f });
+			SpawnEnemies(window, scene, glbCache, neutrals, spawn);
 			timer = 0.0f;
-		}*/
+		}
 
 		{
 			static constexpr std::array<KGR::Key, 10> animKeys =
