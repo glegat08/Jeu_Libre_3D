@@ -93,10 +93,10 @@ int main(int argc, char** argv)
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
 	}
 
-	
+	float floorMobs = floor + 0.5f;
 	SpawnZone spawn = 
 	{
-		.center = glm::vec3{0.0f, floor, 0.0f},
+		.center = glm::vec3{0.0f, floorMobs, 0.0f},
 		.radius = 5.0f
 	};
 
