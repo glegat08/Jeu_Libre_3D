@@ -13,6 +13,7 @@
 struct EnemyComponent;
 
 //TODO : COMMENTEZ 
+//TODO : Ajouter les attaques 
 struct Action
 {
 	std::any information;
