@@ -31,7 +31,7 @@ void SpawnEnemy(
 	const KGR::GLB::GLBAsset* enemyAsset = glbCache.Get(meshPath, window->App());
 	Texture& texture = TextureLoader::Load(texturePath, window->App());
 	if (enemyAsset)
-		enemy = KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *enemyAsset, pos, glm::vec3{ 90.0f,0.0f,0.0f }, glm::vec3{ 3.0f,3.0f,3.0f }, neutral, KGR::GLB::GLBSkinOverride{ .baseColor = &texture }).entity;
+		enemy = KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *enemyAsset, pos, glm::vec3{ 0.0f,0.0f,0.0f }, glm::vec3(1.0f), neutral, KGR::GLB::GLBSkinOverride{ .baseColor = &texture }).entity;
 
 	AIComponent ai;
 	ai.m_ActionLists.push_back(Patrol(pos, radius));
@@ -60,16 +60,20 @@ void SpawnEnemies(
 		Spawn.center.z + r(gen) * sinf(theta(gen)),
 	};
 
+	std::string AssetMobs = "GLB_Text_1by1/Mobs/Mobs.glb";
+	std::string TextureMob1 = "GLB_Text_1by1/Mobs/Mob 1.png";
+	std::string TextureMob2 = "GLB_Text_1by1/Mobs/Mob 2.png";
+	std::string TextureMob3 = "GLB_Text_1by1/Mobs/Mob 3.png";
 	switch (type(gen))
 	{
+	case 0:
+		SpawnEnemy(window, scene, glbCache, neutral, AssetMobs, TextureMob1, pos, Spawn.radius);
+		break;
 	case 1:
-		SpawnEnemy(window, scene, glbCache, neutral, "Models/Mobs.glb", "Textures/Mob2.png", pos, Spawn.radius);
+		SpawnEnemy(window, scene, glbCache, neutral, AssetMobs, TextureMob2, pos, Spawn.radius);
 		break;
 	case 2:
-		SpawnEnemy(window, scene, glbCache, neutral, "Models/Mobs.glb", "Textures/Mob3.png", pos, Spawn.radius);
-		break;
-	case 0:
-		SpawnEnemy(window, scene, glbCache, neutral, "Models/Mobs.glb", "Textures/Mob1.png", pos, Spawn.radius);
+		SpawnEnemy(window, scene, glbCache, neutral, AssetMobs, TextureMob3, pos, Spawn.radius);
 		break;
 	default:
 		throw std::exception("Problem Spawn");
