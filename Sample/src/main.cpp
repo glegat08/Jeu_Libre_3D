@@ -96,11 +96,25 @@ int main(int argc, char** argv)
 	{
 		//scale map : glm::vec3{ 5.f, 5.f, 0.04f }
 		const KGR::GLB::GLBAsset* Test = glbCache.Get("Models/Cube.glb", window->App());
+		const KGR::GLB::GLBAsset* TestLight = glbCache.Get("Models/CesiumMan.glb", window->App());
 		Texture& textureTest = TextureLoader::Load("Textures/BaseTexture.png", window->App());
-		if (Test)
-			KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
-				glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(500.0f,1.0f,500.0f),
-				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });
+		Texture& textureRepere = TextureLoader::Load("Textures/BaseTexture.png", window->App());
+		Texture& textureRed = TextureLoader::Load("Textures/rouge.jpg", window->App());
+		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
+			glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(500.0f, 1.0f, 500.0f),
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });
+
+		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
+			glm::vec3{ 0.0f, 0.0f, 100.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(50.0f),
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureRepere });
+
+		KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *Test,
+			glm::vec3{ 100.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(50.0f),
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureRed });
+
+		/*KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *TestLight,
+			glm::vec3{ 1.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(5.0f),
+			neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &textureTest });*/
 
 		
 
@@ -124,7 +138,7 @@ int main(int argc, char** argv)
 				neutrals, KGR::GLB::GLBSkinOverride{ .baseColor = &skinOrange });
 		}*/
 	}
-	Create_Parcelles(window, scene, glbCache, neutrals,
+	/*Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle bois/Parcelle_bois.glb",
 		"GLB_Text_1by1/Parcelle bois/Pacerelle Bois.png",
 		glm::vec3{ -60.0f,0.0f,10.0f });
@@ -135,7 +149,7 @@ int main(int argc, char** argv)
 	Create_Parcelles(window, scene, glbCache, neutrals,
 		"GLB_Text_1by1/Parcelle pierre/Parcelle_pierre.glb",
 		"GLB_Text_1by1/Parcelle pierre/Pacerelle Pierre.png",
-		glm::vec3{ 60.0f,0.0f,10.0f });
+		glm::vec3{ 60.0f,0.0f,10.0f });*/
 
 	//// mesh
 	//{

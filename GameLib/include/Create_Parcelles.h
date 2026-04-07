@@ -21,7 +21,7 @@ void Create_Parcelles(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scen
 		parcelle = KGR::GLB::CreateGLBEntity<ts::Scene>
 		(
 			scene, *ParcelleAsset,
-			pos, glm::vec3{ 90.0f,0.0f,0.0f }, glm::vec3(1.0f),
+			pos, glm::vec3{ 30.0f,0.0f,0.0f }, glm::vec3(1.0f),
 			neutral, KGR::GLB::GLBSkinOverride{ .baseColor = &texture }
 		).entity;
 
