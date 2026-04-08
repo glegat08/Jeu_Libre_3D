@@ -171,6 +171,8 @@ Action Attack(const RadarComponent& radar)
 			
 			if (data.timer >= 5.0f)
 			{
+				if (HealthParcelle->Health == 0)
+					return;
 				HealthParcelle->Health = HealthParcelle->Health - data.degat;
 				data.timer = 0.0f;
 			}
