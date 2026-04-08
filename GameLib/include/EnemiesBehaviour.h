@@ -5,7 +5,7 @@
 #include <numbers>
 #include <functional>
 #include <any>
-#include <limits>
+#include <cfloat>
 
 #include "ts_ecs.h"
 #include "Core/TrasformComponent.h"
@@ -20,7 +20,7 @@
 struct Action
 {
 	std::any information;
-	std::function<bool(ts::Entity& e, ts::Scene& scene)> condition;
+	std::function<bool(ts::Entity& e, ts::Scene& scene, std::any* information)> condition;
 	std::function<void(ts::Entity& e, ts::Scene& scene, float dt, std::any& information)> execution;
 };
 struct AIComponent
@@ -39,7 +39,7 @@ void AIEnemiesSystem(ts::Scene& scene, float dt)
 			{
 				for (auto& action : aiComponent.m_ActionLists)
 				{
-					if (action.condition(e, scene))
+					if (action.condition(e, scene, &action.information))
 					{
 						action.execution(e, scene, dt, action.information);
 						break;
@@ -75,7 +75,7 @@ Action Patrol(glm::vec3& pos, float radius)
 	};
 
 
-	patrol.condition = [](const ts::Entity& e, const ts::Scene& scene) {return true; };
+	patrol.condition = [](const ts::Entity& e, const ts::Scene& scene, std::any* information) {return true; };
 	patrol.execution = [travelVelocity](ts::Entity& e, ts::Scene& scene, float dt, std::any& information)
 		{
 			auto& data = std::any_cast<PatrolData&>(information);
@@ -118,13 +118,13 @@ Action Attack(const RadarComponent& radar)
 		.r = radar.r,
 		.degat = 1,
 	};
-	attack.condition = [attack, &radar](ts::Entity& e, ts::Scene& scene)
+	attack.condition = [&radar](ts::Entity& e, ts::Scene& scene, std::any* information)
 		{
-			auto& data = std::any_cast<AttackData&>(attack.information);
+			auto& data = std::any_cast<AttackData&>(*information);
 			data.parcelle = ts::NullEntity;
 			glm::vec3 posEnemy = scene.GetComponent<TransformComponent>(e)->GetPosition();
 
-			float distance_min = std::numeric_limits<float>::max();
+			float distance_min = FLT_MAX;
 
 			for (auto& parcelle : scene.Query<ParcelleComponent>().Collect())
 			{
