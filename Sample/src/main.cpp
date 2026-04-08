@@ -86,8 +86,8 @@ int main(int argc, char** argv)
 		auto cam = scene.Spawn();
 		scene.Add<CameraComponent>(std::move(cam), { CameraComponent::Create(glm::radians(45.0f),window->GetSize().x,window->GetSize().y,0.01f,1000.0f,CameraComponent::Type::Perspective) });
 		TransformComponent transform;
-		transform.SetPosition({ 0.0f,floor,0.0f });
-		transform.LookAt({ 0.0f,0.0f,0.0f });
+		transform.SetPosition({ 0.0f,floor + 10.0f,-50.0f });
+		transform.LookAt({ 0.0f,-1.0f,0.0f });
 		transform.SetRotation(glm::vec3(0.0f));
 
 		scene.Add<TransformComponent>(std::move(cam), std::move(transform));
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 	SpawnZone spawn = 
 	{
 		.center = glm::vec3{0.0f, floorMobs, -50.0f},
-		.radius = 5.0f
+		.radius = 10.0f
 	};
 
 	// GLB entities
