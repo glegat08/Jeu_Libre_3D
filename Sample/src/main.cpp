@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 	float floorMobs = floor + 0.5f;
 	SpawnZone spawn = 
 	{
-		.center = glm::vec3{0.0f, floorMobs, 0.0f},
+		.center = glm::vec3{0.0f, floorMobs, -200.0f},
 		.radius = 5.0f
 	};
 
@@ -332,6 +332,10 @@ int main(int argc, char** argv)
 
 
 		AIEnemiesSystem(scene, dt);
+		for (auto& parcelle : scene.Query<ParcelleComponent>().Collect())
+		{
+			std::cout << "Pv Parcelle : " << scene.GetComponent<HealtComponent>(parcelle)->Health << "\n";
+		}
 
 		/*KGR::RenderWindow::PollEvent();
 		window->Update();*/
