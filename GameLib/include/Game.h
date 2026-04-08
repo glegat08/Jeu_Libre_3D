@@ -32,7 +32,7 @@ glm::vec3 GetPlayerPosition(ecsType& registry);
 void LaserHitEnemies(ts::Scene& scene, const glm::vec3& origin, const glm::vec3& dir, float maxDist);
 
 /** @brief renders every enemy in ts::Scene through the KGR render pipeline. */
-void RenderEnemies(ts::Scene& scene, KGR::RenderWindow* window);
+void RenderEnemies(ts::Scene& scene, KGR::RenderWindow* window, float dt);
 
 /** @brief renders every KGR entity that has a mesh, handling skeletal animation when present. */
 void RenderKGREntities(ecsType& registry, KGR::RenderWindow* window, float dt);

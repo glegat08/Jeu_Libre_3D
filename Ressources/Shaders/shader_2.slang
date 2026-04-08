@@ -46,37 +46,56 @@ struct VSOutput
 
 
 [shader("vertex")]
-VSOutput vertMain(VSInput input) 
+VSOutput vertMain(VSInput input)
 {
-VSOutput output;
+    VSOutput output;
 
-    float weightSum = dot(input.inWeights, float4(1.0));
-    float4 w = (weightSum > 0.0) ? (input.inWeights / weightSum) : float4(1.0, 0.0, 0.0, 0.0);
+    float4 localPos;
+    float3 localNormal;
+    float3 localTangent;
 
-    int4 j = clamp(input.inJoints + int4(pushConstantData.boneOffset), int4(0), int4(9999));
+    if (pushConstantData.boneOffset >= 0)
+    {
+        float weightSum = dot(input.inWeights, float4(1.0));
+        float4 w = (weightSum > 0.0) ? (input.inWeights / weightSum) : float4(1.0, 0.0, 0.0, 0.0);
 
-    float4x4 skinMat = 
-        boneData[j.x] * w.x +
-        boneData[j.y] * w.y +
-        boneData[j.z] * w.z +
-        boneData[j.w] * w.w;
+        int4 j = input.inJoints + int4(pushConstantData.boneOffset);
 
-    float4 localPos = mul(skinMat, float4(input.inPosition, 1.0f));
-    float3 localNormal = mul((float3x3)skinMat, input.normal);
-    float3 localTangent = mul((float3x3)skinMat, input.Tangeant.xyz);
+        float4x4 skinMat =
+            boneData[j.x] * w.x +
+            boneData[j.y] * w.y +
+            boneData[j.z] * w.z +
+            boneData[j.w] * w.w;
+
+        localPos = mul(skinMat, float4(input.inPosition, 1.0));
+        localNormal = mul((float3x3)skinMat, input.normal);
+        localTangent = mul((float3x3)skinMat, input.Tangeant.xyz);
+    }
+    else
+    {
+        localPos = float4(input.inPosition, 1.0);
+        localNormal = input.normal;
+        localTangent = input.Tangeant.xyz;
+    }
 
     float4 wsPos = mul(pushConstantData.model, localPos);
     output.pos = mul(CamUbo.proj, mul(CamUbo.view, wsPos));
     output.worldspacePosition = wsPos.xyz;
     output.eyePos = mul(CamUbo.InverseView, float4(0, 0, 0, 1)).xyz;
-    
+
     output.fragTexCoord = input.inTexCoord;
     output.fragColor = input.inColor;
 
     float3 N = normalize(mul((float3x3)pushConstantData.model, localNormal));
-    float3 T = normalize(mul((float3x3)pushConstantData.model, localTangent));
+
+    float3 worldTangent = mul((float3x3)pushConstantData.model, localTangent);
+    float tangentLen = length(worldTangent);
+    float3 T = (tangentLen > 1e-6) ? normalize(worldTangent) : float3(1.0, 0.0, 0.0);
+
     T = normalize(T - N * dot(N, T));
-    float3 B = normalize(cross(N, T) * input.Tangeant.w);
+
+    float tangentW = (tangentLen > 1e-6) ? input.Tangeant.w : 1.0;
+    float3 B = normalize(cross(N, T) * tangentW);
 
     output.normal = N;
     output.tangent = T;
@@ -122,19 +141,21 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
 	float roughness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).g;
 	float3 emessive = pow(emissiveSampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
 
-    // get normal map rgb
-	float3 normalMap = normalSampler.Sample(vertIn.fragTexCoord).rgb;
+    float3 normal;
+    float tangentLen = length(vertIn.tangent);
+    float bitangentLen = length(vertIn.bitangent);
 
-    // convert -1 1 to 0 1 
-    normalMap.xy = normalMap.xy * 2.0f - 1.0f;
+    if (tangentLen > 1e-6 && bitangentLen > 1e-6)
+    {
+        float3 normalMap = normalSampler.Sample(vertIn.fragTexCoord).rgb * 2.0f - 1.0f;
+        float3x3 TBM = transpose(float3x3(vertIn.tangent, vertIn.bitangent, vertIn.normal));
+        normal = normalize(mul(TBM, normalMap));
+    }
+    else
+    {
+        normal = vertIn.normal;
+    }
 
-    // create matrix TBN and transpose it 
-    float3x3 TBM = transpose(float3x3(vertIn.tangent, vertIn.bitangent, vertIn.normal));
-
-    // compute the normal
-    float3 normal = normalize(mul(TBM,normalMap));
-
-   // float3 normal = vertIn.normal;
     float3 result = float(0.f).xxx;
     float3 baseColor = pow(sampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
     result += baseColor * (1 - metalness) * oclusion * 0.02f;

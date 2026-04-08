@@ -31,12 +31,22 @@ void LaserHitEnemies(ts::Scene& scene, const glm::vec3& origin, const glm::vec3&
         scene.Kill(dead);
 }
 
-void RenderEnemies(ts::Scene& scene, KGR::RenderWindow* window)
+void RenderEnemies(ts::Scene& scene, KGR::RenderWindow* window, float dt)
 {
     scene.Query<MeshComponent, TransformComponent, MaterialComponent>()
-        .Each([&](ts::Entity, MeshComponent& mc, TransformComponent& tc, MaterialComponent& mat)
+        .Each([&](ts::Entity e, MeshComponent& mc, TransformComponent& tc, MaterialComponent& mat)
             {
-                window->App()->RegisterRender(*mc.mesh, tc.GetFullTransform(), mat.GetAllMaterials(), -1);
+                int boneOffset = -1;
+
+                if (scene.HasComponent<KGR::Animation::AnimationComponent>(e))
+                {
+                    auto& anim = scene.RequireComponent<KGR::Animation::AnimationComponent>(e);
+                    anim.Update(dt);
+                    boneOffset = window->App()->RegisterBoneMatrices(anim.GetLastBoneMatrices());
+                }
+
+                window->App()->RegisterRender(*mc.mesh, tc.GetFullTransform(),
+                    mat.GetAllMaterials(), boneOffset);
             });
 }
 
@@ -53,11 +63,12 @@ void RenderKGREntities(ecsType& registry, KGR::RenderWindow* window, float dt)
             boneOffset = window->App()->RegisterBoneMatrices(anim.GetLastBoneMatrices());
         }
 
-        window->App()->RegisterRender(
-            *registry.GetComponent<MeshComponent>(e).mesh,
-            registry.GetComponent<TransformComponent>(e).GetFullTransform(),
-            registry.GetComponent<MaterialComponent>(e).GetAllMaterials(),
-            boneOffset);
+        auto& mesh = registry.GetComponent<MeshComponent>(e);
+        auto& transform = registry.GetComponent<TransformComponent>(e);
+        auto& material = registry.GetComponent<MaterialComponent>(e);
+
+        window->App()->RegisterRender(*mesh.mesh, transform.GetFullTransform(), 
+            material.GetAllMaterials(), boneOffset);
     }
 }
 
@@ -72,7 +83,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
     // ── Camera ────────────────────────────────────────────────────────────
     {
-        auto cam = CameraComponent::Create(glm::radians(60.0f), window->GetSize().x, window->GetSize().y, 0.01f, 200.0f, CameraComponent::Type::Perspective);
+        auto cam = CameraComponent::Create(glm::radians(60.0f), window->GetSize().x, window->GetSize().y, 0.05f, 1500.0f, CameraComponent::Type::Perspective);
 
         TransformComponent transform;
         transform.SetPosition({ 0.0f, 0.0f, 0.0f });
@@ -99,22 +110,14 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
     // ── Light ─────────────────────────────────────────────────────────────
     {
-        //auto light = LightComponent<LightData::Type::Spot>::Create({ 255.0f, 240.0f, 200.0f }, { 1.0f, 1.0f, 1.f }, 1.f);
+        LightComponent<LightData::Type::Directional> lc =
+            LightComponent<LightData::Type::Directional>::Create({ 0.28f, 0.26f, 0.22f }, { 0.15f, 0.14f, 0.12f }, 1.0f);
 
-        //TransformComponent transform;
-        //transform.LookAtDir({ 1.0f, -1.0f, 0.0f });
-
-        //auto lightEntity = registry.CreateEntity();
-        //registry.AddComponents(lightEntity, std::move(light), std::move(transform));
-
-        LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1,0,1 }, { 1,1,1 }, 100.0f, 100.0f, glm::radians(10.0f), 0.15f);
-        // set the transform but certain light need dir some position or both so just use what necessary 
         TransformComponent transform;
-        transform.SetPosition({ 0,10,0 });
-        transform.LookAtDir({ 0,-1,0 });
-        // same 
+        transform.SetPosition({ 0.0f, 50.0f, 0.0f });
+        transform.LookAtDir({ -0.3f, -1.0f, -0.3f });
+
         auto e = registry.CreateEntity();
-        // same
         registry.AddComponents(e, std::move(lc), std::move(transform));
     }
 
@@ -135,9 +138,6 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
     // ── Mob asset ─────────────────────────────────────────────────────────
     const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
-	const KGR::GLB::GLBAsset* mobAsset2 = glbCache.Get("Models/Mob_bois.glb", window->App());
-    if (mobAsset2)
-		KGR::GLB::CreateGLBEntity(registry, *mobAsset2, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(0.0f), glm::vec3(1.f), neutrals);
 
     Texture& skinMob1 = TextureLoader::Load("Textures/Mob1.png", window->App());
     Texture& skinMob2 = TextureLoader::Load("Textures/Mob2.png", window->App());
@@ -153,7 +153,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
     std::mt19937 rng{ std::random_device{}() };
     std::uniform_int_distribution<int> skinDist(0, static_cast<int>(mobSkins.size()) - 1);
 
-    SpawnZone spawnZone{ .center = { 0.0f, 0.0f, 0.0f }, .radius = 10.0f };
+    SpawnZone spawnZone{ .center = { 0.0f, 0.0f, 0.0f }, .radius = 100.0f };
     if (mobAsset)
         for (int i = 0; i < 5; ++i)
         {
@@ -198,16 +198,13 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
         //UpdateLightComponents<LightData::Type::Directional>(window, scene);
 
         {
-            auto e = registry.GetAllComponentsView<LightComponent<LightData::Type::Spot>, TransformComponent>();
+            auto e = registry.GetAllComponentsView<LightComponent<LightData::Type::Directional>, TransformComponent>();
             for (auto es : e)
-                window->RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Spot>>(es), registry.GetComponent<TransformComponent>(es));
-
-			std::cout << "Registered " << e.Size() << " spot lights." << std::endl;
-			std::cout << "Position of light : " << registry.GetComponent<TransformComponent>(e.GetEntities()[0]).GetPosition().x << " " << registry.GetComponent<TransformComponent>(e.GetEntities()[0]).GetPosition().y << " " << registry.GetComponent<TransformComponent>(e.GetEntities()[0]).GetPosition().z << std::endl;
+                window->RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Directional>>(es), registry.GetComponent<TransformComponent>(es));
         }
 
         RenderKGREntities(registry, window.get(), dt);
-        RenderEnemies(scene, window.get());
+        RenderEnemies(scene, window.get(), dt);
 
         window->Render({ 0.53f, 0.81f, 0.92f, 1.0f });
     }
