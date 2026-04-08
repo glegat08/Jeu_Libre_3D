@@ -7,6 +7,7 @@
 #include "Core/Mesh.h"
 #include "Core/Texture.h"
 #include "Core/Materials.h"
+#include "Math/CollisionComponent.h"
 
 namespace KGR
 {
@@ -38,29 +39,15 @@ namespace KGR
 			}
 		};
 
-		/**
-		 * @brief Result of a single entity creation — entity handle and a validity flag.
-		 */
+		/** @brief entity handle and validity flag returned by entity creation functions. */
 		template<typename RegistryT>
 		struct GLBEntityResult
 		{
-			typename  RegistryTraits<RegistryT>::type entity{};
+			typename RegistryTraits<RegistryT>::type entity{};
 			bool valid = false;
 		};
 
-		/**
-		 * @brief Per-channel texture overrides applied on top of GLB material data.
-		 * Any channel left as nullptr keeps whatever the GLB (or neutral fallback) assigned.
-		 *
-		 * Useful for variants sharing one mesh but differing only in textures (e.g. mob skins):
-		 * @code
-		 *   Texture& red   = TextureLoader::Load("red.png", app);
-		 *   Texture& green = TextureLoader::Load("green.png", app);
-		 *
-		 *   CreateGLBEntity(registry, *asset, pos1, rot, scale, neutrals, GLBSkinOverride{ .baseColor = &red   });
-		 *   CreateGLBEntity(registry, *asset, pos2, rot, scale, neutrals, GLBSkinOverride{ .baseColor = &green });
-		 * @endcode
-		 */
+		/** @brief per-channel texture overrides applied on top of GLB material data. */
 		struct GLBSkinOverride
 		{
 			Texture* baseColor = nullptr;
@@ -72,7 +59,11 @@ namespace KGR
 		namespace Detail
 		{
 			/**
-			 * @brief Returns the uploaded texture at @p imageIndex, or @p neutral if absent.
+			 * @brief returns the uploaded texture at @p imageIndex, or @p neutral if absent.
+			 * @param imageIndex image index into the uploaded list.
+			 * @param uploaded uploaded GPU textures.
+			 * @param neutral fallback texture.
+			 * @return resolved texture pointer.
 			 */
 			inline Texture* ResolveChannel(int imageIndex,
 				const std::vector<std::unique_ptr<Texture>>& uploaded, Texture* neutral)
@@ -85,8 +76,11 @@ namespace KGR
 			}
 
 			/**
-			 * @brief Builds a MaterialComponent from the asset's per-primitive material data.
-			 * Submesh i corresponds to primitive i; absent channels fall back to @p neutrals.
+			 * @brief builds a MaterialComponent from the asset's flat primitive list.
+			 * @param asset source asset.
+			 * @param subMeshCount number of submeshes.
+			 * @param neutrals fallback textures for absent PBR channels.
+			 * @return the built MaterialComponent.
 			 */
 			inline MaterialComponent BuildMaterialComponent(const GLBAsset& asset,
 				int subMeshCount, const GLBNeutralTextures& neutrals)
@@ -103,6 +97,55 @@ namespace KGR
 						? primitives[i].materialIndex : -1;
 
 					Material mat;
+					if (matIdx >= 0 && matIdx < static_cast<int>(materials.size()))
+					{
+						const GLBMaterialData& src = materials[matIdx];
+						mat.baseColor = ResolveChannel(src.baseColorIndex, asset.textures, neutrals.baseColor);
+						mat.pbrMap = ResolveChannel(src.pbrMapIndex, asset.textures, neutrals.pbrMap);
+						mat.normalMap = ResolveChannel(src.normalMapIndex, asset.textures, neutrals.normalMap);
+						mat.emissive = ResolveChannel(src.emissiveIndex, asset.textures, neutrals.emissive);
+					}
+					else
+					{
+						mat.baseColor = neutrals.baseColor;
+						mat.pbrMap = neutrals.pbrMap;
+						mat.normalMap = neutrals.normalMap;
+						mat.emissive = neutrals.emissive;
+					}
+
+					matComp.AddMaterial(i, mat);
+				}
+
+				return matComp;
+			}
+
+			/**
+			 * @brief builds a MaterialComponent from the primitives of a specific mesh.
+			 * @param asset source asset.
+			 * @param meshIndex glTF mesh index.
+			 * @param subMeshCount number of submeshes.
+			 * @param neutrals fallback textures for absent PBR channels.
+			 * @return the built MaterialComponent.
+			 */
+			inline MaterialComponent BuildMaterialComponentForMesh(const GLBAsset& asset,
+				int meshIndex, int subMeshCount, const GLBNeutralTextures& neutrals)
+			{
+				MaterialComponent matComp;
+				matComp.SetSize(subMeshCount);
+
+				const auto& perMesh = asset.loader.GetPrimitivesPerMesh();
+				const auto& materials = asset.loader.GetMaterials();
+
+				const bool meshValid = meshIndex >= 0
+					&& meshIndex < static_cast<int>(perMesh.size());
+
+				for (int i = 0; i < subMeshCount; ++i)
+				{
+					Material mat;
+					int matIdx = -1;
+
+					if (meshValid && i < static_cast<int>(perMesh[meshIndex].size()))
+						matIdx = perMesh[meshIndex][i].materialIndex;
 
 					if (matIdx >= 0 && matIdx < static_cast<int>(materials.size()))
 					{
@@ -127,8 +170,9 @@ namespace KGR
 			}
 
 			/**
-			 * @brief Overwrites channels on every submesh where @p skin specifies a non-null texture.
-			 * nullptr channels in the skin are left untouched.
+			 * @brief overwrites material channels where @p skin specifies a non-null texture.
+			 * @param matComp material component to modify.
+			 * @param skin texture overrides to apply.
 			 */
 			inline void ApplySkinOverride(MaterialComponent& matComp, const GLBSkinOverride& skin)
 			{
@@ -137,21 +181,26 @@ namespace KGR
 					Material mat = matComp.GetMaterial(i);
 
 					if (skin.baseColor) mat.baseColor = skin.baseColor;
-					if (skin.pbrMap)    mat.pbrMap = skin.pbrMap;
+					if (skin.pbrMap) mat.pbrMap = skin.pbrMap;
 					if (skin.normalMap) mat.normalMap = skin.normalMap;
-					if (skin.emissive)  mat.emissive = skin.emissive;
+					if (skin.emissive) mat.emissive = skin.emissive;
 
 					matComp.AddMaterial(i, mat);
 				}
 			}
 
 			/**
-			 * @brief Registers all ECS components, adding an AnimationComponent when the asset has skeleton data.
+			 * @brief registers ECS components, adding AnimationComponent if the asset has skeleton data.
+			 * @param registry target ECS registry.
+			 * @param entity target entity.
+			 * @param asset source asset.
+			 * @param meshComp mesh component to attach.
+			 * @param matComp material component to attach.
+			 * @param transform transform component to attach.
 			 */
 			template<typename RegistryT>
-			void RegisterComponents(RegistryT& registry, typename  RegistryTraits<RegistryT>::type entity,
-				const GLBAsset& asset, MeshComponent meshComp,
-				MaterialComponent matComp, TransformComponent transform)
+			void RegisterComponents(RegistryT& registry, typename RegistryTraits<RegistryT>::type entity, const GLBAsset& asset,
+				MeshComponent meshComp, MaterialComponent matComp, TransformComponent transform)
 			{
 				const auto& skeletons = asset.loader.GetSkeletons();
 				const auto& animations = asset.loader.GetAnimations();
@@ -162,30 +211,28 @@ namespace KGR
 					animComp.Init(&skeletons[0], &animations);
 
 					RegistryTraits<RegistryT>::AddComponents(
-						registry, entity, std::move(meshComp), std::move(matComp),
+						registry, entity,
+						std::move(meshComp), std::move(matComp),
 						std::move(transform), std::move(animComp));
 					return;
 				}
 
-				RegistryTraits<RegistryT>::AddComponents(registry,entity,
+				RegistryTraits<RegistryT>::AddComponents(
+					registry, entity,
 					std::move(meshComp), std::move(matComp), std::move(transform));
 			}
 		}
 
 		/**
-		 * @brief Instantiates an ECS entity from a pre-loaded GLBAsset.
-		 *
-		 * Each submesh gets the material the GLB author assigned to it; absent PBR channels
-		 * fall back to @p neutrals. Pass a @p skin pointer to override specific texture channels
-		 * (useful for colour variants sharing one mesh). nullptr channels in the skin are preserved.
-		 *
-		 * @param registry  ECS registry to create the entity in.
-		 * @param asset     shared asset to instantiate from.
-		 * @param position  world-space position.
-		 * @param rotation  world-space rotation.
-		 * @param scale     world-space scale.
-		 * @param neutrals  shared 1x1 GPU textures for absent PBR channels, from GLBCache::GetNeutrals().
-		 * @param skin      optional per-channel texture overrides; pass nullptr for the default GLB materials.
+		 * @brief instantiates a single ECS entity from a pre-loaded GLBAsset.
+		 * @param registry ECS registry.
+		 * @param asset shared asset to instantiate from.
+		 * @param position world-space position.
+		 * @param rotation world-space rotation in radians.
+		 * @param scale world-space scale.
+		 * @param neutrals shared 1x1 GPU fallback textures.
+		 * @param skin per-channel texture overrides.
+		 * @return entity handle and validity flag.
 		 */
 		template<typename RegistryT>
 		GLBEntityResult<RegistryT> CreateGLBEntity(RegistryT& registry, const GLBAsset& asset,
@@ -215,16 +262,71 @@ namespace KGR
 			result.entity = RegistryTraits<RegistryT>::CreateEntity(registry);
 			result.valid = true;
 
-			auto matComp = Detail::BuildMaterialComponent(asset, 
-				static_cast<int>(meshComp.mesh->GetSubMeshesCount()), neutrals);
+			auto matComp = Detail::BuildMaterialComponent(
+				asset, static_cast<int>(meshComp.mesh->GetSubMeshesCount()), neutrals);
 
-			if (skin) 
+			if (skin)
 				Detail::ApplySkinOverride(matComp, *skin);
 
 			Detail::RegisterComponents(registry, result.entity, asset,
 				std::move(meshComp), std::move(matComp), std::move(transform));
 
 			return result;
+		}
+
+		/**
+		 * @brief spawns one ECS entity per glTF node in the asset.
+		 * @param registry ECS registry.
+		 * @param asset shared asset from GLBCache.
+		 * @param worldOffset offset added to every node's translation.
+		 * @param neutrals shared 1x1 GPU fallback textures.
+		 */
+		template<typename RegistryT>
+		void CreateGLBEntitiesFromNodes(RegistryT& registry, const GLBAsset& asset,
+			const glm::vec3& worldOffset, const GLBNeutralTextures& neutrals)
+		{
+			const auto& instances = asset.loader.GetNodeInstances();
+			const int meshCount = static_cast<int>(asset.meshes.size());
+
+			for (const auto& inst : instances)
+			{
+				if (inst.meshIndex < 0 || inst.meshIndex >= meshCount)
+					continue;
+
+				Mesh* mesh = asset.meshes[inst.meshIndex].get();
+				if (!mesh || mesh->GetSubMeshesCount() == 0)
+					continue;
+
+				MeshComponent meshComp;
+				meshComp.mesh = mesh;
+
+				auto matComp = Detail::BuildMaterialComponentForMesh(
+					asset,
+					inst.meshIndex,
+					static_cast<int>(mesh->GetSubMeshesCount()),
+					neutrals);
+
+				TransformComponent transform;
+				transform.SetPosition(inst.translation + worldOffset);
+				transform.SetOrientation(inst.rotation);
+				transform.SetScale(inst.scale);
+
+				Collider* collider = nullptr;
+				if (inst.meshIndex < static_cast<int>(asset.colliders.size()))
+					collider = asset.colliders[inst.meshIndex].get();
+
+				CollisionComp collComp;
+				collComp.collider = collider;
+
+				auto entity = RegistryTraits<RegistryT>::CreateEntity(registry);
+
+				RegistryTraits<RegistryT>::AddComponents(
+					registry, entity,
+					std::move(meshComp),
+					std::move(matComp),
+					std::move(transform),
+					std::move(collComp));
+			}
 		}
 	}
 }

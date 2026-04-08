@@ -92,21 +92,18 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
     // ── Map ───────────────────────────────────────────────────────────────
     {
-        const KGR::GLB::GLBAsset* mapAsset = glbCache.Get("Models/Map.glb", window->App());
+        const KGR::GLB::GLBAsset* mapAsset = glbCache.Get("Models/MapTest.glb", window->App());
         if (mapAsset)
-        {
-            Texture& mapSkin = TextureLoader::Load("Textures/Map.png", window->App());
-			KGR::GLB::GLBSkinOverride mapOverride{ .baseColor = &mapSkin };
-            KGR::GLB::CreateGLBEntity(registry, *mapAsset, glm::vec3{ 0.0f, -10.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 1.f, 1.f, 1.f }, neutrals, &mapOverride);
-        }
+            KGR::GLB::CreateGLBEntitiesFromNodes(registry, *mapAsset, glm::vec3{ 0.0f, -10.0f, 0.0f }, neutrals);
     }
 
-    // ── Directional light ─────────────────────────────────────────────────
+    // ── Light ─────────────────────────────────────────────────────────────
     {
-        auto light = LightComponent<LightData::Type::Directional>::Create({ 100.0f, 100.0f, 100.0f }, { 0.0f, -1.0f, -0.5f }, 1.0f);
+        auto light = LightComponent<LightData::Type::Spot>::Create({ 100.0f, 100.0f, 100.0f }, { 0.0f, -1.0f, -0.5f }, 10.0f, 1.f, 178.f, 1.f);
 
         TransformComponent transform;
-        transform.SetPosition({ 0.0f, 50.0f, 0.0f });
+        transform.SetPosition({ 0.0f, 10.0f, 0.0f });
+        transform.LookAtDir({ 0.0f, 0.0f, 0.0f });
 
         auto e = registry.CreateEntity();
         registry.AddComponents(e, std::move(light), std::move(transform));
@@ -117,7 +114,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
     FPSCameraState cameraState;
     LaserInit(laserState, registry, window.get(), {});
 
-    // ── Canon (viewmodel) ─────────────────────────────────────────────────
+    // ── Canon ─────────────────────────────────────────────────
     CanonState canonState;
     const KGR::GLB::GLBAsset* canonAsset = glbCache.Get("Models/Canon.glb", window->App());
     if (canonAsset)
@@ -169,7 +166,6 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
         glm::vec3 playerPos = GetPlayerPosition(registry);
 
-        // ── update canon position every frame ─────────────────────────────
         CanonUpdate(canonState, registry, playerPos, front);
 
         spawnTimer += dt;

@@ -9,9 +9,7 @@ namespace KGR
 {
 	namespace Animation
 	{
-		/**
-		 * @brief Manages the runtime playback state of a single skeletal animation instance.
-		 */
+		/** @brief runtime playback state for a skeletal animation instance. */
 		class AnimationComponent
 		{
 		public:
@@ -19,27 +17,28 @@ namespace KGR
 			~AnimationComponent() = default;
 
 			/**
-			 * @brief Binds a skeleton and its clip library to this component and activates the first valid clip.
-			 * @param skeleton  pointer to the joint hierarchy and inverse bind matrices.
-			 * @param clips     all animation clips available for this skeleton.
+			 * @brief binds a skeleton and its clips to this component and activates the first valid clip.
+			 * @param skeleton pointer to the joint hierarchy.
+			 * @param clips available animation clips.
 			 */
 			void Init(const Skeleton* skeleton, const std::vector<AnimationClip>* clips);
 
 			/**
-			 * @brief Switches to the clip at @p index and resets playback time to zero.
+			 * @brief switches to the clip at @p index and resets playback time.
+			 * @param index clip index.
 			 */
 			void SetClip(size_t index);
 
 			/**
-			 * @brief Steps the animation forward and recomputes all joint matrices.
-			 * @param deltaTime seconds elapsed since the last frame.
+			 * @brief advances the animation and recomputes all joint matrices.
+			 * @param deltaTime seconds since the last frame.
 			 */
 			void Update(float deltaTime);
 
-			/** @brief Skinning matrices (globalTransform * inverseBindMatrix) indexed by joint ID. */
+			/** @brief returns the skinning matrices indexed by joint ID. */
 			const std::vector<glm::mat4>& GetLastBoneMatrices() const;
 
-			/** @brief Number of clips available on this component. */
+			/** @brief returns the number of clips available. */
 			size_t GetClipCount() const;
 
 		private:
@@ -48,7 +47,7 @@ namespace KGR
 			const AnimationClip* m_clip = nullptr;
 
 			size_t m_currentClipIdx = 0;
-			float  m_currentTime = 0.0f;
+			float m_currentTime = 0.0f;
 
 			std::vector<int> m_rootJointIds;
 			std::unordered_map<int, const Joint*> m_jointById;
@@ -57,10 +56,10 @@ namespace KGR
 			std::vector<glm::mat4> m_globalMatrices;
 			std::vector<glm::mat4> m_lastBoneMatrices;
 
-			/** @brief Rebuilds m_trackByJointId and m_clip from the current clip index. */
+			/** @brief rebuilds track map and clip pointer from the current clip index. */
 			void RebuildClipData();
 
-			/** @brief Recursively computes the global transform for a joint and all its descendants. */
+			/** @brief recursively computes the global transform for a joint and its descendants. */
 			void CalculateBoneTransform(const Joint& joint, const glm::mat4& parentTransform);
 
 			glm::vec3 InterpolatePosition(float time, const Track& track) const;

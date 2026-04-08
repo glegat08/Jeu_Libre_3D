@@ -23,8 +23,6 @@ namespace KGR
 			m_globalMatrices.assign(count, glm::mat4(1.0f));
 			m_lastBoneMatrices.assign(count, glm::mat4(1.0f));
 
-			// Single pass: build the joint map and collect every child ID.
-			// Anything not in childIds is a root.
 			std::unordered_set<int> childIds;
 			for (const auto& joint : m_skeleton->m_joints)
 			{
@@ -39,10 +37,9 @@ namespace KGR
 			if (!m_clips)
 				return;
 
-			// Activate the first clip that actually has data.
 			auto it = std::find_if(m_clips->begin(), m_clips->end(),
-				[](const AnimationClip& c) 
-				{ 
+				[](const AnimationClip& c)
+				{
 					return !c.m_tracks.empty() && c.duration > 0.0f;
 				});
 
@@ -114,13 +111,13 @@ namespace KGR
 			if (it != m_trackByJointId.end())
 			{
 				const Track& track = *it->second;
-				if (!track.m_positions.empty()) 
+				if (!track.m_positions.empty())
 					pos = InterpolatePosition(m_currentTime, track);
 
-				if (!track.m_rotations.empty()) 
+				if (!track.m_rotations.empty())
 					rot = InterpolateRotation(m_currentTime, track);
 
-				if (!track.m_scales.empty())   
+				if (!track.m_scales.empty())
 					scl = InterpolateScale(m_currentTime, track);
 			}
 
@@ -143,7 +140,7 @@ namespace KGR
 		glm::vec3 AnimationComponent::InterpolatePosition(float time, const Track& track) const
 		{
 			return InterpolateKeyframes(time, track.m_positions,
-				[](const glm::vec3& a, const glm::vec3& b, float t) 
+				[](const glm::vec3& a, const glm::vec3& b, float t)
 				{
 					return glm::mix(a, b, t);
 				});
@@ -161,7 +158,7 @@ namespace KGR
 		glm::vec3 AnimationComponent::InterpolateScale(float time, const Track& track) const
 		{
 			return InterpolateKeyframes(time, track.m_scales,
-				[](const glm::vec3& a, const glm::vec3& b, float t) 
+				[](const glm::vec3& a, const glm::vec3& b, float t)
 				{
 					return glm::mix(a, b, t);
 				});
