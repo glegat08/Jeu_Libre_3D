@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 	float floorMobs = floor + 0.5f;
 	SpawnZone spawn = 
 	{
-		.center = glm::vec3{0.0f, floorMobs, -200.0f},
+		.center = glm::vec3{0.0f, floorMobs, -50.0f},
 		.radius = 5.0f
 	};
 
