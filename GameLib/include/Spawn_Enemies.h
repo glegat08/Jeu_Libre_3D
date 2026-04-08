@@ -63,20 +63,23 @@ void SpawnEnemies(
 		Spawn.center.z + r(gen) * sinf(theta(gen)),
 	};
 
-	std::string AssetMobs = "GLB_Text_1by1/Mobs/Mobs.glb";
-	std::string TextureMob1 = "GLB_Text_1by1/Mobs/Mob 1.png";
-	std::string TextureMob2 = "GLB_Text_1by1/Mobs/Mob 2.png";
-	std::string TextureMob3 = "GLB_Text_1by1/Mobs/Mob 3.png";
+	std::string AssetMob_bois = "GLB_Text_1by1/Mobs/Mob_bois/Mob_bois_anim.glb";
+	std::string AssetMob_liane = "GLB_Text_1by1/Mobs/Mob_liane/Mob_liane_anim.glb";
+	std::string AssetMob_pierre = "GLB_Text_1by1/Mobs/Mob_pierre/Mob_pierre_anim.glb";
+
+	std::string TexturesMob_bois = "GLB_Text_1by1/Mobs/Mob_bois/Mob_bois_text.png";
+	std::string TexturesMob_liane = "GLB_Text_1by1/Mobs/Mob_liane/Mob_liane.png";
+	std::string TexturesMob_pierre = "GLB_Text_1by1/Mobs/Mob_pierre/Mob_pierre.png";
 	switch (type(gen))
 	{
 	case 0:
-		SpawnEnemy(window, scene, glbCache, neutral, AssetMobs, TextureMob1, pos, Spawn.radius);
+		SpawnEnemy(window, scene, glbCache, neutral, AssetMob_bois, TexturesMob_bois, pos, Spawn.radius);
 		break;
 	case 1:
-		SpawnEnemy(window, scene, glbCache, neutral, AssetMobs, TextureMob2, pos, Spawn.radius);
+		SpawnEnemy(window, scene, glbCache, neutral, AssetMob_liane, TexturesMob_liane, pos, Spawn.radius);
 		break;
 	case 2:
-		SpawnEnemy(window, scene, glbCache, neutral, AssetMobs, TextureMob3, pos, Spawn.radius);
+		SpawnEnemy(window, scene, glbCache, neutral, AssetMob_pierre, TexturesMob_pierre, pos, Spawn.radius);
 		break;
 	default:
 		throw std::exception("Problem Spawn");
