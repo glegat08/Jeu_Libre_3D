@@ -107,16 +107,19 @@ struct AttackData
 	int degat;
 	glm::vec2 targetpos = {0.0f,0.0f};
 	ts::Entity parcelle = ts::NullEntity;
+	float timer;
 };
 
 Action Attack(const RadarComponent& radar)
 {
 	float travelVelocity = 4.0f;
+
 	Action attack;
 	attack.information = AttackData
 	{
 		.r = radar.r,
 		.degat = 1,
+		.timer = 0.0f
 	};
 	attack.condition = [&radar](ts::Entity& e, ts::Scene& scene, std::any* information)
 		{
@@ -147,23 +150,33 @@ Action Attack(const RadarComponent& radar)
 		{
 			auto& data = std::any_cast<AttackData&>(information);
 			auto* transform = scene.GetComponent<TransformComponent>(e);
+			auto* HealthParcelle = scene.GetComponent<HealtComponent>(data.parcelle);
+
 			glm::vec2 vector_Parcelle_Enemy = { data.targetpos.x - transform->GetPosition().x, data.targetpos.y - transform->GetPosition().z };
 			auto length = glm::length(vector_Parcelle_Enemy);
-			if (length <= 0.1f)
+
+			data.timer += dt;
+
+			if (length > 3.5f)
 			{
-				auto* HealthParcelle = scene.GetComponent<HealtComponent>(data.parcelle);
-				HealthParcelle->Health = HealthParcelle->Health - data.degat;
-			}
-			else
 				transform->SetPosition
-				(
-					transform->GetPosition() +
-					glm::vec3(
-						glm::normalize(vector_Parcelle_Enemy).x * travelVelocity * dt,
-						0.0f,
-						glm::normalize(vector_Parcelle_Enemy).y * travelVelocity * dt
-					)
-				);
+			   (
+				   transform->GetPosition() +
+				   glm::vec3(
+					   glm::normalize(vector_Parcelle_Enemy).x * travelVelocity * dt,
+					   0.0f,
+					   glm::normalize(vector_Parcelle_Enemy).y * travelVelocity * dt
+				   )
+			   );
+				return;
+			}
+			
+			if (data.timer >= 5.0f)
+			{
+				HealthParcelle->Health = HealthParcelle->Health - data.degat;
+				data.timer = 0.0f;
+			}
+				
 		};
 
 	return attack;
