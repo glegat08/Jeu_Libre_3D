@@ -27,6 +27,8 @@ void SpawnEnemy(
 	const std::string& meshPath, const std::string& texturePath, glm::vec3 pos, float radius)
 {
 	ts::Entity enemy;
+	float RadarRange = radius + 10.0f;
+	float PatrolArea = radius * 5.0f;
 
 	const KGR::GLB::GLBAsset* enemyAsset = glbCache.Get(meshPath, window->App());
 	Texture& texture = TextureLoader::Load(texturePath, window->App());
@@ -34,8 +36,8 @@ void SpawnEnemy(
 		enemy = KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *enemyAsset, pos, glm::vec3{ 0.0f,0.0f,0.0f }, glm::vec3(1.0f), neutral, KGR::GLB::GLBSkinOverride{ .baseColor = &texture }).entity;
 	
 	AIComponent ai;
-	//ai.m_ActionLists.push_back(Attack(RadarComponent{ radius * 10.0f }));
-	ai.m_ActionLists.push_back(Patrol(pos, radius));
+	ai.m_ActionLists.push_back(Attack(RadarComponent{ RadarRange }));
+	ai.m_ActionLists.push_back(Patrol(pos, PatrolArea));
 
 	scene.Add<AIComponent>(enemy, std::move(ai));
 	scene.Add<EnemyComponent>(enemy, EnemyComponent{});

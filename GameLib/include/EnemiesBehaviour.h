@@ -68,7 +68,7 @@ Action Patrol(glm::vec3& pos, float radius)
 	patrol.information = PatrolData
 	{
 		.center = pos,
-		.radius = radius * 5.0f,
+		.radius = radius,
 		.targetpos = {1.0f,0.0f},
 		.timer = 0.0f,
 		.r = std::uniform_real_distribution<float>{0.0f, radius}
