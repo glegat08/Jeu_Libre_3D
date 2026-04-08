@@ -15,8 +15,6 @@
 
 
 //TODO : COMMENTEZ 
-//TODO : Changer le mouvement pour un slime
-//TODO : Ajouter les attaques 
 struct Action
 {
 	std::any information;
