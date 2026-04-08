@@ -13,6 +13,7 @@
 struct EnemyComponent;
 
 //TODO : COMMENTEZ 
+//TODO : Changer le mouvement pour un slime
 //TODO : Ajouter les attaques 
 struct Action
 {
@@ -88,7 +89,8 @@ Action Patrol(glm::vec3& pos, float radius)
 				};
 				data.timer = 0.0f;
 			}
-			glm::vec3 targetPos = { data.targetpos.x,data.center.y,data.targetpos.y };
+			glm::vec3 targetPos = { data.targetpos.x, data.center.y,data.targetpos.y };
+
 			if (glm::length(targetPos - transform->GetPosition()) > 0.1f)
 				transform->SetPosition(transform->GetPosition() + glm::normalize(targetPos - transform->GetPosition()) * travelVelocity * dt);
 
