@@ -99,14 +99,23 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
     // ── Light ─────────────────────────────────────────────────────────────
     {
-        auto light = LightComponent<LightData::Type::Spot>::Create({ 100.0f, 100.0f, 100.0f }, { 0.0f, -1.0f, -0.5f }, 10.0f, 1.f, 178.f, 1.f);
+        //auto light = LightComponent<LightData::Type::Spot>::Create({ 255.0f, 240.0f, 200.0f }, { 1.0f, 1.0f, 1.f }, 1.f);
 
+        //TransformComponent transform;
+        //transform.LookAtDir({ 1.0f, -1.0f, 0.0f });
+
+        //auto lightEntity = registry.CreateEntity();
+        //registry.AddComponents(lightEntity, std::move(light), std::move(transform));
+
+        LightComponent<LightData::Type::Spot> lc = LightComponent<LightData::Type::Spot>::Create({ 1,0,1 }, { 1,1,1 }, 100.0f, 100.0f, glm::radians(10.0f), 0.15f);
+        // set the transform but certain light need dir some position or both so just use what necessary 
         TransformComponent transform;
-        transform.SetPosition({ 0.0f, 10.0f, 0.0f });
-        transform.LookAtDir({ 0.0f, 0.0f, 0.0f });
-
+        transform.SetPosition({ 0,10,0 });
+        transform.LookAtDir({ 0,-1,0 });
+        // same 
         auto e = registry.CreateEntity();
-        registry.AddComponents(e, std::move(light), std::move(transform));
+        // same
+        registry.AddComponents(e, std::move(lc), std::move(transform));
     }
 
     // ── Laser ─────────────────────────────────────────────────────────────
@@ -126,6 +135,9 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
     // ── Mob asset ─────────────────────────────────────────────────────────
     const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
+	const KGR::GLB::GLBAsset* mobAsset2 = glbCache.Get("Models/Mob_bois.glb", window->App());
+    if (mobAsset2)
+		KGR::GLB::CreateGLBEntity(registry, *mobAsset2, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3(0.0f), glm::vec3(1.f), neutrals);
 
     Texture& skinMob1 = TextureLoader::Load("Textures/Mob1.png", window->App());
     Texture& skinMob2 = TextureLoader::Load("Textures/Mob2.png", window->App());
@@ -183,11 +195,20 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
         if (window->GetInputManager()->IsMousePressed(KGR::Mouse::Button1))
             LaserHitEnemies(scene, playerPos, front, laserState.maxDistance);
 
-        UpdateLightComponents<LightData::Type::Directional>(window, scene);
+        //UpdateLightComponents<LightData::Type::Directional>(window, scene);
+
+        {
+            auto e = registry.GetAllComponentsView<LightComponent<LightData::Type::Spot>, TransformComponent>();
+            for (auto es : e)
+                window->RegisterLight(registry.GetComponent<LightComponent<LightData::Type::Spot>>(es), registry.GetComponent<TransformComponent>(es));
+
+			std::cout << "Registered " << e.Size() << " spot lights." << std::endl;
+			std::cout << "Position of light : " << registry.GetComponent<TransformComponent>(e.GetEntities()[0]).GetPosition().x << " " << registry.GetComponent<TransformComponent>(e.GetEntities()[0]).GetPosition().y << " " << registry.GetComponent<TransformComponent>(e.GetEntities()[0]).GetPosition().z << std::endl;
+        }
 
         RenderKGREntities(registry, window.get(), dt);
         RenderEnemies(scene, window.get());
 
-        window->Render({ 0.1f, 0.1f, 0.15f, 1.0f });
+        window->Render({ 0.53f, 0.81f, 0.92f, 1.0f });
     }
 }

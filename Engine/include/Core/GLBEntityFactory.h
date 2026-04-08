@@ -8,6 +8,7 @@
 #include "Core/Texture.h"
 #include "Core/Materials.h"
 #include "Math/CollisionComponent.h"
+#include <iostream>
 
 namespace KGR
 {
@@ -326,6 +327,11 @@ namespace KGR
 					std::move(matComp),
 					std::move(transform),
 					std::move(collComp));
+
+				std::cout << "[GLB] Node: " << inst.name
+					<< " meshIdx=" << inst.meshIndex
+					<< " pos=(" << inst.translation.x << ","
+					<< inst.translation.y << "," << inst.translation.z << ")\n";
 			}
 		}
 	}
