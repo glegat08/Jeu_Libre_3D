@@ -5,12 +5,14 @@
 #include <numbers>
 #include <functional>
 #include <any>
+#include <limits>
 
 #include "ts_ecs.h"
 #include "Core/TrasformComponent.h"
 #include "Core/Window.h"
+#include "Components.h"
 
-struct EnemyComponent;
+
 
 //TODO : COMMENTEZ 
 //TODO : Changer le mouvement pour un slime
@@ -18,7 +20,7 @@ struct EnemyComponent;
 struct Action
 {
 	std::any information;
-	std::function<bool(const ts::Entity& e, const ts::Scene& scene)> condition;
+	std::function<bool(ts::Entity& e, ts::Scene& scene)> condition;
 	std::function<void(ts::Entity& e, ts::Scene& scene, float dt, std::any& information)> execution;
 };
 struct AIComponent
@@ -66,7 +68,7 @@ Action Patrol(glm::vec3& pos, float radius)
 	patrol.information = PatrolData
 	{
 		.center = pos,
-		.radius = radius * 2.0f,
+		.radius = radius * 5.0f,
 		.targetpos = {1.0f,0.0f},
 		.timer = 0.0f,
 		.r = std::uniform_real_distribution<float>{0.0f, radius}
@@ -99,9 +101,72 @@ Action Patrol(glm::vec3& pos, float radius)
 	return patrol;
 }
 
-//Action Attack()
-//{
-//
-//}
+struct AttackData
+{
+	float r;
+	int degat;
+	glm::vec2 targetpos = {0.0f,0.0f};
+	ts::Entity parcelle = ts::NullEntity;
+};
+
+Action Attack(const RadarComponent& radar)
+{
+	float travelVelocity = 4.0f;
+	Action attack;
+	attack.information = AttackData
+	{
+		.r = radar.r,
+		.degat = 1,
+	};
+	attack.condition = [attack, &radar](ts::Entity& e, ts::Scene& scene)
+		{
+			auto& data = std::any_cast<AttackData&>(attack.information);
+			data.parcelle = ts::NullEntity;
+			glm::vec3 posEnemy = scene.GetComponent<TransformComponent>(e)->GetPosition();
+
+			float distance_min = std::numeric_limits<float>::max();
+
+			for (auto& parcelle : scene.Query<ParcelleComponent>().Collect())
+			{
+				glm::vec3 posParcelle = scene.GetComponent<TransformComponent>(parcelle)->GetPosition();
+				glm::vec2 vector_Parcelle_Enemy = { posParcelle.x - posEnemy.x, posParcelle.z - posEnemy.z };
+				auto length = glm::length(vector_Parcelle_Enemy);
+
+				if (length < distance_min && length < data.r)
+				{
+					distance_min = length;
+					data.targetpos = { posParcelle.x,posParcelle.z };
+					data.parcelle = parcelle;
+				}
+
+			}
+
+			return data.parcelle != ts::NullEntity;
+		};
+	attack.execution = [travelVelocity](ts::Entity& e, ts::Scene& scene, float dt, std::any& information)
+		{
+			auto& data = std::any_cast<AttackData&>(information);
+			auto* transform = scene.GetComponent<TransformComponent>(e);
+			glm::vec2 vector_Parcelle_Enemy = { data.targetpos.x - transform->GetPosition().x, data.targetpos.y - transform->GetPosition().z };
+			auto length = glm::length(vector_Parcelle_Enemy);
+			if (length <= 0.1f)
+			{
+				auto* HealthParcelle = scene.GetComponent<HealtComponent>(data.parcelle);
+				HealthParcelle->Health = HealthParcelle->Health - data.degat;
+			}
+			else
+				transform->SetPosition
+				(
+					transform->GetPosition() +
+					glm::vec3(
+						glm::normalize(vector_Parcelle_Enemy).x * travelVelocity * dt,
+						0.0f,
+						glm::normalize(vector_Parcelle_Enemy).y * travelVelocity * dt
+					)
+				);
+		};
+
+	return attack;
+}
 
 #endif

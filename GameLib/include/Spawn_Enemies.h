@@ -32,8 +32,9 @@ void SpawnEnemy(
 	Texture& texture = TextureLoader::Load(texturePath, window->App());
 	if (enemyAsset)
 		enemy = KGR::GLB::CreateGLBEntity<ts::Scene>(scene, *enemyAsset, pos, glm::vec3{ 0.0f,0.0f,0.0f }, glm::vec3(1.0f), neutral, KGR::GLB::GLBSkinOverride{ .baseColor = &texture }).entity;
-
+	
 	AIComponent ai;
+	ai.m_ActionLists.push_back(Attack(RadarComponent{ radius * 10.0f }));
 	ai.m_ActionLists.push_back(Patrol(pos, radius));
 
 	scene.Add<AIComponent>(enemy, std::move(ai));
