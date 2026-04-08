@@ -86,8 +86,8 @@ Action Patrol(glm::vec3& pos, float radius)
 			{
 				data.targetpos =
 				{
-					data.center.x + data.r(data.gen) * cosf(data.theta(data.gen)) - transform->GetPosition().x,
-					data.center.z + data.r(data.gen) * sinf(data.theta(data.gen)) - transform->GetPosition().z
+					transform->GetPosition().x + data.r(data.gen) * cosf(data.theta(data.gen)),
+					transform->GetPosition().z + data.r(data.gen) * sinf(data.theta(data.gen))
 				};
 				data.timer = 0.0f;
 			}
