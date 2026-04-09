@@ -7,7 +7,7 @@
 #include "Core/AnimationComponent.h"
 #include "Core/LightComponent.h"
 
-#include "ts_ecs.h"
+
 #include "FPSCamera.h"
 #include "Laser.h"
 #include "Canon.h"
@@ -16,6 +16,11 @@
 #include "Spawn_Enemies.h"
 #include "UpdateLightComponents.h"
 #include "ECS/Entities.h"
+
+namespace ts
+{
+	class Scene;
+}
 
 /** @brief tags the player entity so FPSCameraUpdate can locate it in the KGR registry. */
 struct PlayerTag {};
