@@ -2,7 +2,8 @@
 #include "Tools/Chrono.h"
 #include <array>
 #include <random>
-
+#include "Components.h"
+#include "ts_ecs.h"
 glm::vec3 GetPlayerPosition(ecsType& registry)
 {
     auto players = registry.GetAllComponentsView<PlayerTag, TransformComponent>();
@@ -16,8 +17,12 @@ void LaserHitEnemies(ts::Scene& scene, const glm::vec3& origin, const glm::vec3&
 {
     std::vector<ts::Entity> toKill;
 
-    scene.Query<EnemyComponent, HealtComponent, MeshComponent, TransformComponent>()
-        .Each([&](ts::Entity e, EnemyComponent&, HealtComponent& hp, MeshComponent& mc, TransformComponent& tc)
+    scene.Query<HealtComponent,MeshComponent, TransformComponent>()
+        .Where([&](ts::Entity e, const HealtComponent& hp,const MeshComponent& mc, const TransformComponent& tc)
+            {
+                return scene.HasComponent<EnemyComponent>(e);
+            })
+        .Each([&](ts::Entity e, HealtComponent& hp, MeshComponent& mc, TransformComponent& tc)
             {
                 if (!RayAABB(origin, dir, ComputeWorldAABB(*mc.mesh, tc), maxDist))
                     return;
@@ -189,7 +194,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
             SpawnEnemies(scene, *mobAsset, neutrals, spawnZone, &randomSkin);
         }
 
-        AIEnemiesSystem(window, scene, dt);
+        AIEnemiesSystem(scene, dt);
 
         LaserUpdate(laserState, registry, window.get(), playerPos, front);
         if (window->GetInputManager()->IsMousePressed(KGR::Mouse::Button1))
