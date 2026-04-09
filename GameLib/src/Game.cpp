@@ -95,6 +95,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
         auto e = registry.CreateEntity();
         registry.AddComponents(e, std::move(cam), std::move(transform));
+        //scene.Spawn(std::move(cam), std::move(transform));
     }
 
     // ── Player ────────────────────────────────────────────────────────────
@@ -104,13 +105,15 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
         auto e = registry.CreateEntity();
         registry.AddComponents(e, std::move(transform), PlayerTag{});
+
+       // scene.Spawn(std::move(transform), PlayerTag{});
     }
 
     // ── Map ───────────────────────────────────────────────────────────────
     {
         const KGR::GLB::GLBAsset* mapAsset = glbCache.Get("Models/MapTest.glb", window->App());
         if (mapAsset)
-            KGR::GLB::CreateGLBEntitiesFromNodes(registry, *mapAsset, glm::vec3{ 0.0f, -10.0f, 0.0f }, neutrals);
+            KGR::GLB::CreateGLBEntitiesFromNodes(scene, *mapAsset, glm::vec3{ 0.0f, -10.0f, 0.0f }, neutrals);
     }
 
     // ── Light ─────────────────────────────────────────────────────────────
@@ -124,6 +127,8 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
         auto e = registry.CreateEntity();
         registry.AddComponents(e, std::move(lc), std::move(transform));
+
+        //scene.Spawn(std::move(lc), std::move(transform));
     }
 
     // ── Laser ─────────────────────────────────────────────────────────────

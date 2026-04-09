@@ -11,6 +11,7 @@
 #include "RayAABB.h"
 #include "Core/Materials.h"
 #include "Core/Texture.h"
+#include "ts_ecs.h"
 
 struct LaserTag {};
 
@@ -21,6 +22,31 @@ struct LaserState
     bool hitLastFrame = false;     
 };
 
+//template<typename RegistryT>
+//struct RegistryTraits
+//{
+//    using type = RegistryT::type;
+//    static type CreateEntity(RegistryT& registry) { return registry.CreateEntity(); }
+//
+//    template<typename... Components>
+//    static void AddComponents(RegistryT& registry, type entity, Components&&... components)
+//    {
+//        registry.AddComponents(entity, std::forward<Components>(components)...);
+//    }
+//};
+//
+//template<>
+//struct RegistryTraits<ts::Scene>
+//{
+//    using type = ts::Entity;
+//    static type CreateEntity(ts::Scene& scene) { return scene.Spawn(); }
+//
+//    template<typename... Components>
+//    static void AddComponents(ts::Scene& scene, type entity, Components&&... components)
+//    {
+//        (scene.Add<Components>(entity, std::forward<Components>(components)), ...);
+//    }
+//};
 
 template<typename TRegistry>
 void LaserInit(LaserState& state, TRegistry& registry, KGR::RenderWindow* window, const std::filesystem::path& root)
@@ -63,6 +89,7 @@ void LaserInit(LaserState& state, TRegistry& registry, KGR::RenderWindow* window
     laserTransform.SetScale({ 0.05f, 0.05f, 1.0f });
 
     LaserTag tag;
+    
     state.laserEntity = registry.CreateEntity();
     registry.AddComponents(state.laserEntity, std::move(laserMesh), std::move(laserMaterial), std::move(laserTransform), std::move(tag));
 }
