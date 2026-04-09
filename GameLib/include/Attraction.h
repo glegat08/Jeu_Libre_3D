@@ -6,6 +6,7 @@
 #include "Core/TrasformComponent.h"
 #include "Core/Window.h"
 #include "ECS/Registry.h"
+#include "RessourceSystem.h"
 
 struct AttractionState
 {
