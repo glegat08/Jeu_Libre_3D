@@ -30,25 +30,24 @@ struct HealtComponent { int Health; };
  * @param pos World-space spawn position.
  * @param radius Patrol radius passed to the Patrol action.
  */
-inline ts::Entity SpawnEnemy(ts::Scene& scene, const KGR::GLB::GLBAsset& asset, const KGR::GLB::GLBNeutralTextures& neutrals, glm::vec3 pos, float radius, const KGR::GLB::GLBSkinOverride* skin = nullptr)
+inline ts::Entity SpawnEnemy(ts::Scene& scene, const KGR::GLB::GLBAsset& asset,
+    const KGR::GLB::GLBNeutralTextures& neutrals, glm::vec3 pos, float radius,
+    const KGR::GLB::GLBSkinOverride* skin = nullptr)
 {
-    MeshComponent mesh;
-    mesh.mesh = asset.mesh.get();
+    auto result = KGR::GLB::CreateGLBEntity(scene, asset, pos, 
+        glm::vec3{ 0.0f }, glm::vec3{ 1.0f }, neutrals, skin);
 
-    MaterialComponent mat = KGR::GLB::Detail::BuildMaterialComponent(
-        asset, static_cast<int>(mesh.mesh->GetSubMeshesCount()), neutrals);
-
-    if (skin)
-        KGR::GLB::Detail::ApplySkinOverride(mat, *skin);
-
-    TransformComponent transform;
-    transform.SetPosition(pos);
-    transform.SetScale({ 1.0f, 1.0f, 1.0f });
+    if (!result.valid)
+        return ts::Entity{};
 
     AIComponent ai;
     ai.m_ActionLists.push_back(Patrol(pos, radius));
 
-    return scene.Spawn(std::move(mesh), std::move(mat), std::move(transform), std::move(ai), EnemyComponent{}, HealtComponent{ 20 });
+    scene.Add<AIComponent>(result.entity, std::move(ai));
+    scene.Add<EnemyComponent>(result.entity, EnemyComponent{});
+    scene.Add<HealtComponent>(result.entity, HealtComponent{ 20 });
+
+    return result.entity;
 }
 
 /**

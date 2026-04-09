@@ -6,6 +6,7 @@
 #include "Core/TrasformComponent.h"
 #include "Core/Window.h"
 #include "ECS/Registry.h"
+#include "CollisionSystem.h"
 
 struct MeshComponent2;
 
@@ -49,10 +50,14 @@ void FPSCameraUpdate(
             auto input = window->GetInputManager();
             TransformComponent& t = registry.template GetComponent<TransformComponent>(e);
 
-            if (input->IsKeyDown(KGR::Key::Z)) t.Translate(flatFront * state.moveSpeed * dt);
-            if (input->IsKeyDown(KGR::Key::S)) t.Translate(-flatFront * state.moveSpeed * dt);
-            if (input->IsKeyDown(KGR::Key::Q)) t.Translate(-right * state.moveSpeed * dt);
-            if (input->IsKeyDown(KGR::Key::D)) t.Translate(right * state.moveSpeed * dt);
+            glm::vec3 move{ 0.0f };
+            if (input->IsKeyDown(KGR::Key::Z)) move += flatFront * state.moveSpeed * dt;
+            if (input->IsKeyDown(KGR::Key::S)) move -= flatFront * state.moveSpeed * dt;
+            if (input->IsKeyDown(KGR::Key::Q)) move -= right * state.moveSpeed * dt;
+            if (input->IsKeyDown(KGR::Key::D)) move += right * state.moveSpeed * dt;
+
+            move = ResolvePlayerMovement(registry, t.GetPosition(), move);
+            t.Translate(move);
 
             playerPos = t.GetPosition();
         }

@@ -95,7 +95,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
     // ── Player ────────────────────────────────────────────────────────────
     {
         TransformComponent transform;
-        transform.SetPosition({ 0.0f, 0.0f, 0.0f });
+        transform.SetPosition({ 0.0f, 10.0f, 0.0f });
 
         auto e = registry.CreateEntity();
         registry.AddComponents(e, std::move(transform), PlayerTag{});
@@ -105,16 +105,16 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
     {
         const KGR::GLB::GLBAsset* mapAsset = glbCache.Get("Models/MapTest.glb", window->App());
         if (mapAsset)
-            KGR::GLB::CreateGLBEntitiesFromNodes(registry, *mapAsset, glm::vec3{ 0.0f, -10.0f, 0.0f }, neutrals);
+            KGR::GLB::CreateGLBEntitiesFromNodes(registry, *mapAsset, glm::vec3{ 0.0f, 0.0f, 0.0f }, neutrals);
     }
 
     // ── Light ─────────────────────────────────────────────────────────────
     {
         LightComponent<LightData::Type::Directional> lc =
-            LightComponent<LightData::Type::Directional>::Create({ 0.28f, 0.26f, 0.22f }, { 0.15f, 0.14f, 0.12f }, 1.0f);
+            LightComponent<LightData::Type::Directional>::Create({ 0.30f, 0.26f, 0.22f }, { 0.15f, 0.14f, 0.12f }, 1.0f);
 
         TransformComponent transform;
-        transform.SetPosition({ 0.0f, 50.0f, 0.0f });
+        transform.SetPosition({ 0.0f, 100.0f, 0.0f });
         transform.LookAtDir({ -0.3f, -1.0f, -0.3f });
 
         auto e = registry.CreateEntity();
@@ -137,7 +137,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
     }
 
     // ── Mob asset ─────────────────────────────────────────────────────────
-    const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Mobs.glb", window->App());
+    const KGR::GLB::GLBAsset* mobAsset = glbCache.Get("Models/Fox.glb", window->App());
 
     Texture& skinMob1 = TextureLoader::Load("Textures/Mob1.png", window->App());
     Texture& skinMob2 = TextureLoader::Load("Textures/Mob2.png", window->App());
@@ -153,7 +153,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
     std::mt19937 rng{ std::random_device{}() };
     std::uniform_int_distribution<int> skinDist(0, static_cast<int>(mobSkins.size()) - 1);
 
-    SpawnZone spawnZone{ .center = { 0.0f, 0.0f, 0.0f }, .radius = 100.0f };
+    SpawnZone spawnZone{ .center = { 0.0f, 13.0f, 0.0f }, .radius = 100.0f };
     if (mobAsset)
         for (int i = 0; i < 5; ++i)
         {
