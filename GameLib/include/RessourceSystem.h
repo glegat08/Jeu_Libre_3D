@@ -1,36 +1,34 @@
-#ifndef DEATH_SPAWN_H
-#define DEATH_SPAWN_H
+#ifndef RESSOURCE_SYSTEM_H
+#define RESSOURCE_SYSTEM_H
 
 #include <vector>
-#include <glm/vec3.hpp>
-
 #include "ts_ecs.h"
 #include "Core/TrasformComponent.h"
 #include "Components.h"
 
-struct DeathSpawnComponent
+struct RessourceComponent {};
+
+void RessourceSpawnSystem(ts::Scene& scene)
 {
-    void DeathSpawnSystem(ts::Scene& scene, float dt)
-    {
-        std::vector<ts::Entity> toDestroy;
+    std::vector<ts::Entity> toDestroy;
 
-        scene.Query<EnemyComponent, HealtComponent, TransformComponent>()
-            .Each([&](ts::Entity e, const EnemyComponent&, const HealtComponent& health, const TransformComponent& transform)
+    scene.Query<EnemyComponent, HealtComponent, TransformComponent>()
+        .Each([&](ts::Entity e, const EnemyComponent&, const HealtComponent& health, const TransformComponent& transform)
+            {
+                if (health.Health <= 0)
                 {
-                    if (health.Health <= 0)
-                    {
-                        ts::Entity ressource = scene.Spawn();
-                        TransformComponent ressourceTransform;
-                        ressourceTransform.SetPosition(transform.GetPosition());
-                        scene.Add<TransformComponent>(ressource, std::move(ressourceTransform));
-                        scene.Add<DeathSpawnComponent>(ressource, DeathSpawnComponent{});
+                    ts::Entity ressource = scene.Spawn();
+                    TransformComponent ressourceTransform;
+                    ressourceTransform.SetPosition(transform.GetPosition());
+                    scene.Add<TransformComponent>(ressource, std::move(ressourceTransform));
+                    scene.Add<RessourceComponent>(ressource, RessourceComponent{});
 
-                        toDestroy.push_back(e);
-                    }
-                });
+                    toDestroy.push_back(e);
+                }
+            });
 
-        for (ts::Entity e : toDestroy)
-            scene.Kill(e);
-    }
-};
+    for (ts::Entity e : toDestroy)
+        scene.Kill(e);
+}
+
 #endif
