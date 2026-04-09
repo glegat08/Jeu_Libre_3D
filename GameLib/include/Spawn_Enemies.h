@@ -5,11 +5,16 @@
 #include <numbers>
 #include <glm/vec3.hpp>
 
+#include "Core/GLBLoader.h"
+#include "Core/GLBEntityFactory.h"
+#include "Core/AnimationComponent.h"
 #include "ts_ecs.h"
 #include "Core/Window.h"
 #include "Core/GLBLoader.h"
 #include "Core/GLBEntityFactory.h"
 #include "EnemiesBehaviour.h"
+#include "Components.h"
+
 
 /** @brief Defines a circular area where enemies can be spawned. */
 struct SpawnZone
@@ -32,6 +37,8 @@ struct HealtComponent { int Health; };
  */
 inline ts::Entity SpawnEnemy(ts::Scene& scene, const KGR::GLB::GLBAsset& asset, const KGR::GLB::GLBNeutralTextures& neutrals, glm::vec3 pos, float radius, const KGR::GLB::GLBSkinOverride* skin = nullptr)
 {
+	float RadarRange = radius + 10.0f;
+	float PatrolArea = radius * 5.0f;
     MeshComponent mesh;
     mesh.mesh = asset.mesh.get();
 
@@ -45,10 +52,13 @@ inline ts::Entity SpawnEnemy(ts::Scene& scene, const KGR::GLB::GLBAsset& asset, 
     transform.SetPosition(pos);
     transform.SetScale({ 1.0f, 1.0f, 1.0f });
 
-    AIComponent ai;
-    ai.m_ActionLists.push_back(Patrol(pos, radius));
+	RadarComponent Radar = { RadarRange };
 
-    return scene.Spawn(std::move(mesh), std::move(mat), std::move(transform), std::move(ai), EnemyComponent{}, HealtComponent{ 20 });
+    AIComponent ai;
+    ai.m_ActionLists.push_back(Attack(Radar));
+	ai.m_ActionLists.push_back(Patrol(pos, PatrolArea));
+
+    return scene.Spawn(std::move(mesh), std::move(mat), std::move(transform), std::move(ai),std::move(Radar), EnemyComponent{}, HealtComponent{ 20 });
 }
 
 /**

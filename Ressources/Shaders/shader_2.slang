@@ -3,7 +3,7 @@ struct VSInput {
     float3 normal;
     float4 inColor;
     float2 inTexCoord;
-	float4 Tangeant;
+    float4 Tangeant;
     int4   inJoints;
     float4 inWeights;
 };
@@ -43,7 +43,6 @@ struct VSOutput
     float3 tangent;
     float3 bitangent;
 };
-
 
 [shader("vertex")]
 VSOutput vertMain(VSInput input)
@@ -123,7 +122,7 @@ StructuredBuffer<LightData> Alllights;
 ConstantBuffer<uint> lightCount;
 
 [[vk::binding(0, 2)]]
-ConstantBuffer<Sampler2D> sampler; //baseColor
+ConstantBuffer<Sampler2D> sampler;
 [[vk::binding(0, 3)]]
 ConstantBuffer<Sampler2D> metallicRoughnessSampler;
 [[vk::binding(0, 4)]]
@@ -131,15 +130,14 @@ ConstantBuffer<Sampler2D> emissiveSampler;
 [[vk::binding(0, 5)]]
 ConstantBuffer<Sampler2D> normalSampler;
 
-
-
 [shader("fragment")]
-float4 fragMain(VSOutput vertIn) : SV_TARGET {
+float4 fragMain(VSOutput vertIn) : SV_TARGET
+{
     // float metalness = 1.f;
-    float oclusion = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).r;
-	float metalness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).b;
-	float roughness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).g;
-	float3 emessive = pow(emissiveSampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
+    float occlusion = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).r;
+    float metalness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).b;
+    float roughness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).g;
+    float3 emissive  = pow(emissiveSampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
 
     float3 normal;
     float tangentLen = length(vertIn.tangent);
@@ -158,15 +156,13 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
 
     float3 result = float(0.f).xxx;
     float3 baseColor = pow(sampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
-    result += baseColor * (1 - metalness) * oclusion * 0.02f;
+    float3 result = baseColor * (1.0 - metalness) * occlusion * 0.02f;
 
     for (int i = 0; i < lightCount; ++i)
     {
         LightData currentLight = Alllights[i];
-		
-		
-		
-        // point Light
+
+        // Point light
         if (currentLight.type[0] == 0)
         {
             float3 lightPos = currentLight.pos.xyz;
@@ -177,29 +173,24 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
             float3 V = normalize(vertIn.eyePos - vertIn.worldspacePosition.xyz);
             float3 H = normalize(L + V);
 
-            
-
             // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
             // specular
-            float3 Ks = lerp(1.0f.xxx, baseColor, metalness);
+            float3 Ks = lerp(1.0f.xxx,  baseColor, metalness);
             // shiny
-            float Ns = 1.0f/pow(roughness,2.0f);
-            // Intensity
-            float Intensity = currentLight.intensity;
-            // distance betwen light and wsPos
+            float Ns = 1.0f / pow(roughness, 2.0f);
+
             float r = length(lightPos - vertIn.worldspacePosition.xyz);
-            // beause its a shpere
-            float attenuation = (Intensity / (4.0f * 3.14159265f * pow(r, 2.0f)));
-			
+            float attenuation = currentLight.intensity / (4.0f * 3.14159265f * pow(r, 2.0f));
+
             float3 diffuse = max(dot(N, L), 0.0);
             float3 specular = Ks * pow(max(dot(N, H), 0.0f), Ns);
-            float3 Fr = (Kd * 1.0f/3.14159265f) +  specular;
+            float3 Fr = (Kd / 3.14159265f) + specular;
             float3 Ej = diffuse * attenuation;
 
-             result += (Fr * Ej) * lightColor;
+            result += (Fr * Ej) * lightColor;
         }
-        // Directional
+        // Directional light
         else if (currentLight.type[0] == 1)
         {
             float3 lightDir = normalize(currentLight.dir.xyz);
@@ -209,69 +200,60 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
             float3 V = normalize(vertIn.eyePos - vertIn.worldspacePosition.xyz);
             float3 H = normalize(-lightDir + V);
 
-
             // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
             // specular
-            float3 Ks = lerp(1.0f.xxx, baseColor, metalness);
+            float3 Ks = lerp(1.0f.xxx,  baseColor, metalness);
             // shiny
-            float Ns = 1.0f/pow(roughness,2.0f);
-			
+            float  Ns = 1.0f / pow(roughness, 2.0f);
+
             float3 diffuse = max(dot(N, -lightDir), 0.0);
             float3 specular = Ks * pow(max(dot(N, H), 0.0f), Ns);
-            float3 Fr = (Kd * 1.0f/3.14159265f) +  specular;
-            float3 Ej = diffuse;
-			
-			
-             result += (Fr * Ej) * lightColor ;
+            float3 Fr = (Kd / 3.14159265f) + specular;
+
+            // intensity was missing here previously, making directional lights appear too dark.
+            float3 Ej = diffuse * currentLight.intensity;
+
+            result += (Fr * Ej) * lightColor;
         }
-        // spot Light
+        // Spot light
         else
         {
-            // light postition temporar
-            float3 lightPos =  currentLight.pos.xyz;
-            // light color
+            float3 lightPos = currentLight.pos.xyz;
             float3 lightColor = currentLight.color.rgb;
             float3 L = normalize(lightPos - vertIn.worldspacePosition.xyz);
             float3 N = normalize(normal);
             float3 V = normalize(vertIn.eyePos - vertIn.worldspacePosition.xyz);
             float3 H = normalize(L + V);
 
-          
-
-            // base color
             float3 Kd = lerp(baseColor, 0.0f.xxx, metalness);
-            // specular
-            float3 Ks = lerp(1.0f.xxx, baseColor, metalness);
-            // shiny
-            float Ns = 1.0f/pow(roughness,2.0f);
-            // Intensity
-            float Intensity = currentLight.intensity;
+            float3 Ks = lerp(1.0f.xxx,  baseColor, metalness);
+            float  Ns = 1.0f / pow(roughness, 2.0f);
+
             // distance betwen light and wsPos
             float r = length(lightPos - vertIn.worldspacePosition.xyz);
-
             float3 lightDir = normalize(currentLight.dir.xyz);
+
             float spotAngle = dot(normalize(-lightDir), L);
             float openAngle = currentLight.openAngle;
             float cosInner = cos(openAngle);
-            float cosOuter = cos(openAngle +currentLight.AdditionalSmooth);
+            float cosOuter = cos(openAngle + currentLight.AdditionalSmooth);
             float spotAttenuation = smoothstep(cosOuter, cosInner, spotAngle);
 
             // beause its a shpere
             float spotNormalization = 1.0f / (2.0f * 3.14159265f * (1.0f - cosOuter));
-            float attenuation = ((Intensity * spotNormalization) / pow(r, 2.0f));
-			 
+            float attenuation = (currentLight.intensity * spotNormalization) / pow(r, 2.0f);
+
             float3 diffuse = max(dot(N, L), 0.0);
             float3 specular = Ks * pow(max(dot(N, H), 0.0f), Ns);
-            float3 Fr = (Kd * 1.0f/3.14159265f) +  specular;
+            float3 Fr = (Kd / 3.14159265f) + specular;
             float3 Ej = diffuse * attenuation * spotAttenuation;
-			
-		
 
-             result += (Fr * Ej) * lightColor;
+            result += (Fr * Ej) * lightColor;
         }
     }
-    result += emessive * 3.0f;
 
-    return float4(result,1.0f);
+    result += emissive * 3.0f;
+
+    return float4(result, 1.0f);
 }
