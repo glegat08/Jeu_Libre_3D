@@ -191,7 +191,7 @@ namespace KGR
 			}
 
 			/**
-			 * @brief registers ECS components, adding AnimationComponent if the asset has skeleton data.
+			 * @brief registers ECS components, adding animation components based on asset content.
 			 * @param registry target ECS registry.
 			 * @param entity target entity.
 			 * @param asset source asset.
@@ -203,6 +203,10 @@ namespace KGR
 			void RegisterComponents(RegistryT& registry, typename RegistryTraits<RegistryT>::type entity, const GLBAsset& asset,
 				MeshComponent meshComp, MaterialComponent matComp, TransformComponent transform)
 			{
+				RegistryTraits<RegistryT>::AddComponents(
+					registry, entity,
+					std::move(meshComp), std::move(matComp), std::move(transform));
+
 				const auto& skeletons = asset.loader.GetSkeletons();
 				const auto& animations = asset.loader.GetAnimations();
 
@@ -210,17 +214,17 @@ namespace KGR
 				{
 					KGR::Animation::AnimationComponent animComp;
 					animComp.Init(&skeletons[0], &animations);
-
-					RegistryTraits<RegistryT>::AddComponents(
-						registry, entity,
-						std::move(meshComp), std::move(matComp),
-						std::move(transform), std::move(animComp));
-					return;
+					RegistryTraits<RegistryT>::AddComponents(registry, entity, std::move(animComp));
 				}
 
-				RegistryTraits<RegistryT>::AddComponents(
-					registry, entity,
-					std::move(meshComp), std::move(matComp), std::move(transform));
+				const auto& objectAnimations = asset.loader.GetObjectAnimations();
+
+				if (!objectAnimations.empty() && skeletons.empty())
+				{
+					KGR::Animation::ObjectAnimationComponent objAnimComp;
+					objAnimComp.Init(&objectAnimations);
+					RegistryTraits<RegistryT>::AddComponents(registry, entity, std::move(objAnimComp));
+				}
 			}
 		}
 

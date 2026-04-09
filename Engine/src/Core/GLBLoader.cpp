@@ -79,6 +79,7 @@ namespace KGR
 			m_materials.clear();
 			m_skeletons.clear();
 			m_animations.clear();
+			m_objectAnimations.clear();
 			m_nodeToJointIndex.clear();
 			m_primitivesPerMesh.clear();
 			m_nodeInstances.clear();
@@ -88,6 +89,7 @@ namespace KGR
 			LoadMaterials(gltf);
 			LoadSkeletons(gltf);
 			LoadAnimations(gltf);
+			LoadObjectAnimations(gltf);
 			LoadNodes(gltf);
 
 			return true;
@@ -240,7 +242,6 @@ namespace KGR
 								trs.translation[1],
 								trs.translation[2]
 							};
-							// glTF stores quaternions as (x,y,z,w). GLM's constructor is glm::quat(w, x, y, z).
 							inst.rotation =
 							{
 								trs.rotation[3],
@@ -471,49 +472,118 @@ namespace KGR
 			}
 		}
 
-		const std::vector<Vertex>& GLB_Loader::GetVertices() const 
+		void GLB_Loader::LoadObjectAnimations(fastgltf::Asset& gltf)
 		{
-			return m_vertices; 
+			for (auto& animation : gltf.animations)
+			{
+				KGR::Animation::ObjectAnimationClip clip;
+				clip.name = animation.name.c_str();
+
+				for (auto& channel : animation.channels)
+				{
+					if (!channel.nodeIndex.has_value())
+						continue;
+
+					if (m_nodeToJointIndex.count(*channel.nodeIndex))
+						continue;
+
+					auto& sampler = animation.samplers[channel.samplerIndex];
+					auto& outputAcc = gltf.accessors[sampler.outputAccessor];
+
+					std::vector<float> times;
+					fastgltf::iterateAccessor<float>(gltf, gltf.accessors[sampler.inputAccessor],
+						[&](float t)
+						{
+							times.push_back(t);
+							clip.duration = std::max(clip.duration, t);
+						});
+
+					if (channel.path == fastgltf::AnimationPath::Translation)
+					{
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, outputAcc,
+							[&](glm::vec3 v, size_t i)
+							{
+								if (i < times.size())
+									clip.m_positions.push_back({ times[i], v });
+							});
+					}
+					else if (channel.path == fastgltf::AnimationPath::Rotation)
+					{
+						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, outputAcc,
+							[&](glm::vec4 v, size_t i)
+							{
+								if (i < times.size())
+									clip.m_rotations.push_back({ times[i], { v.w, v.x, v.y, v.z } });
+							});
+					}
+					else if (channel.path == fastgltf::AnimationPath::Scale)
+					{
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, outputAcc,
+							[&](glm::vec3 v, size_t i)
+							{
+								if (i < times.size())
+									clip.m_scales.push_back({ times[i], v });
+							});
+					}
+				}
+
+				const bool hasData = !clip.m_positions.empty()
+					|| !clip.m_rotations.empty()
+					|| !clip.m_scales.empty();
+
+				if (hasData && clip.duration > 0.0f)
+					m_objectAnimations.push_back(std::move(clip));
+			}
 		}
 
-		const std::vector<uint32_t>& GLB_Loader::GetIndices() const 
+		const std::vector<Vertex>& GLB_Loader::GetVertices() const
+		{
+			return m_vertices;
+		}
+
+		const std::vector<uint32_t>& GLB_Loader::GetIndices() const
 		{
 			return m_indices;
 		}
 
-		const std::vector<RawImage>& GLB_Loader::GetImages() const 
+		const std::vector<RawImage>& GLB_Loader::GetImages() const
 		{
 			return m_images;
 		}
 
-		const std::vector<KGR::Animation::Skeleton>& GLB_Loader::GetSkeletons() const 
+		const std::vector<KGR::Animation::Skeleton>& GLB_Loader::GetSkeletons() const
 		{
 			return m_skeletons;
 		}
 
-		const std::vector<KGR::Animation::AnimationClip>& GLB_Loader::GetAnimations() const 
+		const std::vector<KGR::Animation::AnimationClip>& GLB_Loader::GetAnimations() const
 		{
-			return m_animations; 
+			return m_animations;
 		}
 
-		const std::vector<GLBPrimitive>& GLB_Loader::GetPrimitives() const 
+		const std::vector<KGR::Animation::ObjectAnimationClip>& GLB_Loader::GetObjectAnimations() const
 		{
-			return m_primitives; 
+			return m_objectAnimations;
 		}
 
-		const std::vector<GLBMaterialData>& GLB_Loader::GetMaterials() const 
+		const std::vector<GLBPrimitive>& GLB_Loader::GetPrimitives() const
+		{
+			return m_primitives;
+		}
+
+		const std::vector<GLBMaterialData>& GLB_Loader::GetMaterials() const
 		{
 			return m_materials;
 		}
 
-		const std::vector<std::vector<GLBPrimitive>>& GLB_Loader::GetPrimitivesPerMesh() const 
+		const std::vector<std::vector<GLBPrimitive>>& GLB_Loader::GetPrimitivesPerMesh() const
 		{
-			return m_primitivesPerMesh; 
+			return m_primitivesPerMesh;
 		}
 
-		const std::vector<GLBNodeInstance>& GLB_Loader::GetNodeInstances() const 
+		const std::vector<GLBNodeInstance>& GLB_Loader::GetNodeInstances() const
 		{
-			return m_nodeInstances; 
+			return m_nodeInstances;
 		}
 
 		std::unique_ptr<Mesh> LoadMeshFromPrimitives(const std::vector<GLBPrimitive>& primitives,

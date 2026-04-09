@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Animation.h"
+#include "TrasformComponent.h"
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -85,5 +86,44 @@ namespace KGR
 			const float f = glm::clamp((time - k0.time) / (k1.time - k0.time), 0.0f, 1.0f);
 			return lerp(k0.m_value, k1.m_value, f);
 		}
+
+		/** @brief drives a TransformComponent directly from object-level animation clips. */
+		class ObjectAnimationComponent
+		{
+		public:
+			ObjectAnimationComponent() = default;
+			~ObjectAnimationComponent() = default;
+
+			/**
+			 * @brief binds the clip list and activates the first valid clip.
+			 * @param clips pointer to the clip list owned by the GLBAsset.
+			 */
+			void Init(const std::vector<ObjectAnimationClip>* clips);
+
+			/**
+			 * @brief switches to the clip at @p index and resets playback time.
+			 * @param index clip index.
+			 */
+			void SetClip(size_t index);
+
+			/**
+			 * @brief advances time and writes the interpolated trs into @p tc.
+			 * @param deltaTime seconds since last frame.
+			 * @param tc transform component to write into.
+			 */
+			void Update(float deltaTime, TransformComponent& tc);
+
+			/** @brief returns the number of clips available. */
+			size_t GetClipCount() const;
+
+		private:
+			const std::vector<ObjectAnimationClip>* m_clips = nullptr;
+			const ObjectAnimationClip* m_clip = nullptr;
+			size_t m_currentClipIdx = 0;
+			float m_currentTime = 0.0f;
+
+			/** @brief rebuilds the clip pointer from the current clip index. */
+			void RebuildClip();
+		};
 	}
 }

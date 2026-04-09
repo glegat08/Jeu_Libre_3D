@@ -59,5 +59,15 @@ namespace KGR
 			float duration = 0.0f;
 			std::vector<Track> m_tracks;
 		};
+
+		/** @brief trs channels for an object-level animation clip. */
+		struct ObjectAnimationClip
+		{
+			std::string name;
+			float duration = 0.0f;
+			std::vector<VectorKeyFrame> m_positions;
+			std::vector<QuaternionKeyFrame> m_rotations;
+			std::vector<VectorKeyFrame> m_scales;
+		};
 	}
 }

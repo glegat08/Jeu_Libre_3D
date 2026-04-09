@@ -20,16 +20,31 @@
 /** @brief tags the player entity so FPSCameraUpdate can locate it in the KGR registry. */
 struct PlayerTag {};
 
+/** @brief counts down to zero then triggers removal of the owning entity. */
+struct LifetimeComponent
+{
+    float remaining = 1.0f;
+};
+
 using ecsType = KGR::ECS::Registry<KGR::ECS::Entity::_64, 100>;
 
 /** @brief returns the world position of the first PlayerTag entity in the KGR registry. */
 glm::vec3 GetPlayerPosition(ecsType& registry);
 
 /**
- * @brief casts a ray against every enemy AABB and damages those hit.
- * enemies whose HP drops to zero are killed after the loop.
+ * @brief casts a ray against every enemy AABB, damages those hit, and spawns a death effect
+ *        in @p registry for enemies whose HP drops to zero.
+ * @param scene ts::Scene containing enemies.
+ * @param registry KGR registry used to spawn death effect entities.
+ * @param origin ray origin in world space.
+ * @param dir normalized ray direction.
+ * @param maxDist maximum ray distance.
+ * @param deathEffectMesh mesh used for the death effect billboard.
+ * @param deathEffectMat material holding the death effect texture.
  */
-void LaserHitEnemies(ts::Scene& scene, const glm::vec3& origin, const glm::vec3& dir, float maxDist);
+void LaserHitEnemies(ts::Scene& scene, ecsType& registry,
+    const glm::vec3& origin, const glm::vec3& dir, float maxDist,
+    Mesh* deathEffectMesh, const MaterialComponent& deathEffectMat);
 
 /** @brief renders every enemy in ts::Scene through the KGR render pipeline. */
 void RenderEnemies(ts::Scene& scene, KGR::RenderWindow* window, float dt);

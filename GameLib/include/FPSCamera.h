@@ -8,29 +8,21 @@
 #include "ECS/Registry.h"
 #include "CollisionSystem.h"
 
-struct MeshComponent2;
-
-
 struct FPSCameraState
 {
-    float yaw              = -90.0f; 
-    float pitch            =   0.0f; 
-    float mouseSensitivity =   0.1f;
-    float moveSpeed        =   5.0f;
+    float yaw = -90.0f;
+    float pitch = 0.0f;
+    float mouseSensitivity = 0.1f;
+    float moveSpeed = 10.0f;
 };
 
-
 template<typename TRegistry, typename TPlayerTag>
-void FPSCameraUpdate(
-    FPSCameraState& state,
-    TRegistry& registry,
-    KGR::RenderWindow* window,
-    float dt,
-    glm::vec3& outFront)
+void FPSCameraUpdate(FPSCameraState& state, TRegistry& registry, KGR::RenderWindow* window, float dt, glm::vec3& outFront)
 {
     glm::vec2 mouseDelta = window->GetInputManager()->GetMouseDelta();
     state.yaw += mouseDelta.x * state.mouseSensitivity;
     state.pitch -= mouseDelta.y * state.mouseSensitivity;
+    state.pitch = glm::clamp(state.pitch, -89.0f, 89.0f);
 
     glm::vec3 front;
     front.x = cos(glm::radians(state.yaw)) * cos(glm::radians(state.pitch));
@@ -39,10 +31,10 @@ void FPSCameraUpdate(
     front = glm::normalize(front);
     outFront = front;
 
-    glm::vec3 flatFront = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
-    glm::vec3 right = glm::normalize(glm::cross(flatFront, glm::vec3(0.0f, 1.0f, 0.0f)));
+    const glm::vec3 flatFront = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
+    const glm::vec3 right = glm::normalize(glm::cross(flatFront, glm::vec3(0.0f, 1.0f, 0.0f)));
 
-    glm::vec3 playerPos = { 0,0,0 };
+    glm::vec3 playerPos = { 0.0f, 0.0f, 0.0f };
     {
         auto players = registry.template GetAllComponentsView<TPlayerTag, TransformComponent>();
         for (auto& e : players)
@@ -58,7 +50,6 @@ void FPSCameraUpdate(
 
             move = ResolvePlayerMovement(registry, t.GetPosition(), move);
             t.Translate(move);
-
             playerPos = t.GetPosition();
         }
     }

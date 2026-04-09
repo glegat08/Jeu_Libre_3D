@@ -11,16 +11,17 @@
 #include "RayAABB.h"
 #include "Core/Materials.h"
 #include "Core/Texture.h"
+#include "Canon.h"
 
 struct LaserTag {};
 
 struct LaserState
 {
-    uint64_t laserEntity = UINT64_MAX; 
-    float maxDistance = 20.0f;      
-    bool hitLastFrame = false;     
+    uint64_t laserEntity = UINT64_MAX;
+    float maxDistance = 50.0f;
+    bool hitLastFrame = false;
+    glm::vec3 eyePos = { 0.0f, 0.0f, 0.0f };
 };
-
 
 template<typename TRegistry>
 void LaserInit(LaserState& state, TRegistry& registry, KGR::RenderWindow* window, const std::filesystem::path& root)
@@ -28,53 +29,54 @@ void LaserInit(LaserState& state, TRegistry& registry, KGR::RenderWindow* window
     MeshComponent laserMesh;
     laserMesh.mesh = &MeshLoader::Load("Models/cube.obj", window->App());
 
-    static std::unique_ptr<Texture> sBaseColor;
-    static std::unique_ptr<Texture> sNormal;
-    static std::unique_ptr<Texture> sPbr;
-    static std::unique_ptr<Texture> sEmissive;
+    static Texture* sBaseColor = nullptr;
+    static std::unique_ptr<Texture> sNormalOwned;
+    static std::unique_ptr<Texture> sPbrOwned;
 
     if (!sBaseColor)
     {
-        static const uint8_t white[4] = { 255, 255, 255, 255 };
         static const uint8_t normal[4] = { 128, 128, 255, 255 };
         static const uint8_t pbr[4] = { 255, 128, 0, 255 };
-        static const uint8_t black[4] = { 0, 0, 0, 255 };
 
-        sBaseColor = LoadTextureRaw(white, 1, 1, window->App());
-        sNormal = LoadTextureRaw(normal, 1, 1, window->App());
-        sPbr = LoadTextureRaw(pbr, 1, 1, window->App());
-        sEmissive = LoadTextureRaw(black, 1, 1, window->App());
+        sBaseColor = &TextureLoader::Load("Textures/laser_3.png", window->App());
+        sNormalOwned = LoadTextureRaw(normal, 1, 1, window->App());
+        sPbrOwned = LoadTextureRaw(pbr, 1, 1, window->App());
     }
 
     MaterialComponent laserMaterial;
     laserMaterial.SetSize(laserMesh.mesh->GetSubMeshesCount());
-    for (int i = 0; i < (int)laserMesh.mesh->GetSubMeshesCount(); ++i) 
+    for (int i = 0; i < (int)laserMesh.mesh->GetSubMeshesCount(); ++i)
     {
         Material mat;
-        mat.baseColor = sBaseColor.get();
-        mat.normalMap = sNormal.get();
-        mat.pbrMap = sPbr.get();
-        mat.emissive = sEmissive.get();
+        mat.baseColor = sBaseColor;
+        mat.normalMap = sNormalOwned.get();
+        mat.pbrMap = sPbrOwned.get();
+        mat.emissive = sBaseColor;
         laserMaterial.AddMaterial(i, mat);
     }
 
     TransformComponent laserTransform;
-    laserTransform.SetPosition({ 0, -9999, 0 }); 
+    laserTransform.SetPosition({ 0.0f, -9999.0f, 0.0f });
     laserTransform.SetScale({ 0.05f, 0.05f, 1.0f });
 
-    LaserTag tag;
     state.laserEntity = registry.CreateEntity();
-    registry.AddComponents(state.laserEntity, std::move(laserMesh), std::move(laserMaterial), std::move(laserTransform), std::move(tag));
+    registry.AddComponents(state.laserEntity,
+        std::move(laserMesh),
+        std::move(laserMaterial),
+        std::move(laserTransform),
+        LaserTag{});
 }
 
-
 template<typename TRegistry>
-void LaserUpdate(LaserState& state, TRegistry& registry, KGR::RenderWindow* window, const glm::vec3& playerPos, const glm::vec3& front)
+void LaserUpdate(LaserState& state, TRegistry& registry, KGR::RenderWindow* window,
+    const glm::vec3& playerPos, const glm::vec3& front,
+    const glm::vec3& weaponOffset = glm::vec3{ 0.28f, 0.22f, 0.95f },
+    uint64_t canonEntity = UINT64_MAX)
 {
-    auto input = window->GetInputManager();
-    bool laserActive = input->IsMousePressed(KGR::Mouse::Button1);
+    const bool laserActive = window->GetInputManager()->IsMouseDown(KGR::Mouse::Button1);
 
-    glm::vec3 laserEnd = playerPos + front * state.maxDistance;
+    const glm::vec3 eyePos = playerPos + glm::vec3(0.0f, FPSViewEyeHeight, 0.0f);
+    state.eyePos = eyePos;
 
     if (laserActive)
     {
@@ -83,42 +85,58 @@ void LaserUpdate(LaserState& state, TRegistry& registry, KGR::RenderWindow* wind
         auto meshes = registry.template GetAllComponentsView<MeshComponent, TransformComponent>();
         for (auto& mesh : meshes)
         {
-            if ((uint64_t)mesh == state.laserEntity) continue;
+            if ((uint64_t)mesh == state.laserEntity)
+                continue;
 
-            MeshComponent& mc = registry.template GetComponent<MeshComponent>(mesh);
-            TransformComponent& tc = registry.template GetComponent<TransformComponent>(mesh);
+            const MeshComponent& mc = registry.template GetComponent<MeshComponent>(mesh);
+            const TransformComponent& tc = registry.template GetComponent<TransformComponent>(mesh);
 
-            KGR::AABB3D aabb = ComputeWorldAABB(*mc.mesh, tc);
-
-            if (RayAABB(playerPos, front, aabb, state.maxDistance))
+            if (RayAABB(eyePos, front, ComputeWorldAABB(*mc.mesh, tc), state.maxDistance))
             {
                 state.hitLastFrame = true;
-                std::cout << "[LASER] Object touched" << std::endl;
-
+                std::cout << "[LASER] Object touched\n";
             }
         }
     }
-
 
     TransformComponent& laserTransform = registry.template GetComponent<TransformComponent>(state.laserEntity);
 
     if (laserActive)
     {
-        float laserLength = glm::distance(playerPos, laserEnd);
-        glm::vec3 laserMid = playerPos + front * (laserLength * 0.5f);
+        glm::vec3 laserOrigin;
 
-        laserTransform.SetPosition(laserMid);
+        if (canonEntity != UINT64_MAX
+            && registry.template HasComponent<TransformComponent>(canonEntity))
+        {
+            constexpr float muzzleForwardOffset = 0.70f;
+            laserOrigin = registry.template GetComponent<TransformComponent>(canonEntity).GetPosition()
+                + front * muzzleForwardOffset;
+        }
+        else
+        {
+            glm::vec3 right = glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f));
+            if (glm::dot(right, right) < 1e-6f)
+                right = glm::vec3{ 1.0f, 0.0f, 0.0f };
+            else
+                right = glm::normalize(right);
+
+            const glm::vec3 up = glm::normalize(glm::cross(right, front));
+            laserOrigin = eyePos + right * weaponOffset.x - up * weaponOffset.y + front * weaponOffset.z;
+        }
+
+        const float beamHalfLength = state.maxDistance * 0.25f;
+        laserTransform.SetPosition(laserOrigin + front * beamHalfLength);
         laserTransform.LookAtDir(front);
-        laserTransform.SetScale({ 0.05f, 0.05f, laserLength * 0.5f });
+        laserTransform.SetScale({ 0.1f, 0.1f, state.maxDistance * 0.5f });
     }
     else
     {
-        laserTransform.SetPosition({ 0, -9999, 0 });
+        laserTransform.SetPosition({ 0.0f, -9999.0f, 0.0f });
     }
 
     window->RegisterRender(
         registry.template GetComponent<MeshComponent>(state.laserEntity),
         registry.template GetComponent<TransformComponent>(state.laserEntity),
         registry.template GetComponent<MaterialComponent>(state.laserEntity),
-        -1);  // boneOffset: -1 indicates no skeletal animation
+        -1);
 }

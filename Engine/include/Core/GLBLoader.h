@@ -91,6 +91,7 @@ namespace KGR
 			const std::vector<RawImage>& GetImages() const;
 			const std::vector<KGR::Animation::Skeleton>& GetSkeletons() const;
 			const std::vector<KGR::Animation::AnimationClip>& GetAnimations() const;
+			const std::vector<KGR::Animation::ObjectAnimationClip>& GetObjectAnimations() const;
 			const std::vector<GLBMaterialData>& GetMaterials() const;
 
 			/** @brief flat list of all primitives in declaration order. */
@@ -108,6 +109,7 @@ namespace KGR
 			void LoadMaterials(fastgltf::Asset& gltf);
 			void LoadSkeletons(fastgltf::Asset& gltf);
 			void LoadAnimations(fastgltf::Asset& gltf);
+			void LoadObjectAnimations(fastgltf::Asset& gltf);
 			void LoadNodes(fastgltf::Asset& gltf);
 
 			std::vector<Vertex> m_vertices;
@@ -117,6 +119,7 @@ namespace KGR
 			std::vector<GLBMaterialData> m_materials;
 			std::vector<KGR::Animation::Skeleton> m_skeletons;
 			std::vector<KGR::Animation::AnimationClip> m_animations;
+			std::vector<KGR::Animation::ObjectAnimationClip> m_objectAnimations;
 
 			std::vector<std::vector<GLBPrimitive>> m_primitivesPerMesh;
 			std::vector<GLBNodeInstance> m_nodeInstances;
@@ -175,7 +178,7 @@ namespace KGR
 		 * @param vkCore Vulkan context for buffer creation.
 		 * @return the built GPU mesh.
 		 */
-		std::unique_ptr<Mesh> LoadMeshFromPrimitives(const std::vector<GLBPrimitive>& primitives, 
+		std::unique_ptr<Mesh> LoadMeshFromPrimitives(const std::vector<GLBPrimitive>& primitives,
 			KGR::_Vulkan::VulkanCore* vkCore);
 	}
 }
