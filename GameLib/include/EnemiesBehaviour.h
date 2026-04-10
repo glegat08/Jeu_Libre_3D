@@ -9,35 +9,39 @@
 #include "ts_ecs.h"
 #include "Core/TrasformComponent.h"
 #include "Core/Window.h"
+#include "CollisionSystem.h"
 
 struct EnemyComponent;
 
 //TODO : COMMENTEZ 
+template<typename TRegistry>
 struct Action
 {
 	std::any information;
 	std::function<bool(const ts::Entity& e, const ts::Scene& scene)> condition;
-	std::function<void(ts::Entity& e, ts::Scene& scene, float dt, std::any& information)> execution;
+	std::function<void(ts::Entity& e, ts::Scene& scene, TRegistry& registry, float dt, std::any& information)> execution;
 };
+template<typename TRegistry>
 struct AIComponent
 {
-	std::vector<Action> m_ActionLists;
+	std::vector<Action<TRegistry>> m_ActionLists;
 };
 
-inline void AIEnemiesSystem(const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, float dt)
+template<typename TRegistry>
+inline void AIEnemiesSystem(TRegistry& registry, const std::unique_ptr<KGR::RenderWindow>& window, ts::Scene& scene, float dt)
 {
-	scene.Query<AIComponent, TransformComponent>()
-		.Where([&](ts::Entity e, const AIComponent& aiComponent, const TransformComponent& transform)
+	scene.Query<AIComponent<TRegistry>, TransformComponent>()
+		.Where([&](ts::Entity e, const AIComponent<TRegistry>& aiComponent, const TransformComponent& transform)
 			{
 				return scene.HasComponent<EnemyComponent>(e);
 			})
-		.Each([&](ts::Entity e, AIComponent& aiComponent, TransformComponent& transform)
+		.Each([&](ts::Entity e, AIComponent<TRegistry>& aiComponent, TransformComponent& transform)
 			{
 				for (auto& action : aiComponent.m_ActionLists)
 				{
 					if (action.condition(e, scene))
 					{
-						action.execution(e, scene, dt, action.information);
+						action.execution(e, scene, registry, dt, action.information);
 						break;
 					}
 				}
@@ -57,10 +61,11 @@ struct PatrolData
 	std::uniform_real_distribution<float> r;
 };
 
-inline Action Patrol(glm::vec3& pos, float radius)
+template<typename TRegistry>
+inline Action<TRegistry> Patrol(glm::vec3& pos, float radius)
 {
 	float travelVelocity = 2.0f;
-	Action patrol;
+	Action<TRegistry> patrol;
 	patrol.information = PatrolData
 	{
 		.center = pos,
@@ -72,7 +77,7 @@ inline Action Patrol(glm::vec3& pos, float radius)
 
 
 	patrol.condition = [](const ts::Entity& e, const ts::Scene& scene) {return true; };
-	patrol.execution = [travelVelocity](ts::Entity& e, ts::Scene& scene, float dt, std::any& information)
+	patrol.execution = [travelVelocity](ts::Entity& e, ts::Scene& scene, TRegistry& registry, float dt, std::any& information)
 		{
 			auto& data = std::any_cast<PatrolData&>(information);
 			auto* transform = scene.GetComponent<TransformComponent>(e);
@@ -87,9 +92,13 @@ inline Action Patrol(glm::vec3& pos, float radius)
 				};
 				data.timer = 0.0f;
 			}
-			glm::vec3 targetPos = { data.targetpos.x,data.center.y,data.targetpos.y };
+			glm::vec3 targetPos = { data.targetpos.x, transform->GetPosition().y, data.targetpos.y };
 			if (glm::length(targetPos - transform->GetPosition()) > 0.1f)
-				transform->SetPosition(transform->GetPosition() + glm::normalize(targetPos - transform->GetPosition()) * travelVelocity * dt);
+			{
+				glm::vec3 desiredMove = glm::normalize(targetPos - transform->GetPosition()) * travelVelocity * dt;
+				glm::vec3 resolvedMove = ResolveMobMovement(registry, transform->GetPosition(), desiredMove);
+				transform->SetPosition(transform->GetPosition() + resolvedMove);
+			}
 
 		};
 

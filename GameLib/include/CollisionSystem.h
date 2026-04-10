@@ -10,12 +10,13 @@
 #include "RayAABB.h"
 
 static constexpr glm::vec3 playerHalfExtents = { 0.4f, 0.9f, 0.4f };
+static constexpr glm::vec3 mobHalfExtents = { 0.4f, 0.4f, 0.4f };
 static constexpr float gravity = 9.8f;
 static constexpr float groundTolerance = 0.05f;
 static constexpr float jumpImpulse = 5.0f;
 
 // shared by FPSCamera, Canon and Laser so all three reference the same value.
-static constexpr float FPSViewEyeHeight = 0.7f;
+static constexpr float FPSViewEyeHeight = 4.f;
 
 /** @brief stores vertical velocity and grounded state for gravity simulation. */
 struct PhysicsComponent
@@ -24,10 +25,22 @@ struct PhysicsComponent
     bool isGrounded = false;
 };
 
+/** @brief builds an AABB centered on its world position with given half extents. */
+inline KGR::AABB3D MakeEntityAABB(const glm::vec3& pos, const glm::vec3& halfExtents)
+{
+    return KGR::AABB3D(pos - halfExtents, pos + halfExtents);
+}
+
 /** @brief builds the player AABB centered on its world position. */
 inline KGR::AABB3D MakePlayerAABB(const glm::vec3& pos)
 {
-    return KGR::AABB3D(pos - playerHalfExtents, pos + playerHalfExtents);
+    return MakeEntityAABB(pos, playerHalfExtents);
+}
+
+/** @brief builds the mob AABB centered on its world position. */
+inline KGR::AABB3D MakeMobAABB(const glm::vec3& pos)
+{
+    return MakeEntityAABB(pos, mobHalfExtents);
 }
 
 /**
@@ -41,6 +54,74 @@ inline glm::vec3 GetRealScale(const TransformComponent& tc)
 }
 
 /**
+ * @brief resolves generic entity movement against all CollisionComp entities using MTV.
+ * @param registry ECS registry.
+ * @param currentPos entity position before movement.
+ * @param desiredMove displacement to apply this frame.
+ * @param halfExtents half-size of the entity.
+ * @return corrected displacement that avoids penetrating any collider.
+ */
+template<typename TRegistry>
+glm::vec3 ResolveEntityMovement(TRegistry& registry, const glm::vec3& currentPos,
+    const glm::vec3& desiredMove, const glm::vec3& halfExtents)
+{
+    glm::vec3 resolvedPos = currentPos + desiredMove;
+    KGR::AABB3D entityBox = MakeEntityAABB(resolvedPos, halfExtents);
+
+    if constexpr (std::is_same_v<TRegistry, ts::Scene>)
+    {
+        registry.template Query<CollisionComp, TransformComponent>()
+            .Each([&](ts::Entity e, const CollisionComp& cc, const TransformComponent& tc)
+                {
+                    if (!cc.collider)
+                        return;
+
+                    const glm::vec3 realScale = tc.GetScale();
+                    const glm::vec3 pos = tc.GetPosition();
+                    const glm::quat rot = tc.GetOrientation();
+
+                    const KGR::OBB3D decorOBB = cc.collider->ComputeGlobalOBB(realScale, pos, rot);
+                    const KGR::Collision3D hit = KGR::SeparatingAxisTheorem::CheckCollisionAABBvsOBB(entityBox, decorOBB);
+
+                    if (!hit.IsColliding())
+                        return;
+
+                    resolvedPos -= hit.GetCollisionNormal() * hit.GetPenetration();
+                    entityBox = MakeEntityAABB(resolvedPos, halfExtents);
+                });
+    }
+    else
+    {
+        auto decorView = registry.template
+            GetAllComponentsView<CollisionComp, TransformComponent>();
+
+        for (auto& e : decorView)
+        {
+            const auto& cc = registry.template GetComponent<CollisionComp>(e);
+            const auto& tc = registry.template GetComponent<TransformComponent>(e);
+
+            if (!cc.collider)
+                continue;
+
+            const glm::vec3 realScale = tc.GetScale();
+            const glm::vec3 pos = tc.GetPosition();
+            const glm::quat rot = tc.GetOrientation();
+
+            const KGR::OBB3D decorOBB = cc.collider->ComputeGlobalOBB(realScale, pos, rot);
+            const KGR::Collision3D hit = KGR::SeparatingAxisTheorem::CheckCollisionAABBvsOBB(entityBox, decorOBB);
+
+            if (!hit.IsColliding())
+                continue;
+
+            resolvedPos -= hit.GetCollisionNormal() * hit.GetPenetration();
+            entityBox = MakeEntityAABB(resolvedPos, halfExtents);
+        }
+    }
+
+    return resolvedPos - currentPos;
+}
+
+/**
  * @brief resolves player movement against all CollisionComp entities using MTV.
  * @param registry ECS registry.
  * @param currentPos player position before movement.
@@ -51,35 +132,21 @@ template<typename TRegistry>
 glm::vec3 ResolvePlayerMovement(TRegistry& registry, const glm::vec3& currentPos,
     const glm::vec3& desiredMove)
 {
-    glm::vec3 resolvedPos = currentPos + desiredMove;
-    KGR::AABB3D playerBox = MakePlayerAABB(resolvedPos);
+    return ResolveEntityMovement(registry, currentPos, desiredMove, playerHalfExtents);
+}
 
-    auto decorView = registry.template
-        GetAllComponentsView<CollisionComp, TransformComponent>();
-
-    for (auto& e : decorView)
-    {
-        const auto& cc = registry.template GetComponent<CollisionComp>(e);
-        const auto& tc = registry.template GetComponent<TransformComponent>(e);
-
-        if (!cc.collider)
-            continue;
-
-        const glm::vec3 realScale = tc.GetScale();
-        const glm::vec3 pos = tc.GetPosition();
-        const glm::quat rot = tc.GetOrientation();
-
-        const KGR::OBB3D decorOBB = cc.collider->ComputeGlobalOBB(realScale, pos, rot);
-        const KGR::Collision3D hit = KGR::SeparatingAxisTheorem::CheckCollisionAABBvsOBB(playerBox, decorOBB);
-
-        if (!hit.IsColliding())
-            continue;
-
-        resolvedPos -= hit.GetCollisionNormal() * hit.GetPenetration();
-        playerBox = MakePlayerAABB(resolvedPos);
-    }
-
-    return resolvedPos - currentPos;
+/**
+ * @brief resolves mob movement against all CollisionComp entities using MTV.
+ * @param registry ECS registry.
+ * @param currentPos mob position before movement.
+ * @param desiredMove displacement to apply this frame.
+ * @return corrected displacement that avoids penetrating any collider.
+ */
+template<typename TRegistry>
+glm::vec3 ResolveMobMovement(TRegistry& registry, const glm::vec3& currentPos,
+    const glm::vec3& desiredMove)
+{
+    return ResolveEntityMovement(registry, currentPos, desiredMove, mobHalfExtents);
 }
 
 /**

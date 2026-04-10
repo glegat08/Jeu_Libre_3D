@@ -32,6 +32,7 @@ struct HealtComponent { int Health; };
  * @param skin optional per-channel texture overrides.
  * @return the spawned entity handle.
  */
+template<typename TRegistry>
 inline ts::Entity SpawnEnemy(ts::Scene& scene, const KGR::GLB::GLBAsset& asset,
     const KGR::GLB::GLBNeutralTextures& neutrals, glm::vec3 pos, float radius,
     const KGR::GLB::GLBSkinOverride* skin = nullptr)
@@ -42,10 +43,10 @@ inline ts::Entity SpawnEnemy(ts::Scene& scene, const KGR::GLB::GLBAsset& asset,
     if (!result.valid)
         return ts::Entity{};
 
-    AIComponent ai;
-    ai.m_ActionLists.push_back(Patrol(pos, radius));
+    AIComponent<TRegistry> ai;
+    ai.m_ActionLists.push_back(Patrol<TRegistry>(pos, radius));
 
-    scene.Add<AIComponent>(result.entity, std::move(ai));
+    scene.Add<AIComponent<TRegistry>>(result.entity, std::move(ai));
     scene.Add<EnemyComponent>(result.entity, EnemyComponent{});
     scene.Add<HealtComponent>(result.entity, HealtComponent{ 20 });
     scene.Add<PhysicsComponent>(result.entity, PhysicsComponent{});
@@ -61,6 +62,7 @@ inline ts::Entity SpawnEnemy(ts::Scene& scene, const KGR::GLB::GLBAsset& asset,
  * @param zone center and radius of the spawn area.
  * @param skin optional per-channel texture overrides.
  */
+template<typename TRegistry>
 inline void SpawnEnemies(ts::Scene& scene, const KGR::GLB::GLBAsset& asset,
     const KGR::GLB::GLBNeutralTextures& neutrals, const SpawnZone& zone,
     const KGR::GLB::GLBSkinOverride* skin = nullptr)
@@ -79,7 +81,7 @@ inline void SpawnEnemies(ts::Scene& scene, const KGR::GLB::GLBAsset& asset,
         zone.center.z + r(gen) * sinf(theta(gen)),
     };
 
-    SpawnEnemy(scene, asset, neutrals, pos, zone.radius, skin);
+    SpawnEnemy<TRegistry>(scene, asset, neutrals, pos, zone.radius, skin);
 }
 
 #endif

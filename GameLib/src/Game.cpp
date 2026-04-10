@@ -134,14 +134,25 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
     const glm::vec3 terrainPos = terrainTc.GetPosition();
     const glm::vec3 terrainScale = terrainTc.GetScale();
 
+    // Disable OBB collider for terrain to avoid blocking vertical player movement (Jump is breaking against it)
+    if (terrainMesh)
+    {
+        auto view = registry.GetAllComponentsView<MeshComponent, CollisionComp>();
+        for (auto& e : view)
+        {
+            if (registry.GetComponent<MeshComponent>(e).mesh == terrainMesh)
+                registry.GetComponent<CollisionComp>(e).collider = nullptr;
+        }
+    }
+
     // ── Light ─────────────────────────────────────────────────────────────
     {
         LightComponent<LightData::Type::Directional> lc =
-            LightComponent<LightData::Type::Directional>::Create({ 0.30f, 0.26f, 0.22f }, { 0.15f, 0.14f, 0.12f }, 1.0f);
+            LightComponent<LightData::Type::Directional>::Create({ 0.15f, 0.10f, 0.05f }, { 0.0f, 0.0f, 0.0f }, 0.f);
 
         TransformComponent transform;
         transform.SetPosition({ 0.0f, 100.0f, 0.0f });
-        transform.LookAtDir({ -0.3f, -1.0f, -0.3f });
+        transform.LookAtDir({ -0.8f, -0.4f, -0.4f });
 
         auto e = registry.CreateEntity();
         registry.AddComponents(e, std::move(lc), std::move(transform));
@@ -201,7 +212,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
         for (int i = 0; i < 5; ++i)
         {
             const auto& randomSkin = mobSkins[skinDist(rng)];
-            SpawnEnemies(scene, *mobAsset, neutrals, spawnZone, &randomSkin);
+            SpawnEnemies<ecsType>(scene, *mobAsset, neutrals, spawnZone, &randomSkin);
         }
 
     float spawnTimer = 0.0f;
@@ -221,6 +232,8 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
 
         glm::vec3 playerPos = GetPlayerPosition(registry);
 
+        AIEnemiesSystem<ecsType>(registry, window, scene, dt);
+
         // ── Jump ──────────────────────────────────────────────────────────
         {
             auto players = registry.GetAllComponentsView<PlayerTag, PhysicsComponent>();
@@ -239,7 +252,7 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
         if (terrainMesh)
         {
             ApplyGravityRegistry(registry, *terrainMesh, terrainPos, terrainScale, dt, playerHalfExtents.y);
-            ApplyGravityScene(scene, *terrainMesh, terrainPos, terrainScale, dt, playerHalfExtents.y);
+            ApplyGravityScene(scene, *terrainMesh, terrainPos, terrainScale, dt, mobHalfExtents.y);
         }
 
         // ── Lifetime effects ──────────────────────────────────────────────
@@ -265,10 +278,8 @@ void RunGame(std::unique_ptr<KGR::RenderWindow>& window)
             spawnTimer = 0.0f;
             spawnZone.center = playerPos;
             const auto& randomSkin = mobSkins[skinDist(rng)];
-            SpawnEnemies(scene, *mobAsset, neutrals, spawnZone, &randomSkin);
+            SpawnEnemies<ecsType>(scene, *mobAsset, neutrals, spawnZone, &randomSkin);
         }
-
-        AIEnemiesSystem(window, scene, dt);
 
         LaserUpdate(laserState, registry, window.get(), playerPos, front, canonState.posOffset, canonState.entity);
         if (window->GetInputManager()->IsMouseDown(KGR::Mouse::Button1))

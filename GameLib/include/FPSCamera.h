@@ -61,7 +61,7 @@ void FPSCameraUpdate(FPSCameraState& state, TRegistry& registry, KGR::RenderWind
     for (auto& cam : cameras)
     {
         TransformComponent& camTransform = registry.template GetComponent<TransformComponent>(cam);
-        camTransform.SetPosition(playerPos);
+        camTransform.SetPosition(playerPos + glm::vec3(0.0f, FPSViewEyeHeight, 0.0f));
         camTransform.LookAtDir(front);
 
         registry.template GetComponent<CameraComponent>(cam).UpdateCamera(camTransform.GetFullTransform());
