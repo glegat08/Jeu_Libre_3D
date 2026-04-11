@@ -11,6 +11,7 @@
 #include "Core/TrasformComponent.h"
 #include "Core/Window.h"
 #include "CollisionSystem.h"
+#include "Components.h"
 
 
 //TODO : COMMENTEZ 
@@ -18,7 +19,7 @@ template<typename TRegistry>
 struct Action
 {
 	std::any information;
-	std::function<bool(const ts::Entity& e, const ts::Scene& scene)> condition;
+	std::function<bool(const ts::Entity& e, const ts::Scene& scene, const std::any* information)> condition;
 	std::function<void(ts::Entity& e, ts::Scene& scene, TRegistry& registry, float dt, std::any& information)> execution;
 };
 template<typename TRegistry>
@@ -76,7 +77,7 @@ inline Action<TRegistry> Patrol(glm::vec3& pos, float radius)
 	};
 
 
-	patrol.condition = [](const ts::Entity& e, const ts::Scene& scene) {return true; };
+	patrol.condition = [](const ts::Entity& e, const ts::Scene& scene, const std::any* information) {return true; };
 	patrol.execution = [travelVelocity](ts::Entity& e, ts::Scene& scene, TRegistry& registry, float dt, std::any& information)
 		{
 			auto& data = std::any_cast<PatrolData&>(information);
@@ -113,12 +114,12 @@ struct AttackData
 	ts::Entity parcelle = ts::NullEntity;
 	float timer;
 };
-
-Action Attack(const RadarComponent& radar)
+template<typename TRegistry>
+inline Action<TRegistry> Attack(const RadarComponent& radar)
 {
 	float travelVelocity = 4.0f;
 
-	Action attack;
+	Action<TRegistry>attack;
 	attack.information = AttackData
 	{
 		.r = radar.r,
