@@ -24,8 +24,6 @@ struct SpawnZone
     float radius;
 };
 
-//struct EnemyComponent {};
-//struct HealtComponent { int Health; };
 
 /**
  * @brief spawns a single enemy from a pre-loaded GLB asset at the given position.
