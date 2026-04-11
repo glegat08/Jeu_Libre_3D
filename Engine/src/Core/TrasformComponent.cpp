@@ -101,7 +101,7 @@ glm::mat4 TransformComponent::GetFullTransform()
 		return m_fullTransform;
 
 	m_fullTransform = GetTranslationMatrix() * GetRotationMatrix() * GetScaleMatrix();	
-	m_fullTransformDirty = true;
+	m_fullTransformDirty = false;
 	
 	return m_fullTransform;
 }

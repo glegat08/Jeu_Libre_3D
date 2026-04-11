@@ -1,0 +1,71 @@
+#pragma once
+#define NOMINMAX
+
+#include <glm/glm.hpp>
+#include "Core/CameraComponent.h"
+#include "Core/TrasformComponent.h"
+#include "Core/Window.h"
+#include "ECS/Registry.h"
+#include "CollisionSystem.h"
+
+struct FPSCameraState
+{
+    float yaw = -90.0f;
+    float pitch = 0.0f;
+    float mouseSensitivity = 0.1f;
+    float moveSpeed = 10.0f;
+};
+
+template<typename TRegistry, typename TPlayerTag>
+void FPSCameraUpdate(FPSCameraState& state, TRegistry& registry, KGR::RenderWindow* window, float dt, glm::vec3& outFront)
+{
+    glm::vec2 mouseDelta = window->GetInputManager()->GetMouseDelta();
+    state.yaw += mouseDelta.x * state.mouseSensitivity;
+    state.pitch -= mouseDelta.y * state.mouseSensitivity;
+    state.pitch = glm::clamp(state.pitch, -89.0f, 89.0f);
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(state.yaw)) * cos(glm::radians(state.pitch));
+    front.y = sin(glm::radians(state.pitch));
+    front.z = sin(glm::radians(state.yaw)) * cos(glm::radians(state.pitch));
+    front = glm::normalize(front);
+    outFront = front;
+
+    const glm::vec3 flatFront = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
+    const glm::vec3 right = glm::normalize(glm::cross(flatFront, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+    glm::vec3 playerPos = { 0.0f, 0.0f, 0.0f };
+    {
+        auto players = registry.template GetAllComponentsView<TPlayerTag, TransformComponent>();
+        for (auto& e : players)
+        {
+            auto input = window->GetInputManager();
+            TransformComponent& t = registry.template GetComponent<TransformComponent>(e);
+
+            glm::vec3 move{ 0.0f };
+            if (input->IsKeyDown(KGR::Key::Z)) move += flatFront * state.moveSpeed * dt;
+            if (input->IsKeyDown(KGR::Key::S)) move -= flatFront * state.moveSpeed * dt;
+            if (input->IsKeyDown(KGR::Key::Q)) move -= right * state.moveSpeed * dt;
+            if (input->IsKeyDown(KGR::Key::D)) move += right * state.moveSpeed * dt;
+
+            move = ResolvePlayerMovement(registry, t.GetPosition(), move);
+            t.Translate(move);
+            playerPos = t.GetPosition();
+        }
+    }
+
+    auto cameras = registry.template GetAllComponentsView<CameraComponent, TransformComponent>();
+    if (cameras.Size() != 1)
+        throw std::runtime_error("FPSCamera: need exactly one camera entity");
+
+    for (auto& cam : cameras)
+    {
+        TransformComponent& camTransform = registry.template GetComponent<TransformComponent>(cam);
+        camTransform.SetPosition(playerPos + glm::vec3(0.0f, FPSViewEyeHeight, 0.0f));
+        camTransform.LookAtDir(front);
+
+        registry.template GetComponent<CameraComponent>(cam).UpdateCamera(camTransform.GetFullTransform());
+        registry.template GetComponent<CameraComponent>(cam).SetAspect(window->GetSize().x, window->GetSize().y);
+        window->RegisterCam(registry.template GetComponent<CameraComponent>(cam), camTransform);
+    }
+}

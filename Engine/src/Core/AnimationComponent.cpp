@@ -23,8 +23,6 @@ namespace KGR
 			m_globalMatrices.assign(count, glm::mat4(1.0f));
 			m_lastBoneMatrices.assign(count, glm::mat4(1.0f));
 
-			// Single pass: build the joint map and collect every child ID.
-			// Anything not in childIds is a root.
 			std::unordered_set<int> childIds;
 			for (const auto& joint : m_skeleton->m_joints)
 			{
@@ -39,10 +37,9 @@ namespace KGR
 			if (!m_clips)
 				return;
 
-			// Activate the first clip that actually has data.
 			auto it = std::find_if(m_clips->begin(), m_clips->end(),
-				[](const AnimationClip& c) 
-				{ 
+				[](const AnimationClip& c)
+				{
 					return !c.m_tracks.empty() && c.duration > 0.0f;
 				});
 
@@ -114,13 +111,13 @@ namespace KGR
 			if (it != m_trackByJointId.end())
 			{
 				const Track& track = *it->second;
-				if (!track.m_positions.empty()) 
+				if (!track.m_positions.empty())
 					pos = InterpolatePosition(m_currentTime, track);
 
-				if (!track.m_rotations.empty()) 
+				if (!track.m_rotations.empty())
 					rot = InterpolateRotation(m_currentTime, track);
 
-				if (!track.m_scales.empty())   
+				if (!track.m_scales.empty())
 					scl = InterpolateScale(m_currentTime, track);
 			}
 
@@ -143,7 +140,7 @@ namespace KGR
 		glm::vec3 AnimationComponent::InterpolatePosition(float time, const Track& track) const
 		{
 			return InterpolateKeyframes(time, track.m_positions,
-				[](const glm::vec3& a, const glm::vec3& b, float t) 
+				[](const glm::vec3& a, const glm::vec3& b, float t)
 				{
 					return glm::mix(a, b, t);
 				});
@@ -161,10 +158,95 @@ namespace KGR
 		glm::vec3 AnimationComponent::InterpolateScale(float time, const Track& track) const
 		{
 			return InterpolateKeyframes(time, track.m_scales,
-				[](const glm::vec3& a, const glm::vec3& b, float t) 
+				[](const glm::vec3& a, const glm::vec3& b, float t)
 				{
 					return glm::mix(a, b, t);
 				});
+		}
+
+		void ObjectAnimationComponent::Init(const std::vector<ObjectAnimationClip>* clips)
+		{
+			m_clips = clips;
+			m_currentTime = 0.0f;
+			m_currentClipIdx = 0;
+
+			if (!m_clips || m_clips->empty())
+				return;
+
+			auto it = std::find_if(m_clips->begin(), m_clips->end(),
+				[](const ObjectAnimationClip& c)
+				{
+					return c.duration > 0.0f;
+				});
+
+			m_currentClipIdx = (it != m_clips->end())
+				? static_cast<size_t>(std::distance(m_clips->begin(), it)) : 0;
+
+			RebuildClip();
+		}
+
+		void ObjectAnimationComponent::SetClip(size_t index)
+		{
+			if (!m_clips || index >= m_clips->size())
+				return;
+
+			if ((*m_clips)[index].duration <= 0.0f)
+				return;
+
+			m_currentClipIdx = index;
+			m_currentTime = 0.0f;
+			RebuildClip();
+		}
+
+		void ObjectAnimationComponent::RebuildClip()
+		{
+			m_clip = nullptr;
+			if (!m_clips || m_currentClipIdx >= m_clips->size())
+				return;
+			m_clip = &(*m_clips)[m_currentClipIdx];
+		}
+
+		void ObjectAnimationComponent::Update(float deltaTime, TransformComponent& tc)
+		{
+			if (!m_clip)
+				return;
+
+			m_currentTime = fmod(m_currentTime + deltaTime, m_clip->duration);
+
+			if (!m_clip->m_positions.empty())
+			{
+				const glm::vec3 pos = InterpolateKeyframes(m_currentTime, m_clip->m_positions,
+					[](const glm::vec3& a, const glm::vec3& b, float t)
+					{
+						return glm::mix(a, b, t);
+					});
+				tc.SetPosition(pos);
+			}
+
+			if (!m_clip->m_rotations.empty())
+			{
+				const glm::quat rot = InterpolateKeyframes(m_currentTime, m_clip->m_rotations,
+					[](const glm::quat& a, const glm::quat& b, float t)
+					{
+						return glm::normalize(glm::slerp(a, b, t));
+					});
+				tc.SetOrientation(rot);
+			}
+
+			if (!m_clip->m_scales.empty())
+			{
+				const glm::vec3 scl = InterpolateKeyframes(m_currentTime, m_clip->m_scales,
+					[](const glm::vec3& a, const glm::vec3& b, float t)
+					{
+						return glm::mix(a, b, t);
+					});
+				tc.SetScale(scl);
+			}
+		}
+
+		size_t ObjectAnimationComponent::GetClipCount() const
+		{
+			return m_clips ? m_clips->size() : 0;
 		}
 	}
 }

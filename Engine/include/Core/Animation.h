@@ -10,9 +10,7 @@ namespace KGR
 {
 	namespace Animation
 	{
-		/**
-		 * @brief Single joint in a skeleton — name, ID, inverse bind matrix, local TRS, and child IDs.
-		 */
+		/** @brief joint in a skeleton. */
 		struct Joint
 		{
 			std::string name;
@@ -24,36 +22,28 @@ namespace KGR
 			std::vector<int> m_children;
 		};
 
-		/**
-		 * @brief Hierarchical collection of joints used for skeletal animation.
-		 */
+		/** @brief hierarchical collection of joints. */
 		struct Skeleton
 		{
 			std::string name;
 			std::vector<Joint> m_joints;
 		};
 
-		/**
-		 * @brief Keyframe for vec3 channels (position or scale).
-		 */
+		/** @brief vec3 keyframe for position or scale channels. */
 		struct VectorKeyFrame
 		{
 			float time;
 			glm::vec3 m_value;
 		};
 
-		/**
-		 * @brief Keyframe for rotation channels.
-		 */
+		/** @brief quaternion keyframe for rotation channels. */
 		struct QuaternionKeyFrame
 		{
 			float time;
 			glm::quat m_value;
 		};
 
-		/**
-		 * @brief Animation data for one joint — position, rotation, and scale keyframes over time.
-		 */
+		/** @brief animation keyframes for a single joint. */
 		struct Track
 		{
 			int nodeId;
@@ -62,14 +52,22 @@ namespace KGR
 			std::vector<VectorKeyFrame> m_scales;
 		};
 
-		/**
-		 * @brief Named collection of tracks that defines one animation sequence and its duration.
-		 */
+		/** @brief named animation sequence with duration and per-joint tracks. */
 		struct AnimationClip
 		{
 			std::string name;
 			float duration = 0.0f;
 			std::vector<Track> m_tracks;
+		};
+
+		/** @brief trs channels for an object-level animation clip. */
+		struct ObjectAnimationClip
+		{
+			std::string name;
+			float duration = 0.0f;
+			std::vector<VectorKeyFrame> m_positions;
+			std::vector<QuaternionKeyFrame> m_rotations;
+			std::vector<VectorKeyFrame> m_scales;
 		};
 	}
 }

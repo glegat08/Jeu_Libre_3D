@@ -92,7 +92,9 @@ VSOutput vertMain(VSInput input)
     float3 T = (tangentLen > 1e-6) ? normalize(worldTangent) : float3(1.0, 0.0, 0.0);
 
     T = normalize(T - N * dot(N, T));
-    float3 B = normalize(cross(N, T) * input.Tangeant.w);
+
+    float tangentW = (tangentLen > 1e-6) ? input.Tangeant.w : 1.0;
+    float3 B = normalize(cross(N, T) * tangentW);
 
     output.normal = N;
     output.tangent = T;
@@ -137,13 +139,22 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float roughness = metallicRoughnessSampler.Sample(vertIn.fragTexCoord).g;
     float3 emissive  = pow(emissiveSampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
 
-    // get normal map rgb
-    float3 normalMap = normalSampler.Sample(vertIn.fragTexCoord).rgb * 2.0f - 1.0f;
+    float3 normal;
+    float tangentLen = length(vertIn.tangent);
+    float bitangentLen = length(vertIn.bitangent);
 
-    // Build TBN and transform the tangent-space normal to world space.
-    float3x3 TBN = transpose(float3x3(vertIn.tangent, vertIn.bitangent, vertIn.normal));
-    float3 normal = normalize(mul(TBN, normalMap));
+    if (tangentLen > 1e-6 && bitangentLen > 1e-6)
+    {
+        float3 normalMap = normalSampler.Sample(vertIn.fragTexCoord).rgb * 2.0f - 1.0f;
+        float3x3 TBM = transpose(float3x3(vertIn.tangent, vertIn.bitangent, vertIn.normal));
+        normal = normalize(mul(TBM, normalMap));
+    }
+    else
+    {
+        normal = vertIn.normal;
+    }
 
+    float3 result = float(0.f).xxx;
     float3 baseColor = pow(sampler.Sample(vertIn.fragTexCoord).rgb, 2.2f.xxx);
     float3 result = baseColor * (1.0 - metalness) * occlusion * 0.02f;
 
@@ -241,8 +252,8 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
             result += (Fr * Ej) * lightColor;
         }
     }
-
-    result += emissive * 3.0f;
+    result += emessive * 3.0f;
+    result = pow(result, (1.0f / 2.2f).xxx);
 
     return float4(result, 1.0f);
 }

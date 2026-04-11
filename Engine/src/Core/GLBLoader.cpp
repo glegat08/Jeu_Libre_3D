@@ -4,15 +4,20 @@
 #include "Core/Mesh.h"
 #include "Core/Texture.h"
 #include "VulkanCore.h"
+#include "Math/CollisionComponent.h"
 
 #include <iostream>
 #include <algorithm>
 #include <variant>
+#include <limits>
 
 namespace KGR
 {
 	namespace GLB
 	{
+		GLBAsset::GLBAsset() = default;
+		GLBAsset::~GLBAsset() = default;
+
 		std::filesystem::path GLB_Loader::m_absoluteFilePath = std::filesystem::path{};
 
 		void GLB_Loader::SetGlobalFilePath(const std::filesystem::path& rootPath)
@@ -49,10 +54,12 @@ namespace KGR
 			}
 
 			std::filesystem::path dir = resolved.parent_path();
-			if (dir.empty()) 
+			if (dir.empty())
 				dir = std::filesystem::current_path();
 
-			constexpr auto kOptions = fastgltf::Options::LoadGLBBuffers | fastgltf::Options::LoadExternalBuffers;
+			constexpr auto kOptions =
+				fastgltf::Options::LoadGLBBuffers | fastgltf::Options::LoadExternalBuffers;
+
 			auto asset = parser.loadGltfBinary(data.get(), dir, kOptions);
 			if (asset.error() != fastgltf::Error::None)
 			{
@@ -72,30 +79,38 @@ namespace KGR
 			m_materials.clear();
 			m_skeletons.clear();
 			m_animations.clear();
+			m_objectAnimations.clear();
 			m_nodeToJointIndex.clear();
+			m_primitivesPerMesh.clear();
+			m_nodeInstances.clear();
 
 			LoadGeometry(gltf);
 			LoadTextures(gltf);
 			LoadMaterials(gltf);
 			LoadSkeletons(gltf);
 			LoadAnimations(gltf);
+			LoadObjectAnimations(gltf);
+			LoadNodes(gltf);
 
 			return true;
 		}
 
 		void GLB_Loader::LoadGeometry(fastgltf::Asset& gltf)
 		{
-			for (auto& mesh : gltf.meshes)
+			m_primitivesPerMesh.resize(gltf.meshes.size());
+
+			for (size_t meshIdx = 0; meshIdx < gltf.meshes.size(); ++meshIdx)
 			{
+				auto& mesh = gltf.meshes[meshIdx];
+
 				for (auto& primitive : mesh.primitives)
 				{
 					GLBPrimitive prim;
 					prim.materialIndex = primitive.materialIndex.has_value()
 						? static_cast<int>(*primitive.materialIndex) : -1;
 
-					const size_t base = m_vertices.size();
+					const size_t globalBase = m_vertices.size();
 
-					// Small helper to avoid repeating the findAttribute + bounds check everywhere.
 					auto getAcc = [&](const char* name) -> fastgltf::Accessor*
 						{
 							auto it = primitive.findAttribute(name);
@@ -106,48 +121,53 @@ namespace KGR
 					if (auto* acc = getAcc("POSITION"))
 					{
 						prim.vertices.resize(acc->count);
-						m_vertices.resize(base + acc->count);
+						m_vertices.resize(globalBase + acc->count);
 
-						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, *acc, [&](glm::vec3 p, size_t i)
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, *acc,
+							[&](glm::vec3 p, size_t i)
 							{
 								Vertex v{};
-								v.pos = p; 
-								v.normal = { 0, 1, 0 }; 
+								v.pos = p;
+								v.normal = { 0, 1, 0 };
 								v.weights = { 1, 0, 0, 0 };
-
-								prim.vertices[i] = m_vertices[base + i] = v;
+								prim.vertices[i] = m_vertices[globalBase + i] = v;
 							});
 					}
 
 					if (auto* acc = getAcc("NORMAL"))
-						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, *acc, [&](glm::vec3 n, size_t i)
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, *acc,
+							[&](glm::vec3 n, size_t i)
 							{
-								prim.vertices[i].normal = m_vertices[base + i].normal = n;
+								prim.vertices[i].normal = m_vertices[globalBase + i].normal = n;
 							});
 
 					if (auto* acc = getAcc("TANGENT"))
-						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, *acc, [&](glm::vec4 t, size_t i)
-							{ 
-								prim.vertices[i].tangent = m_vertices[base + i].tangent = t;
+						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, *acc,
+							[&](glm::vec4 t, size_t i)
+							{
+								prim.vertices[i].tangent = m_vertices[globalBase + i].tangent = t;
 							});
 
 					if (auto* acc = getAcc("TEXCOORD_0"))
-						fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, *acc, [&](glm::vec2 uv, size_t i)
+						fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, *acc,
+							[&](glm::vec2 uv, size_t i)
 							{
-								prim.vertices[i].uv = m_vertices[base + i].uv = uv;
+								prim.vertices[i].uv = m_vertices[globalBase + i].uv = uv;
 							});
 
 					if (auto* acc = getAcc("WEIGHTS_0"))
-						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, *acc, [&](glm::vec4 w, size_t i)
+						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, *acc,
+							[&](glm::vec4 w, size_t i)
 							{
-								prim.vertices[i].weights = m_vertices[base + i].weights = w; 
+								prim.vertices[i].weights = m_vertices[globalBase + i].weights = w;
 							});
 
 					if (auto* acc = getAcc("JOINTS_0"))
 					{
 						auto applyJoints = [&](auto j, size_t i)
 							{
-								prim.vertices[i].joints = m_vertices[base + i].joints = glm::ivec4(j);
+								prim.vertices[i].joints =
+									m_vertices[globalBase + i].joints = glm::ivec4(j);
 							};
 
 						if (acc->componentType == fastgltf::ComponentType::UnsignedByte)
@@ -156,10 +176,18 @@ namespace KGR
 							fastgltf::iterateAccessorWithIndex<glm::u16vec4>(gltf, *acc, applyJoints);
 					}
 
-					auto appendIndex = [&](uint32_t idx)
+					auto appendLocalIndex = [&](uint32_t idx)
 						{
 							prim.indices.push_back(idx);
-							m_indices.push_back(idx + static_cast<uint32_t>(base));
+						};
+					auto appendGlobalIndex = [&](uint32_t idx)
+						{
+							m_indices.push_back(idx + static_cast<uint32_t>(globalBase));
+						};
+					auto appendIndex = [&](uint32_t idx)
+						{
+							appendLocalIndex(idx);
+							appendGlobalIndex(idx);
 						};
 
 					if (primitive.indicesAccessor.has_value())
@@ -187,8 +215,51 @@ namespace KGR
 							appendIndex(static_cast<uint32_t>(i));
 					}
 
+					m_primitivesPerMesh[meshIdx].push_back(prim);
 					m_primitives.push_back(std::move(prim));
 				}
+			}
+		}
+
+		void GLB_Loader::LoadNodes(fastgltf::Asset& gltf)
+		{
+			for (auto& node : gltf.nodes)
+			{
+				if (!node.meshIndex.has_value())
+					continue;
+
+				GLBNodeInstance inst;
+				inst.name = node.name.c_str();
+				inst.meshIndex = static_cast<int>(*node.meshIndex);
+
+				std::visit(fastgltf::visitor
+					{
+						[&](const fastgltf::TRS& trs)
+						{
+							inst.translation =
+							{
+								trs.translation[0],
+								trs.translation[1],
+								trs.translation[2]
+							};
+							inst.rotation =
+							{
+								trs.rotation[3],
+								trs.rotation[0],
+								trs.rotation[1],
+								trs.rotation[2]
+							};
+							inst.scale =
+							{
+								trs.scale[0],
+								trs.scale[1],
+								trs.scale[2]
+							};
+						},
+						[](const auto&) {}
+					}, node.transform);
+
+				m_nodeInstances.push_back(std::move(inst));
 			}
 		}
 
@@ -205,13 +276,15 @@ namespace KGR
 
 						[&](fastgltf::sources::Vector& vector)
 						{
-							const uint8_t* start = reinterpret_cast<const uint8_t*>(vector.bytes.data());
+							const uint8_t* start =
+								reinterpret_cast<const uint8_t*>(vector.bytes.data());
 							rawImg.m_data.assign(start, start + vector.bytes.size());
 						},
 
 						[&](fastgltf::sources::Array& array)
 						{
-							const uint8_t* start = reinterpret_cast<const uint8_t*>(array.bytes.data());
+							const uint8_t* start =
+								reinterpret_cast<const uint8_t*>(array.bytes.data());
 							rawImg.m_data.assign(start, start + array.bytes.size());
 						},
 
@@ -225,7 +298,8 @@ namespace KGR
 									[](auto&) {},
 									[&](fastgltf::sources::Array& array)
 									{
-										const uint8_t* start = reinterpret_cast<const uint8_t*>(array.bytes.data())
+										const uint8_t* start =
+											reinterpret_cast<const uint8_t*>(array.bytes.data())
 											+ bufferView.byteOffset;
 										rawImg.m_data.assign(start, start + bufferView.byteLength);
 									}
@@ -241,11 +315,12 @@ namespace KGR
 		{
 			auto resolveTexIndex = [&](const auto& texInfo) -> int
 				{
-					if (!texInfo.has_value()) 
+					if (!texInfo.has_value())
 						return -1;
 
 					const auto& tex = gltf.textures[texInfo->textureIndex];
-					return tex.imageIndex.has_value() ? static_cast<int>(*tex.imageIndex) : -1;
+					return tex.imageIndex.has_value()
+						? static_cast<int>(*tex.imageIndex) : -1;
 				};
 
 			for (const auto& mat : gltf.materials)
@@ -291,9 +366,25 @@ namespace KGR
 							[](const fastgltf::math::fmat4x4&) {},
 							[&](const fastgltf::TRS& trs)
 							{
-								joint.translation = { trs.translation[0], trs.translation[1], trs.translation[2] };
-								joint.rotation = { trs.rotation[3], trs.rotation[0], trs.rotation[1], trs.rotation[2] };
-								joint.scale = { trs.scale[0], trs.scale[1], trs.scale[2] };
+								joint.translation =
+								{
+									trs.translation[0],
+									trs.translation[1],
+									trs.translation[2]
+								};
+								joint.rotation =
+								{
+									trs.rotation[3],
+									trs.rotation[0],
+									trs.rotation[1],
+									trs.rotation[2]
+								};
+								joint.scale =
+								{
+									trs.scale[0],
+									trs.scale[1],
+									trs.scale[2]
+								};
 							},
 							[](const auto&) {}
 						}, node.transform);
@@ -323,10 +414,12 @@ namespace KGR
 
 				for (auto& channel : animation.channels)
 				{
-					if (!channel.nodeIndex.has_value()) continue;
+					if (!channel.nodeIndex.has_value())
+						continue;
 
 					auto jointIt = m_nodeToJointIndex.find(*channel.nodeIndex);
-					if (jointIt == m_nodeToJointIndex.end()) continue;
+					if (jointIt == m_nodeToJointIndex.end())
+						continue;
 
 					const int jointId = jointIt->second;
 					nodeTracks.try_emplace(jointId, KGR::Animation::Track{ jointId });
@@ -345,15 +438,17 @@ namespace KGR
 
 					if (channel.path == fastgltf::AnimationPath::Translation)
 					{
-						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, outputAcc, [&](glm::vec3 v, size_t i)
-							{ 
-								if (i < times.size()) 
-									track.m_positions.push_back({ times[i], v }); 
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, outputAcc,
+							[&](glm::vec3 v, size_t i)
+							{
+								if (i < times.size())
+									track.m_positions.push_back({ times[i], v });
 							});
 					}
 					else if (channel.path == fastgltf::AnimationPath::Rotation)
 					{
-						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, outputAcc, [&](glm::vec4 v, size_t i)
+						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, outputAcc,
+							[&](glm::vec4 v, size_t i)
 							{
 								if (i < times.size())
 									track.m_rotations.push_back({ times[i], { v.w, v.x, v.y, v.z } });
@@ -361,9 +456,10 @@ namespace KGR
 					}
 					else if (channel.path == fastgltf::AnimationPath::Scale)
 					{
-						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, outputAcc, [&](glm::vec3 v, size_t i)
-							{ 
-								if (i < times.size()) 
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, outputAcc,
+							[&](glm::vec3 v, size_t i)
+							{
+								if (i < times.size())
 									track.m_scales.push_back({ times[i], v });
 							});
 					}
@@ -376,52 +472,176 @@ namespace KGR
 			}
 		}
 
-		const std::vector<Vertex>& GLB_Loader::GetVertices() const 
+		void GLB_Loader::LoadObjectAnimations(fastgltf::Asset& gltf)
+		{
+			for (auto& animation : gltf.animations)
+			{
+				KGR::Animation::ObjectAnimationClip clip;
+				clip.name = animation.name.c_str();
+
+				for (auto& channel : animation.channels)
+				{
+					if (!channel.nodeIndex.has_value())
+						continue;
+
+					if (m_nodeToJointIndex.count(*channel.nodeIndex))
+						continue;
+
+					auto& sampler = animation.samplers[channel.samplerIndex];
+					auto& outputAcc = gltf.accessors[sampler.outputAccessor];
+
+					std::vector<float> times;
+					fastgltf::iterateAccessor<float>(gltf, gltf.accessors[sampler.inputAccessor],
+						[&](float t)
+						{
+							times.push_back(t);
+							clip.duration = std::max(clip.duration, t);
+						});
+
+					if (channel.path == fastgltf::AnimationPath::Translation)
+					{
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, outputAcc,
+							[&](glm::vec3 v, size_t i)
+							{
+								if (i < times.size())
+									clip.m_positions.push_back({ times[i], v });
+							});
+					}
+					else if (channel.path == fastgltf::AnimationPath::Rotation)
+					{
+						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, outputAcc,
+							[&](glm::vec4 v, size_t i)
+							{
+								if (i < times.size())
+									clip.m_rotations.push_back({ times[i], { v.w, v.x, v.y, v.z } });
+							});
+					}
+					else if (channel.path == fastgltf::AnimationPath::Scale)
+					{
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, outputAcc,
+							[&](glm::vec3 v, size_t i)
+							{
+								if (i < times.size())
+									clip.m_scales.push_back({ times[i], v });
+							});
+					}
+				}
+
+				const bool hasData = !clip.m_positions.empty()
+					|| !clip.m_rotations.empty()
+					|| !clip.m_scales.empty();
+
+				if (hasData && clip.duration > 0.0f)
+					m_objectAnimations.push_back(std::move(clip));
+			}
+		}
+
+		const std::vector<Vertex>& GLB_Loader::GetVertices() const
 		{
 			return m_vertices;
 		}
 
-		const std::vector<uint32_t>& GLB_Loader::GetIndices() const 
+		const std::vector<uint32_t>& GLB_Loader::GetIndices() const
 		{
 			return m_indices;
 		}
 
-		const std::vector<RawImage>& GLB_Loader::GetImages() const 
+		const std::vector<RawImage>& GLB_Loader::GetImages() const
 		{
 			return m_images;
 		}
 
-		const std::vector<KGR::Animation::Skeleton>& GLB_Loader::GetSkeletons() const 
+		const std::vector<KGR::Animation::Skeleton>& GLB_Loader::GetSkeletons() const
 		{
-			return m_skeletons; 
+			return m_skeletons;
 		}
 
-		const std::vector<KGR::Animation::AnimationClip>& GLB_Loader::GetAnimations() const 
+		const std::vector<KGR::Animation::AnimationClip>& GLB_Loader::GetAnimations() const
 		{
-			return m_animations; 
+			return m_animations;
 		}
 
-		const std::vector<GLBPrimitive>& GLB_Loader::GetPrimitives() const 
+		const std::vector<KGR::Animation::ObjectAnimationClip>& GLB_Loader::GetObjectAnimations() const
 		{
-			return m_primitives; 
+			return m_objectAnimations;
 		}
 
-		const std::vector<GLBMaterialData>& GLB_Loader::GetMaterials() const 
+		const std::vector<GLBPrimitive>& GLB_Loader::GetPrimitives() const
+		{
+			return m_primitives;
+		}
+
+		const std::vector<GLBMaterialData>& GLB_Loader::GetMaterials() const
 		{
 			return m_materials;
 		}
 
-		// ─────────────────────────────────────────────────────────────────────
-		// GLBCache
-		// ─────────────────────────────────────────────────────────────────────
+		const std::vector<std::vector<GLBPrimitive>>& GLB_Loader::GetPrimitivesPerMesh() const
+		{
+			return m_primitivesPerMesh;
+		}
+
+		const std::vector<GLBNodeInstance>& GLB_Loader::GetNodeInstances() const
+		{
+			return m_nodeInstances;
+		}
+
+		std::unique_ptr<Mesh> LoadMeshFromPrimitives(const std::vector<GLBPrimitive>& primitives,
+			KGR::_Vulkan::VulkanCore* vkCore)
+		{
+			auto mesh = std::make_unique<Mesh>();
+
+			for (size_t i = 0; i < primitives.size(); ++i)
+			{
+				const auto& prim = primitives[i];
+				if (prim.vertices.empty())
+					continue;
+
+				auto sub = std::make_unique<SubMeshes>(
+					prim.vertices,
+					prim.indices,
+					"prim_" + std::to_string(i),
+					vkCore);
+
+				mesh->AddSubMesh(std::move(sub));
+			}
+
+			return mesh;
+		}
+
+		static std::unique_ptr<Collider> GenerateColliderFromPrimitives(const std::vector<GLBPrimitive>& primitives)
+		{
+			float minX = std::numeric_limits<float>::max();
+			float minY = std::numeric_limits<float>::max();
+			float minZ = std::numeric_limits<float>::max();
+			float maxX = std::numeric_limits<float>::lowest();
+			float maxY = std::numeric_limits<float>::lowest();
+			float maxZ = std::numeric_limits<float>::lowest();
+
+			for (const auto& prim : primitives)
+			{
+				for (const auto& v : prim.vertices)
+				{
+					minX = std::min(minX, v.pos.x);
+					minY = std::min(minY, v.pos.y);
+					minZ = std::min(minZ, v.pos.z);
+					maxX = std::max(maxX, v.pos.x);
+					maxY = std::max(maxY, v.pos.y);
+					maxZ = std::max(maxZ, v.pos.z);
+				}
+			}
+
+			auto collider = std::make_unique<Collider>();
+			collider->localBox = KGR::AABB3D({ minX, minY, minZ }, { maxX, maxY, maxZ });
+			return collider;
+		}
 
 		void GLBCache::Init(KGR::_Vulkan::VulkanCore* app)
 		{
-			// 1x1 RGBA pixels — one per PBR channel neutral value
-			static const uint8_t white[4] = { 255, 255, 255, 255 };  // baseColor : no tint
-			static const uint8_t normal[4] = { 128, 128, 255, 255 };  // normalMap : flat (0,0,1) in tangent space
-			static const uint8_t pbr[4] = { 255, 128, 0, 255 };  // ORM : occlusion=1, roughness=0.5, metallic=0
-			static const uint8_t black[4] = { 0, 0, 0, 255 };  // emissive : no emission
+			static const uint8_t white[4] = { 255, 255, 255, 255 };
+			static const uint8_t normal[4] = { 128, 128, 255, 255 };
+			static const uint8_t pbr[4] = { 255, 128, 0, 255 };
+			static const uint8_t black[4] = { 0, 0, 0, 255 };
 
 			m_neutralBaseColor = LoadTextureRaw(white, 1, 1, app);
 			m_neutralNormal = LoadTextureRaw(normal, 1, 1, app);
@@ -431,8 +651,13 @@ namespace KGR
 
 		GLBNeutralTextures GLBCache::GetNeutrals() const
 		{
-			return { m_neutralBaseColor.get(), m_neutralNormal.get(),
-					 m_neutralPbr.get(),       m_neutralEmissive.get() };
+			return
+			{
+				m_neutralBaseColor.get(),
+				m_neutralNormal.get(),
+				m_neutralPbr.get(),
+				m_neutralEmissive.get()
+			};
 		}
 
 		const GLBAsset* GLBCache::Get(const std::string& path, KGR::_Vulkan::VulkanCore* app)
@@ -446,8 +671,21 @@ namespace KGR
 				return nullptr;
 
 			asset->mesh = LoadMeshFromGLB(asset->loader, app);
-			asset->textures.reserve(asset->loader.GetImages().size());
 
+			const auto& perMesh = asset->loader.GetPrimitivesPerMesh();
+			asset->meshes.resize(perMesh.size());
+			asset->colliders.resize(perMesh.size());
+
+			for (size_t i = 0; i < perMesh.size(); ++i)
+			{
+				if (perMesh[i].empty())
+					continue;
+
+				asset->meshes[i] = LoadMeshFromPrimitives(perMesh[i], app);
+				asset->colliders[i] = GenerateColliderFromPrimitives(perMesh[i]);
+			}
+
+			asset->textures.reserve(asset->loader.GetImages().size());
 			for (const auto& img : asset->loader.GetImages())
 			{
 				if (img.m_data.empty())
@@ -463,15 +701,16 @@ namespace KGR
 				}
 				catch (const std::exception& e)
 				{
-					std::cerr << "[GLBCache] Texture upload failed in '" << path << "': " << e.what() << "\n";
+					std::cerr << "[GLBCache] Texture upload failed in '"
+						<< path << "': " << e.what() << "\n";
 					asset->textures.push_back(nullptr);
 				}
 			}
 
 			std::cout << "[GLBCache] '" << path << "' -> "
-				<< asset->mesh->GetSubMeshesCount() << " submesh(es), "
-				<< asset->loader.GetImages().size() << " image(s), "
-				<< asset->loader.GetMaterials().size() << " material(s)\n";
+				<< asset->loader.GetPrimitivesPerMesh().size() << " mesh(es), "
+				<< asset->loader.GetNodeInstances().size() << " node(s), "
+				<< asset->loader.GetImages().size() << " image(s)\n";
 
 			auto [inserted, ok] = m_cache.emplace(path, std::move(asset));
 			return inserted->second.get();

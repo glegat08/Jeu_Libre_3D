@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Animation.h"
+#include "TrasformComponent.h"
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -9,9 +10,7 @@ namespace KGR
 {
 	namespace Animation
 	{
-		/**
-		 * @brief Manages the runtime playback state of a single skeletal animation instance.
-		 */
+		/** @brief runtime playback state for a skeletal animation instance. */
 		class AnimationComponent
 		{
 		public:
@@ -19,27 +18,28 @@ namespace KGR
 			~AnimationComponent() = default;
 
 			/**
-			 * @brief Binds a skeleton and its clip library to this component and activates the first valid clip.
-			 * @param skeleton  pointer to the joint hierarchy and inverse bind matrices.
-			 * @param clips     all animation clips available for this skeleton.
+			 * @brief binds a skeleton and its clips to this component and activates the first valid clip.
+			 * @param skeleton pointer to the joint hierarchy.
+			 * @param clips available animation clips.
 			 */
 			void Init(const Skeleton* skeleton, const std::vector<AnimationClip>* clips);
 
 			/**
-			 * @brief Switches to the clip at @p index and resets playback time to zero.
+			 * @brief switches to the clip at @p index and resets playback time.
+			 * @param index clip index.
 			 */
 			void SetClip(size_t index);
 
 			/**
-			 * @brief Steps the animation forward and recomputes all joint matrices.
-			 * @param deltaTime seconds elapsed since the last frame.
+			 * @brief advances the animation and recomputes all joint matrices.
+			 * @param deltaTime seconds since the last frame.
 			 */
 			void Update(float deltaTime);
 
-			/** @brief Skinning matrices (globalTransform * inverseBindMatrix) indexed by joint ID. */
+			/** @brief returns the skinning matrices indexed by joint ID. */
 			const std::vector<glm::mat4>& GetLastBoneMatrices() const;
 
-			/** @brief Number of clips available on this component. */
+			/** @brief returns the number of clips available. */
 			size_t GetClipCount() const;
 
 		private:
@@ -48,7 +48,7 @@ namespace KGR
 			const AnimationClip* m_clip = nullptr;
 
 			size_t m_currentClipIdx = 0;
-			float  m_currentTime = 0.0f;
+			float m_currentTime = 0.0f;
 
 			std::vector<int> m_rootJointIds;
 			std::unordered_map<int, const Joint*> m_jointById;
@@ -57,10 +57,10 @@ namespace KGR
 			std::vector<glm::mat4> m_globalMatrices;
 			std::vector<glm::mat4> m_lastBoneMatrices;
 
-			/** @brief Rebuilds m_trackByJointId and m_clip from the current clip index. */
+			/** @brief rebuilds track map and clip pointer from the current clip index. */
 			void RebuildClipData();
 
-			/** @brief Recursively computes the global transform for a joint and all its descendants. */
+			/** @brief recursively computes the global transform for a joint and its descendants. */
 			void CalculateBoneTransform(const Joint& joint, const glm::mat4& parentTransform);
 
 			glm::vec3 InterpolatePosition(float time, const Track& track) const;
@@ -86,5 +86,44 @@ namespace KGR
 			const float f = glm::clamp((time - k0.time) / (k1.time - k0.time), 0.0f, 1.0f);
 			return lerp(k0.m_value, k1.m_value, f);
 		}
+
+		/** @brief drives a TransformComponent directly from object-level animation clips. */
+		class ObjectAnimationComponent
+		{
+		public:
+			ObjectAnimationComponent() = default;
+			~ObjectAnimationComponent() = default;
+
+			/**
+			 * @brief binds the clip list and activates the first valid clip.
+			 * @param clips pointer to the clip list owned by the GLBAsset.
+			 */
+			void Init(const std::vector<ObjectAnimationClip>* clips);
+
+			/**
+			 * @brief switches to the clip at @p index and resets playback time.
+			 * @param index clip index.
+			 */
+			void SetClip(size_t index);
+
+			/**
+			 * @brief advances time and writes the interpolated trs into @p tc.
+			 * @param deltaTime seconds since last frame.
+			 * @param tc transform component to write into.
+			 */
+			void Update(float deltaTime, TransformComponent& tc);
+
+			/** @brief returns the number of clips available. */
+			size_t GetClipCount() const;
+
+		private:
+			const std::vector<ObjectAnimationClip>* m_clips = nullptr;
+			const ObjectAnimationClip* m_clip = nullptr;
+			size_t m_currentClipIdx = 0;
+			float m_currentTime = 0.0f;
+
+			/** @brief rebuilds the clip pointer from the current clip index. */
+			void RebuildClip();
+		};
 	}
 }

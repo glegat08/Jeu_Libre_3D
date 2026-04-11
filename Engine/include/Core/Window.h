@@ -165,5 +165,4 @@ namespace KGR
         lightData.dir = transform.GetLocalAxe<RotData::Dir::Forward>();
         m_core.RegisterLight(lightData);
     }
-
-} // namespace KGR
+}
