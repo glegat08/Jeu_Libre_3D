@@ -2,6 +2,8 @@
 #include "Tools/Chrono.h"
 #include <array>
 #include <random>
+#include "Components.h"
+#include "ts_ecs.h"
 
 glm::vec3 GetPlayerPosition(ecsType& registry)
 {
@@ -18,8 +20,12 @@ void LaserHitEnemies(ts::Scene& scene, ecsType& registry,
 {
     std::vector<std::pair<ts::Entity, glm::vec3>> toKill;
 
-    scene.Query<EnemyComponent, HealtComponent, MeshComponent, TransformComponent>()
-        .Each([&](ts::Entity e, EnemyComponent&, HealtComponent& hp, MeshComponent& mc, TransformComponent& tc)
+    scene.Query<HealtComponent, MeshComponent, TransformComponent>()
+        .Where([&](ts::Entity e, const HealtComponent& hp, const MeshComponent& mc, const TransformComponent& tc)
+            {
+                return scene.HasComponent<EnemyComponent>(e);
+            })
+        .Each([&](ts::Entity e, HealtComponent& hp, MeshComponent& mc, TransformComponent& tc)
             {
                 if (!RayAABB(origin, dir, ComputeWorldAABB(*mc.mesh, tc), maxDist))
                     return;
